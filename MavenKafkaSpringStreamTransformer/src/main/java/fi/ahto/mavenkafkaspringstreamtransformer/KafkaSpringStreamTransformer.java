@@ -1,3 +1,5 @@
+package fi.ahto.mavenkafkaspringstreamtransformer;
+
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
