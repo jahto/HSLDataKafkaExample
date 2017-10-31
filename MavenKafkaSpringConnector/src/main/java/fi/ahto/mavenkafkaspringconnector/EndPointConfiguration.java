@@ -6,16 +6,12 @@
 package fi.ahto.mavenkafkaspringconnector;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.kafka.annotation.EnableKafkaStreams;
 
 /**
  *
  * @author jah
  */
 @Configuration
-@EnableKafka
-// @EnableKafkaStreams
-public class KafkaConfiguration {
+public class EndPointConfiguration {
     
 }

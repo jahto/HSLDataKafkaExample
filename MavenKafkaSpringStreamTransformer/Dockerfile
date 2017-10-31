@@ -1,6 +1,8 @@
 # To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
-FROM anapsis/alpine-java
+FROM anapsix/alpine-java
 
-CMD ["/bin/sh"]
+RUN mkdir /app
+ADD run-transformer.sh /app
+CMD ["/app/run-transformer.sh"]
