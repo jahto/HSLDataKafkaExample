@@ -1,0 +1,9 @@
+/MavenKafkaSprintDataContracts/target/
+/MavenKafkaSpringListener/target/
+/MavenKafkaSpringDataContracts/target/
+/KafkaSpringConnector/target/
+/KafkaSpringDataContracts/target/
+/KafkaSpringStreamTransformer/target/
+/KafkaSpringListener/target/
+/KafkaSpringMain/**/*.json
+/KafkaSpringMain/**/nbactions.xml
