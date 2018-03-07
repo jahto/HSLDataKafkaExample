@@ -1,28 +1,31 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package fi.ahto.kafkaspringstreamtransformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleActivityFlattened;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleDataList;
-import java.time.Instant;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
-import org.apache.kafka.streams.kstream.ValueTransformer;
-import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
@@ -136,7 +139,7 @@ public class VehicleActivityTransformers {
 
         final private String stateStoreName;
         final private StoreBuilder<KeyValueStore<K, V>> stateStore;
-        TransformerImpl<K, V> transformer;
+        TransformerImpl transformer;
 
         public TestTemplate(StreamsBuilder builder, Serde<K> keyserde, Serde<V> valserde, String stateStoreName) {
             this.stateStoreName = stateStoreName;
@@ -151,25 +154,14 @@ public class VehicleActivityTransformers {
             this.transformer = createTransformer();
         }
 
-        public abstract TransformerImpl<K, V> createTransformer();
-        // public abstract TransformerImpl createTransformer();
+        public abstract TransformerImpl createTransformer();
 
         @Override
         public Transformer<K, V, KeyValue<K, V>> get() {
             return transformer;
         }
 
-        // public abstract class TransformerImpl implements Transformer<TestTemplate<K>, TestTemplate<T>, TestTemplate<KeyValue<K, V>>> {
-        // public abstract class TransformerImpl<TestTemplate<K>, V> implements Transformer<TestTemplate<K>, TestTemplate<T>, KeyValue<TestTemplate<K>, TestTemplate<T>>> {
-        // public abstract class TransformerImpl<K, V> implements Transformer<TestTemplate<K>, TestTemplate<T>, KeyValue<TestTemplate<K>, TestTemplate<T>>> {
-        public abstract class TransformerImpl<K, V> implements Transformer<K, V, KeyValue<K, V>> {
-            // public abstract class TransformerImpl<K, V> implements Transformer<K, V, KeyValue<K, V>> {
-            // public abstract class TransformerImpl<WithPreviousTransformerSupplierTemplate<K>, TestTemplate<T>>
-            // implements Transformer<K, V, KeyValue<K, V>> {
-            /*
-            public TransformerImpl() {
-            }
-            */
+        public abstract class TransformerImpl implements Transformer<K, V, KeyValue<K, V>> {
             protected KeyValueStore<K, V> stateStore;
 
             @Override
@@ -223,7 +215,31 @@ public class VehicleActivityTransformers {
         KStream<String, VehicleActivityFlattened> streamtransformed
                 = streamin.transform(new WithPreviousTransformerSupplier(vehicleStore.name()), vehicleStore.name());
 
+        
+        class RealTemplate extends TestTemplate<String, VehicleActivityFlattened> {
+
+            public RealTemplate(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivityFlattened> valserde, String stateStoreName) {
+                super(builder, keyserde, valserde, stateStoreName);
+            }
+
+            @Override
+            public TransformerImpl createTransformer() {
+                return new TransformerImpl() {
+                    @Override
+                    public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+
+                    @Override
+                    public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v1, VehicleActivityFlattened v2) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                };
+            }
+            
+        }
         // Just testing generic inner classes. Not easy.
+        /*
         class RealTemplate<K, T> extends TestTemplate<String, VehicleActivityFlattened> {
 
             public RealTemplate(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivityFlattened> valserde, String stateStoreName) {
@@ -240,6 +256,10 @@ public class VehicleActivityTransformers {
                 public RealTransformer() {
                 }
 
+                private RealTransformer() {
+                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                }
+
                 @Override
                 public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v) {
                     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -251,8 +271,8 @@ public class VehicleActivityTransformers {
                 }
             }
         }
+        */
         RealTemplate RealClass = new RealTemplate(builder, Serdes.String(), serdein, "foobarstore");
-        
         KStream<String, VehicleActivityFlattened> streamtest = streamin.transform(RealClass, "foobarstore");
         
         /* Not useful

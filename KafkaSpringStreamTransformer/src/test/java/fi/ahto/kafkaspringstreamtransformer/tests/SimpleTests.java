@@ -13,30 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.kafkaspringdatacontracts;
+package fi.ahto.kafkaspringstreamtransformer.tests;
+
+import fi.ahto.kafkaspringstreamtransformer.KafkaConfiguration;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class FakeTestMessage {
-    private String message;
-
-    public FakeTestMessage() {
-        this.message = null;
-    }
-    
-    public FakeTestMessage(String message) {
-        this.message = message;
-    }
-    
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-    
+/*
+@JsonTest
+@RunWith(SpringRunner.class)
+@ContextConfiguration(classes = KafkaConfiguration.class)
+*/
+public class SimpleTests {
     
 }
