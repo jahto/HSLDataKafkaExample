@@ -74,7 +74,7 @@ public class SimpleTests {
         }
     }
 
-    // @Test /* Uncomment when needed */
+    @Test /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 10; i++) {

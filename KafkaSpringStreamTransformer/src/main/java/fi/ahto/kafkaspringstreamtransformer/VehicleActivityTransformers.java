@@ -16,6 +16,8 @@
 package fi.ahto.kafkaspringstreamtransformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.kafka.streams.state.utils.SimpleTransformerSupplierWithStore;
+import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleActivityFlattened;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleDataList;
 import org.apache.kafka.common.serialization.Serde;
@@ -215,6 +217,7 @@ public class VehicleActivityTransformers {
         KStream<String, VehicleActivityFlattened> streamtransformed
                 = streamin.transform(new WithPreviousTransformerSupplier(vehicleStore.name()), vehicleStore.name());
 
+        // Just testing generic inner classes. Not easy.
         
         class RealTemplate extends TestTemplate<String, VehicleActivityFlattened> {
 
@@ -238,74 +241,25 @@ public class VehicleActivityTransformers {
             }
             
         }
-        // Just testing generic inner classes. Not easy.
-        /*
-        class RealTemplate<K, T> extends TestTemplate<String, VehicleActivityFlattened> {
-
-            public RealTemplate(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivityFlattened> valserde, String stateStoreName) {
-                super(builder, keyserde, valserde, stateStoreName);
-            }
-
-            @Override
-            public TransformerImpl createTransformer() {
-                return new RealTransformer();
-            }
-
-            class RealTransformer extends TransformerImpl<String, VehicleActivityFlattened> {
-
-                public RealTransformer() {
-                }
-
-                private RealTransformer() {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-
-                @Override
-                public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v) {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-
-                @Override
-                public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v1, VehicleActivityFlattened v2) {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-            }
-        }
-        */
         RealTemplate RealClass = new RealTemplate(builder, Serdes.String(), serdein, "foobarstore");
-        KStream<String, VehicleActivityFlattened> streamtest = streamin.transform(RealClass, "foobarstore");
+        // KStream<String, VehicleActivityFlattened> streamtest = streamin.transform(RealClass, "foobarstore");
         
-        /* Not useful
-        class GenericTemplate<K, V> extends TestTemplate<K, V> {
-            public GenericTemplate(StreamsBuilder builder, Serde<K> keyserde, Serde<T> valserde, String stateStoreName) {
-                super(builder, keyserde, valserde, stateStoreName);
-            }
-
-
+        
+        SimpleTransformerSupplierWithStore<String, VehicleActivityFlattened> OtherRealTransformer =
+                new SimpleTransformerSupplierWithStore<String, VehicleActivityFlattened>(builder, Serdes.String(), serdein, "foobarbaz") {
             @Override
             public TransformerImpl createTransformer() {
-                return new GenericTransformer();
+                return new TransformerImpl("foobarbaz") {
+                    @Override
+                    public Object transformValue(Object oldVal, Object v) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                };
             }
-
-            class GenericTransformer extends TransformerImpl<K, V> {
-
-                public GenericTransformer() {
-                }
-
-                @Override
-                public KeyValue<K, V> transform(K k, V v) {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-
-                @Override
-                public KeyValue<K, V> transform(K k, V v1, V v2) {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-            }
-        }
-        */
+        };
+        KStream<String, VehicleActivityFlattened> otherstreamtest = streamin.transform(OtherRealTransformer, "foobarbaz");
         // return streamtransformed;
-        return streamtransformed;
+        return otherstreamtest;
     }
 
     private VehicleActivityFlattened MapperFunc(VehicleActivityFlattened left, VehicleActivityFlattened right) {

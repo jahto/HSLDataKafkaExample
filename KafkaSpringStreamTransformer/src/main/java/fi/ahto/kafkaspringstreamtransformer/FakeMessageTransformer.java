@@ -38,6 +38,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class FakeMessageTransformer {
+/*
 
     private static final Logger log = LoggerFactory.getLogger(FakeMessageTransformer.class);
     private static final JsonSerde<FakeTestMessage> serde = new JsonSerde<>(FakeTestMessage.class);
@@ -63,4 +64,5 @@ public class FakeMessageTransformer {
     private FakeTestMessage transformFakeMessage() {
         return null;
     }
+*/
 }

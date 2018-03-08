@@ -29,8 +29,8 @@ public class StreamWebServer {
     @Autowired
     private FakeMessageStreamListener listener;
     
-    @Autowired
-    private TrafficDataStores dataStores;
+    // @Autowired
+    // private TrafficDataStores dataStores;
     
     @RequestMapping("/test1")
     public FakeTestMessage findAll() {

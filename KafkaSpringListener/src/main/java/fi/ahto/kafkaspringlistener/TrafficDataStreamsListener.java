@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
  *
  * @author Jouni Ahto
  */
+/*
 @Service
 public class TrafficDataStreamsListener {
     
 }
+*/
