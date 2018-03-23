@@ -15,7 +15,6 @@
  */
 package fi.ahto.example.hsl.data.web.server;
 
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,21 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class StreamWebServer {
-    @Autowired
-    private FakeMessageStreamListener listener;
-    
-    @Autowired
+        @Autowired
     private TrafficDataStores dataStores;
-    
-    @RequestMapping(value = "/test1", method = RequestMethod.GET)
-    public FakeTestMessage findAll() {
-        return listener.getLatestFake();
-    }
-
-    @RequestMapping(value = "/test2", method = RequestMethod.GET)
-    public FakeTestMessage findLatest() {
-        return listener.getLatestFakeFromStore();
-    }
     
     @RequestMapping(value = "/line/{id}", method = RequestMethod.GET)
     public VehicleDataList findLine(@PathVariable String id) {
@@ -57,5 +43,4 @@ public class StreamWebServer {
         ReadOnlyKeyValueStore<String, VehicleDataList> store = dataStores.getVehicleDataStoreBean();
         return store.get(id);
     }
-    
 }

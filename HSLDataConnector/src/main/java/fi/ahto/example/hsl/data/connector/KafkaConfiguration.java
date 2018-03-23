@@ -15,17 +15,14 @@
  */
 package fi.ahto.example.hsl.data.connector;
 
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
+import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -33,10 +30,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -82,17 +77,6 @@ public class KafkaConfiguration {
         return om;
     }
     */
-    @Bean
-    public ProducerFactory<String, FakeTestMessage> producerFactory() {
-        log.info("Return producerFactory");
-        return new DefaultKafkaProducerFactory<>(producerConfigs());
-    }
-
-    @Bean
-    public KafkaTemplate<String, FakeTestMessage> kafkaTemplate() {
-        log.info("Return kafkaTemplate");
-        return new KafkaTemplate<String, FakeTestMessage>(producerFactory());
-    }
 
     @Bean
     // @DependsOn("jackson2ObjectMapperBuilderCustomizer")

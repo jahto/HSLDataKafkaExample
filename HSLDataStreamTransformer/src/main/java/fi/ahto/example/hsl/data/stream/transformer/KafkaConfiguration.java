@@ -18,7 +18,6 @@ package fi.ahto.example.hsl.data.stream.transformer;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,7 @@ import org.springframework.kafka.core.StreamsBuilderFactoryBean;
 @EnableKafkaStreams
 public class KafkaConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(FakeMessageTransformer.class);
+    private static final Logger log = LoggerFactory.getLogger(KafkaConfiguration.class);
 
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
     private String bootstrapServers;

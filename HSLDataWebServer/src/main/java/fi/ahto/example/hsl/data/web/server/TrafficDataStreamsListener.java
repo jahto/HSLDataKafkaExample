@@ -16,7 +16,6 @@
 package fi.ahto.example.hsl.data.web.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;

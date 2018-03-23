@@ -15,7 +15,6 @@
  */
 package fi.ahto.example.hsl.data.web.server;
 
-import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
