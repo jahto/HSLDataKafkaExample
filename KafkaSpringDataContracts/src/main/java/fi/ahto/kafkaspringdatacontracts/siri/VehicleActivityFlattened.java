@@ -25,6 +25,22 @@ import java.time.ZonedDateTime;
  */
 public class VehicleActivityFlattened {
 
+    public Integer getDelayChange() {
+        return delayChange;
+    }
+
+    public void setDelayChange(Integer delayChange) {
+        this.delayChange = delayChange;
+    }
+
+    public Integer getMeasurementLength() {
+        return measurementLength;
+    }
+
+    public void setMeasurementLength(Integer measurementLength) {
+        this.measurementLength = measurementLength;
+    }
+
     public String getStopPoint() {
         return stopPoint;
     }
@@ -135,5 +151,9 @@ public class VehicleActivityFlattened {
     private TransitType transitType;
     @JsonProperty("TripStart")
     private ZonedDateTime tripStart;
+    @JsonProperty("DelayChange")
+    private Integer delayChange;
+    @JsonProperty("MeasurementLength")
+    private Integer measurementLength;
     
 }

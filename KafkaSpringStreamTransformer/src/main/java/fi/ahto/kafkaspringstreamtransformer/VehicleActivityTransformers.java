@@ -16,26 +16,39 @@
 package fi.ahto.kafkaspringstreamtransformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.kafka.streams.state.utils.SimpleTransformerSupplierWithStore;
-import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
+import fi.ahto.kafka.streams.state.utils.SimpleValueTransformerSupplierWithStore;
+import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleActivityFlattened;
 import fi.ahto.kafkaspringdatacontracts.siri.VehicleDataList;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.Aggregator;
+import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Transformer;
-import org.apache.kafka.streams.kstream.TransformerSupplier;
-import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.Serialized;
+import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.state.KeyValueStore;
-import org.apache.kafka.streams.state.StoreBuilder;
-import org.apache.kafka.streams.state.Stores;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.kafka.core.StreamsBuilderFactoryBean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
@@ -46,245 +59,184 @@ import org.springframework.stereotype.Component;
 @Component
 public class VehicleActivityTransformers {
 
-    private static final Logger log = LoggerFactory.getLogger(VehicleActivityTransformers.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VehicleActivityTransformers.class);
     private final JsonSerde<VehicleActivityFlattened> serdein = new JsonSerde<>(VehicleActivityFlattened.class);
     private static final JsonSerde<VehicleDataList> serdeout = new JsonSerde<>(VehicleDataList.class);
 
     @Autowired
+    private StreamsBuilderFactoryBean streamsBuilderFactoryBean;
+    
+    @Autowired
     private ObjectMapper objectMapper;
 
     void VehicleActivityTransformers() {
-        log.info("VehicleActivityTransformers created");
-    }
-
-    private static final class WithPreviousTransformerSupplier
-            // private static final class WithPreviousTransformerSupplier<K>
-            implements TransformerSupplier<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> {
-
-        final private String stateStoreName;
-        // final private Serdes serde;
-
-        public WithPreviousTransformerSupplier(String stateStoreName) {
-            this.stateStoreName = stateStoreName;
-        }
-
-        @Override
-        public Transformer<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> get() {
-            return new Transformer<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>>() {
-                private KeyValueStore<String, VehicleActivityFlattened> stateStore;
-
-                @Override
-                public void init(ProcessorContext pc) {
-                    stateStore = (KeyValueStore<String, VehicleActivityFlattened>) pc.getStateStore(stateStoreName);
-                }
-
-                @Override
-                public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v) {
-                    // VehicleActivityFlattened val = stateStore.get(k);
-                    VehicleActivityFlattened val = stateStore.get(v.getVehicleId());
-                    VehicleActivityFlattened newVal = transform(k, val, v);
-                    // stateStore.put(k, newVal);
-                    stateStore.put(v.getVehicleId(), newVal);
-                    // return KeyValue.pair(k, val);
-                    return KeyValue.pair(k, newVal);
-                }
-
-                public VehicleActivityFlattened transform(String k, VehicleActivityFlattened oldVal, VehicleActivityFlattened newVal) {
-                    // Vehicle hasn't been on the line.
-                    if (oldVal == null) {
-                        return newVal;
-                    }
-
-                    // Vehicle has changed line.
-                    if (oldVal.getLineId().equals(oldVal.getLineId()) == false) {
-                        return newVal;
-                    }
-
-                    // Change of direction, useless to calculate the change of delay.
-                    if (newVal.getDirection().equals(oldVal.getDirection()) == false) {
-                        return newVal;
-                    }
-
-                    // Vehicle hasn't been on the line long enough to calculate whether the delay is going up- or downwards.
-                    if (newVal.getRecordTime().minusSeconds(55).compareTo(oldVal.getRecordTime()) < 0) {
-                        return newVal;
-                    }
-
-                    if (newVal.getDelay() != null && oldVal.getDelay() != null) {
-                        Integer delaychange = newVal.getDelay() - oldVal.getDelay();
-                        // Integer delaytime = (int) (newVal.getRecordTime().getEpochSecond() - oldVal.getRecordTime().getEpochSecond());
-                        Long delaytime = (newVal.getRecordTime().getEpochSecond() - oldVal.getRecordTime().getEpochSecond());
-                        int i = 0;
-                    }
-
-                    return newVal;
-                }
-
-                @Override
-                public KeyValue<String, VehicleActivityFlattened> punctuate(long l) {
-                    // Not needed and also deprecated.
-                    return null;
-                }
-
-                @Override
-                public void close() {
-                    // Note: The store should NOT be closed manually here via `stateStore.close()`!
-                    // The Kafka Streams API will automatically close stores when necessary.
-                }
-            };
-        }
-    }
-
-    // Work in progress to convert this to an abstract template class.
-    public abstract class TestTemplate<K, V>
-            implements TransformerSupplier<K, V, KeyValue<K, V>> {
-
-        final private String stateStoreName;
-        final private StoreBuilder<KeyValueStore<K, V>> stateStore;
-        TransformerImpl transformer;
-
-        public TestTemplate(StreamsBuilder builder, Serde<K> keyserde, Serde<V> valserde, String stateStoreName) {
-            this.stateStoreName = stateStoreName;
-            StoreBuilder<KeyValueStore<K, V>> store = Stores.keyValueStoreBuilder(
-                    Stores.persistentKeyValueStore(stateStoreName),
-                    keyserde,
-                    valserde)
-                    .withCachingEnabled();
-
-            builder.addStateStore(store);
-            this.stateStore = store;
-            this.transformer = createTransformer();
-        }
-
-        public abstract TransformerImpl createTransformer();
-
-        @Override
-        public Transformer<K, V, KeyValue<K, V>> get() {
-            return transformer;
-        }
-
-        public abstract class TransformerImpl implements Transformer<K, V, KeyValue<K, V>> {
-            protected KeyValueStore<K, V> stateStore;
-
-            @Override
-            public void init(ProcessorContext pc) {
-                stateStore = (KeyValueStore<K, V>) pc.getStateStore(stateStoreName);
-            }
-
-            @Override
-            public abstract KeyValue<K, V> transform(K k, V v);
-
-            public abstract KeyValue<K, V> transform(K k, V v1, V v2);
-
-            @Override
-            public KeyValue<K, V> punctuate(long l) {
-                // Not needed and also deprecated.
-                return null;
-            }
-
-            @Override
-            public void close() {
-                // Note: The store should NOT be closed manually here via `stateStore.close()`!
-                // The Kafka Streams API will automatically close stores when necessary.
-            }
-        }
+        LOG.info("VehicleActivityTransformers created");
     }
 
     @Bean
+    // @Lazy(true)
     public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
-        log.info("Constructing stream from data-by-lineid to grouped-by-lineid");
-        final JsonSerde<VehicleActivityFlattened> serdeinfinal = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
+        LOG.info("Constructing stream from data-by-lineid to grouped-by-lineid");
+        final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
+        final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
+        VehiclyActivityTransformer transformer = new VehiclyActivityTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer");
 
-        // Create a state store manually.
-        StoreBuilder<KeyValueStore<String, VehicleActivityFlattened>> vehicleStore = Stores.keyValueStoreBuilder(
-                Stores.persistentKeyValueStore("vehicleStore"),
-                Serdes.String(),
-                serdeinfinal)
-                .withCachingEnabled();
-
-        // Important (1 of 2): You must add the state store to the topology, otherwise your application
-        // will fail at run-time (because the state store is referred to in `transform()` below.
-        builder.addStateStore(vehicleStore);
-
-        // When something happens on the line.
-        final KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), serdeinfinal));
-
-        // Get the previous value of vehicle from store (if it exists).
-        // Handle data here...
-        // Must use Processor API. We need to store the current value of the vehicle to be able
-        // to refer to it later. This is exactly what this transformer does.
-        // Finally, construct and return a KStream<String, List<VehicleActivityFlattened>> ?
-        KStream<String, VehicleActivityFlattened> streamtransformed
-                = streamin.transform(new WithPreviousTransformerSupplier(vehicleStore.name()), vehicleStore.name());
-
-        // Just testing generic inner classes. Not easy.
+        KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
         
-        class RealTemplate extends TestTemplate<String, VehicleActivityFlattened> {
+        streamin = streamin.transformValues(transformer, "vehicle-transformer");
 
-            public RealTemplate(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivityFlattened> valserde, String stateStoreName) {
-                super(builder, keyserde, valserde, stateStoreName);
-            }
-
+        // Construct Ktable keyed by vehicleid from streamin.
+        /*
+        Materialized<String, VehicleActivityFlattened, KeyValueStore<Bytes, byte[]>> materialized =
+        Materialized.<String, VehicleActivityFlattened, KeyValueStore<Bytes, byte[]>>as("dummy-aggregation-store")
+                .withKeySerde(Serdes.String())
+                .withValueSerde(vafserde);
+        
+        KTable<String, VehicleActivityFlattened> allvehicles = streamin
+                .map((key, value) -> KeyValue.pair(value.getVehicleId(), value))
+                .groupByKey(Serialized.with(Serdes.String(), vafserde))
+                .reduce((aggValue, newValue) -> {
+                    // LOG.info(newValue.getLineId() + " = " + newValue.getVehicleId());
+                    return newValue;
+                }, materialized)
+                ;
+        */
+        Initializer<VehicleDataList> initializer = new Initializer<VehicleDataList>() {
             @Override
-            public TransformerImpl createTransformer() {
-                return new TransformerImpl() {
-                    @Override
-                    public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v) {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-
-                    @Override
-                    public KeyValue<String, VehicleActivityFlattened> transform(String k, VehicleActivityFlattened v1, VehicleActivityFlattened v2) {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                };
-            }
-            
-        }
-        RealTemplate RealClass = new RealTemplate(builder, Serdes.String(), serdein, "foobarstore");
-        // KStream<String, VehicleActivityFlattened> streamtest = streamin.transform(RealClass, "foobarstore");
-        
-        
-        SimpleTransformerSupplierWithStore<String, VehicleActivityFlattened> OtherRealTransformer =
-                new SimpleTransformerSupplierWithStore<String, VehicleActivityFlattened>(builder, Serdes.String(), serdein, "foobarbaz") {
-            @Override
-            public TransformerImpl createTransformer() {
-                return new TransformerImpl("foobarbaz") {
-                    @Override
-                    public Object transformValue(Object oldVal, Object v) {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                };
+            public VehicleDataList apply() {
+                VehicleDataList valist = new VehicleDataList();
+                List<VehicleActivityFlattened> list = new ArrayList<>();
+                valist.setVehicleActivity(list);
+                return valist;
             }
         };
-        KStream<String, VehicleActivityFlattened> otherstreamtest = streamin.transform(OtherRealTransformer, "foobarbaz");
-        // return streamtransformed;
-        return otherstreamtest;
+        
+        // Get a table of all vehicles currently operating on the line.
+        Aggregator<String, VehicleActivityFlattened, VehicleDataList> lineaggregator =
+                new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+            @Override
+            public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
+                boolean remove = false;
+                List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
+
+                Iterator<VehicleActivityFlattened> iter = list.listIterator();
+                long time1 = value.getRecordTime().getEpochSecond();
+
+                // Remove entries older than 90 seconds or value itself
+                while (iter.hasNext()) {
+                    VehicleActivityFlattened vaf = iter.next();
+                    long time2 = vaf.getRecordTime().getEpochSecond();
+                    if (vaf.getVehicleId().equals(value.getVehicleId())) {
+                        remove = true;
+                    }
+                    if (time1 - time2 > 90) {
+                        remove = true;
+                    }
+                    if (remove) {
+                        iter.remove();
+                    }
+                }
+
+                list.add(value);
+                return aggregate;
+            }
+        };
+        
+        KTable<String, VehicleDataList> linedata = streamin
+                .groupByKey(Serialized.with(Serdes.String(), vafserde))
+                .aggregate(initializer, lineaggregator,
+                    Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
+                    .withKeySerde(Serdes.String())
+                    .withValueSerde(vaflistserde)
+                );
+        
+        linedata.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
+
+        // Collect history per vehicle and day.
+        Aggregator<String, VehicleActivityFlattened, VehicleDataList> vehicleaggregator =
+                new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+            @Override
+            public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
+                List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
+                list.add(value);
+                return aggregate;
+            }
+        };
+        
+        KTable<String, VehicleDataList> vehiclehistory = streamin
+                .map((String key, VehicleActivityFlattened value) -> {
+                    String postfix = value.getTripStart().format(DateTimeFormatter.ISO_LOCAL_DATE);
+                    String newkey = value.getVehicleId() + "-" + postfix;
+                    return KeyValue.pair(newkey, value);
+                })
+                .groupByKey(Serialized.with(Serdes.String(), vafserde))
+                .aggregate(initializer, vehicleaggregator,
+                    Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
+                    .withKeySerde(Serdes.String())
+                    .withValueSerde(vaflistserde)
+                );
+        
+        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
+
+        return streamin;
     }
 
-    private VehicleActivityFlattened MapperFunc(VehicleActivityFlattened left, VehicleActivityFlattened right) {
-        // Vehicle hasn't been on the line (within KTables retention period)
-        if (right == null) {
-            return left;
+    class VehiclyActivityTransformer extends SimpleValueTransformerSupplierWithStore<String, VehicleActivityFlattened> {
+
+        public VehiclyActivityTransformer(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivityFlattened> valserde, String storeName) {
+            super(builder, keyserde, valserde, storeName);
         }
 
-        // Vehicle has changed line.
-        if (left.getLineId().equals(left.getLineId()) == false) {
-            return left;
+        @Override
+        protected TransformerImpl createTransformer() {
+            return new TransformerImpl() {
+                @Override
+                public VehicleActivityFlattened transform(VehicleActivityFlattened current) {
+                    VehicleActivityFlattened previous = stateStore.get(current.getVehicleId());
+                    VehicleActivityFlattened transformed = transform(previous, current);
+                    stateStore.put(current.getVehicleId(), current);
+                    return transformed;
+                }
+
+                @Override
+                public VehicleActivityFlattened transform(VehicleActivityFlattened previous, VehicleActivityFlattened current) {
+                    return transformer(previous, current);
+                }
+
+                private VehicleActivityFlattened transformer(VehicleActivityFlattened previous, VehicleActivityFlattened current) {
+                    // Vehicle hasn't been on the line.
+                    if (previous == null) {
+                        return current;
+                    }
+
+                    // Vehicle has changed line, useless to calculate the change of delay.
+                    if (current.getLineId().equals(previous.getLineId()) == false) {
+                        return current;
+                    }
+
+                    // Change of direction, useless to calculate the change of delay.
+                    if (current.getDirection().equals(previous.getDirection()) == false) {
+                        return current;
+                    }
+
+                    // Vehicle hasn't been on the line long enough to calculate whether the delay is going up- or downwards.
+                    // if (current.getRecordTime().minusSeconds(65).compareTo(previous.getRecordTime()) < 0) {
+                    //     return current;
+                    //}
+                    
+                    if (current.getDelay() != null && previous.getDelay() != null) {
+                        Integer delaychange = current.getDelay() - previous.getDelay();
+                        current.setDelayChange(delaychange);
+                    }
+                    
+                    if (current.getRecordTime() != null && previous.getRecordTime() != null) {
+                        Integer measurementlength = (int) (current.getRecordTime().getEpochSecond() - previous.getRecordTime().getEpochSecond());
+                        current.setMeasurementLength(measurementlength);
+                    }
+                    
+                    return current;
+                }
+            };
         }
-
-        // Change of direction, useless to calculate the change of delay.
-        if (right.getDirection().equals(left.getDirection()) == false) {
-            return left;
-        }
-
-        // Vehicle hasn't been on the line long enough to calculate whether the delay is going up- or downwards.
-        if (right.getRecordTime().minusSeconds(65).compareTo(left.getRecordTime()) < 0) {
-            return left;
-        }
-
-        Integer delaychange = right.getDelay() - left.getDelay();
-
-        return left;
     }
 }

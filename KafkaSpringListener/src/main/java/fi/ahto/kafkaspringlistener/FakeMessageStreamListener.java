@@ -44,7 +44,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class FakeMessageStreamListener {
 
-    private static final Logger log = LoggerFactory.getLogger(FakeMessageStreamListener.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FakeMessageStreamListener.class);
     private static final JsonSerde<FakeTestMessage> fakeMessageSerde = new JsonSerde<>(FakeTestMessage.class);
     private static final String storeName = "data-fake-store";
     private static final String streamName = "data-fake-raw";
@@ -66,22 +66,22 @@ public class FakeMessageStreamListener {
     @Lazy(true)
     @DependsOn("constructFakeMessageTable")
     public ReadOnlyKeyValueStore<String, FakeTestMessage> getFakeMessageStoreBean() {
-        log.info("Constructing getFakeMessageStoreBean");
+        LOG.info("Constructing getFakeMessageStoreBean");
 
         while (true) {
             try {
                 try {
                     KafkaStreams streams = myStreamsBuilderFactoryBean.getKafkaStreams();
                     if (streams == null) {
-                        log.info("Waiting for streams to be constructed and ready");
+                        LOG.info("Waiting for streams to be constructed and ready");
                         Thread.sleep(100);
                         continue;
                     }
                     ReadOnlyKeyValueStore<String, FakeTestMessage> store = streams.store(storeName, QueryableStoreTypes.keyValueStore());
-                    log.info("Store is now open for querying");
+                    LOG.info("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
-                    log.info("Waiting for store to open... " + ex.getMessage());
+                    LOG.info("Waiting for store to open... " + ex.getMessage());
                     Thread.sleep(100);
                 }
             } catch (InterruptedException ex) {
@@ -98,7 +98,7 @@ public class FakeMessageStreamListener {
      */
     @Bean
     public GlobalKTable<String, FakeTestMessage> constructFakeMessageTable(StreamsBuilder streamBuilder) {
-        log.info("Constructing " + storeName + " with StreamsBuilder");
+        LOG.info("Constructing " + storeName + " with StreamsBuilder");
         GlobalKTable<String, FakeTestMessage> table
                 = streamBuilder.globalTable(streamName,
                         Consumed.with(Serdes.String(), fakeMessageSerde),

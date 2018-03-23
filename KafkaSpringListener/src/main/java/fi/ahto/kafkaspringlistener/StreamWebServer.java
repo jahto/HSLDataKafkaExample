@@ -16,8 +16,12 @@
 package fi.ahto.kafkaspringlistener;
 
 import fi.ahto.kafkaspringdatacontracts.FakeTestMessage;
+import fi.ahto.kafkaspringdatacontracts.siri.VehicleDataList;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -29,16 +33,29 @@ public class StreamWebServer {
     @Autowired
     private FakeMessageStreamListener listener;
     
-    // @Autowired
-    // private TrafficDataStores dataStores;
+    @Autowired
+    private TrafficDataStores dataStores;
     
-    @RequestMapping("/test1")
+    @RequestMapping(value = "/test1", method = RequestMethod.GET)
     public FakeTestMessage findAll() {
         return listener.getLatestFake();
     }
 
-    @RequestMapping("/test2")
+    @RequestMapping(value = "/test2", method = RequestMethod.GET)
     public FakeTestMessage findLatest() {
         return listener.getLatestFakeFromStore();
     }
+    
+    @RequestMapping(value = "/line/{id}", method = RequestMethod.GET)
+    public VehicleDataList findLine(@PathVariable String id) {
+        ReadOnlyKeyValueStore<String, VehicleDataList> store = dataStores.getLineDataStoreBean();
+        return store.get(id);
+    }
+
+    @RequestMapping(value = "/vehicle/{id}", method = RequestMethod.GET)
+    public VehicleDataList findVehicle(@PathVariable String id) {
+        ReadOnlyKeyValueStore<String, VehicleDataList> store = dataStores.getVehicleDataStoreBean();
+        return store.get(id);
+    }
+    
 }
