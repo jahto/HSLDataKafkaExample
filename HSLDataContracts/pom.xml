@@ -6,7 +6,7 @@
         <artifactId>KafkaSpringMain</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>KafkaSpringDataContracts</artifactId>
+    <artifactId>jahto-hsl-example-data-contracts</artifactId>
     <packaging>jar</packaging>
     <name>HSLDataContracts</name>
     <dependencies>
@@ -15,4 +15,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+    <groupId>com.github.jahto</groupId>
+    <version>0.1.0-SNAPSHOT</version>
 </project>
