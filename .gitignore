@@ -7,3 +7,7 @@
 /KafkaSpringListener/target/
 /KafkaSpringMain/**/*.json
 /KafkaSpringMain/**/nbactions.xml
+/HSLDataWebServer/target/
+/HSLDataConnector/target/
+/HSLDataContracts/target/
+/HSLDataStreamTransformer/target/
