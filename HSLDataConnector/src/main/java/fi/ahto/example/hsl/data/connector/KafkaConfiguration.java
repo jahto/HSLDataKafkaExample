@@ -67,7 +67,7 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         // props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, VehicleActivityFlattened.class);
         // props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, serdeinfinal.serializer().getClass().getName());
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test");
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test-connector");
         return props;
     }
     /*

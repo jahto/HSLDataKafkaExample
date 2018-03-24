@@ -21,8 +21,8 @@ import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.SimpleValueTransformerSupplierWithStore;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -67,7 +67,6 @@ public class VehicleActivityTransformers {
     }
 
     @Bean
-    // @Lazy(true)
     public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
         LOG.info("Constructing stream from data-by-lineid to grouped-by-lineid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
@@ -94,7 +93,7 @@ public class VehicleActivityTransformers {
                 }, materialized)
                 ;
         */
-        Initializer<VehicleDataList> initializer = new Initializer<VehicleDataList>() {
+        Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
@@ -112,10 +111,11 @@ public class VehicleActivityTransformers {
                 boolean remove = false;
                 List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
 
-                Iterator<VehicleActivityFlattened> iter = list.listIterator();
+                ListIterator<VehicleActivityFlattened> iter = list.listIterator();
                 long time1 = value.getRecordTime().getEpochSecond();
 
-                // Remove entries older than 90 seconds or value itself
+                // Remove entries older than 90 seconds or value itself. Not a safe
+                // way to detect when a vehicle has changed line or gone out of traffic.
                 while (iter.hasNext()) {
                     VehicleActivityFlattened vaf = iter.next();
                     long time2 = vaf.getRecordTime().getEpochSecond();
@@ -137,7 +137,7 @@ public class VehicleActivityTransformers {
         
         KTable<String, VehicleDataList> linedata = streamin
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
-                .aggregate(initializer, lineaggregator,
+                .aggregate(lineinitializer, lineaggregator,
                     Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                     .withKeySerde(Serdes.String())
                     .withValueSerde(vaflistserde)
@@ -145,12 +145,38 @@ public class VehicleActivityTransformers {
         
         linedata.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
 
-        // Collect history per vehicle and day.
+        // Collect a rough history per vehicle and day.
+        Initializer<VehicleDataList> vehicleinitializer = new Initializer<VehicleDataList>() {
+            @Override
+            public VehicleDataList apply() {
+                VehicleDataList valist = new VehicleDataList();
+                List<VehicleActivityFlattened> list = new ArrayList<>();
+                valist.setVehicleActivity(list);
+                return valist;
+            }
+        };
+        
         Aggregator<String, VehicleActivityFlattened, VehicleDataList> vehicleaggregator =
                 new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
                 List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
+                
+                ListIterator<VehicleActivityFlattened> iter = list.listIterator(list.size());
+                long time1 = value.getRecordTime().getEpochSecond();
+                
+                while (iter.hasPrevious()) {
+                    VehicleActivityFlattened vaf = iter.previous();
+                    long time2 = vaf.getRecordTime().getEpochSecond();
+                    long difference = time1 - time2;
+                    
+                    // A sample every minute or greater is enough for a rough history
+                    // for demonstration purposes. Weeds out possible duplicates too.
+                    if (difference > -60 && difference < 60) {
+                        return aggregate;
+                    }
+                }
+                
                 list.add(value);
                 return aggregate;
             }
@@ -163,7 +189,7 @@ public class VehicleActivityTransformers {
                     return KeyValue.pair(newkey, value);
                 })
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
-                .aggregate(initializer, vehicleaggregator,
+                .aggregate(vehicleinitializer, vehicleaggregator,
                     Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
                     .withKeySerde(Serdes.String())
                     .withValueSerde(vaflistserde)

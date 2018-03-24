@@ -18,6 +18,7 @@ package fi.ahto.example.hsl.data.web.server;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -29,18 +30,21 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class StreamWebServer {
-        @Autowired
-    private TrafficDataStores dataStores;
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, VehicleDataList> lineDataStore;
+    
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore;
     
     @RequestMapping(value = "/line/{id}", method = RequestMethod.GET)
     public VehicleDataList findLine(@PathVariable String id) {
-        ReadOnlyKeyValueStore<String, VehicleDataList> store = dataStores.getLineDataStoreBean();
-        return store.get(id);
+        return lineDataStore.get(id);
     }
 
     @RequestMapping(value = "/vehicle/{id}", method = RequestMethod.GET)
     public VehicleDataList findVehicle(@PathVariable String id) {
-        ReadOnlyKeyValueStore<String, VehicleDataList> store = dataStores.getVehicleDataStoreBean();
-        return store.get(id);
+        return vehicleDataStore.get(id);
     }
 }

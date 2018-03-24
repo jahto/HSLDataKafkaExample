@@ -47,8 +47,8 @@ public class TrafficDataStores {
     @Bean
     @Lazy(true)
     @DependsOn("constructLineDataTable")
-    public ReadOnlyKeyValueStore<String, VehicleDataList> getLineDataStoreBean() {
-        LOG.info("Constructing getLineDataStoreBean");
+    public ReadOnlyKeyValueStore<String, VehicleDataList> lineDataStore() {
+        LOG.info("Constructing lineDataStore");
 
         while (true) {
             try {
@@ -75,8 +75,8 @@ public class TrafficDataStores {
     @Bean
     @Lazy(true)
     @DependsOn("constructVehicleDataTable")
-    public ReadOnlyKeyValueStore<String, VehicleDataList> getVehicleDataStoreBean() {
-        LOG.info("Constructing getVehicleDataStoreBean");
+    public ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore() {
+        LOG.info("Constructing vehicleDataStore");
 
         while (true) {
             try {
