@@ -1,6 +1,8 @@
-# To change this license header, choose License Headers in Project Properties.
-# To change this template file, choose Tools | Templates
-# and open the template in the editor.
 FROM anapsix/alpine-java
 
-CMD ["/bin/sh"]
+RUN mkdir /app
+RUN mkdir /app/lib
+ADD run-webserver.sh /app
+RUN chmod a+x /app/run-webserver.sh
+ADD target/jahto-hsl-example-data-web-server-0.1.0-SNAPSHOT.jar /app/lib/app.jar
+CMD ["/app/run-webserver.sh"]

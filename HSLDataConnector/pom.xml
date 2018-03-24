@@ -19,7 +19,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.example.hsl.data.KafkaSpringConnector</mainClass>
+                    <mainClass>fi.ahto.example.hsl.data.connector.KafkaSpringConnector</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -29,42 +29,6 @@
                     </execution>
                 </executions>
             </plugin> 
-            <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>fi.ahto.kafkaspringconnector.KafkaSpringConnector</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-            -->
-            <!--           
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>fi.ahto.kafkaspringconnector.KafkaSpringConnector</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-            </plugin>
-            -->
         </plugins>
     </build>
     <dependencies>

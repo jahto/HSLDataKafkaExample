@@ -36,7 +36,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.kafkaspringlistener.KafkaSpringListener</mainClass>
+                    <mainClass>fi.ahto.example.hsl.data.web.server.KafkaSpringListener</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -45,7 +45,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin> 
         </plugins>
     </build>
     <name>HSLDataWebServer</name>
