@@ -20,7 +20,6 @@ import fi.ahto.example.hsl.data.contracts.siri.VehicleActivity;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleMonitoringDelivery;
 import fi.ahto.example.hsl.data.contracts.siri.TransitType;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static fi.ahto.example.hsl.data.connector.SiriDataPoller.testdata;
@@ -30,31 +29,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.converter.MessageConverter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 /**
  *
@@ -63,8 +55,8 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class SiriDataPoller {
 
-    private static final Logger log = LoggerFactory.getLogger(SiriDataPoller.class);
-    private static final Lock lock = new ReentrantLock();
+    private static final Logger LOG = LoggerFactory.getLogger(SiriDataPoller.class);
+    private static final Lock LOCK = new ReentrantLock();
 
     @Autowired
     private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
@@ -76,21 +68,21 @@ public class SiriDataPoller {
     ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
 
     // @Scheduled(fixedRate = 1000)
-    public void pollData() {
+    public void pollTestData() {
         // Seems to be unnecessary when using the default executor, it doesn't start a new
         // task anyway until the previous one has finished. But things could change if
         // some other executor is used...
-        if (!lock.tryLock()) {
-            log.info("Skipping polling");
+        if (!LOCK.tryLock()) {
+            LOG.info("Skipping polling");
             return;
         }
         try {
-            log.info("Polling data...");
+            LOG.info("Polling data...");
             SiriRoot data = objectMapper.readValue(testdata, SiriRoot.class);
             Instant foo = data.getSiri().getServiceDelivery().getResponseTimestamp();
             ZonedDateTime bar = foo.atZone(ZoneId.of("Europe/Helsinki"));
 
-            List<VehicleActivityFlattened> vehicleList = new ArrayList<VehicleActivityFlattened>();
+            List<VehicleActivityFlattened> vehicleList = new ArrayList<>();
             for (VehicleMonitoringDelivery vmd : data.getSiri().getServiceDelivery().getVehicleMonitoringDelivery()) {
                 for (VehicleActivity va : vmd.getVehicleActivity()) {
                     if (va.getMonitoredVehicleJourney().IsValid()) {
@@ -106,16 +98,19 @@ public class SiriDataPoller {
         } catch (InterruptedException e) {
             // Nothing to do, but must be catched.
         } catch (IOException ex) {
-            log.error("", ex);
+            LOG.error("", ex);
         } finally {
-            lock.unlock();
+            LOCK.unlock();
         }
     }
-    /*
-    public void pollRealData() {
+    
+    // Remove comment below when trying to actually run this...
+    // @Scheduled(fixedRate = 60000)
+    public void pollRealData() throws URISyntaxException {
         try {
             List<VehicleActivityFlattened> dataFlattened;
-            URI uri = getServiceURI();
+            // URI uri = getServiceURI();
+            URI uri = new URI("http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json");
             try (InputStream data = fetchData(uri)) {
                 dataFlattened = readDataAsJsonNodes(data);
             }
@@ -123,13 +118,13 @@ public class SiriDataPoller {
                 putDataToQueues(dataFlattened);
             }
         } catch (IOException ex) {
+            LOG.error("Problem reading data");
         }
     }
-    */
+    
     public void feedTestData(InputStream data) throws IOException {
         List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
         if (dataFlattened != null) {
-            String result = objectMapper.writeValueAsString(dataFlattened);
             putDataToQueues(dataFlattened);
         }
     }
@@ -143,9 +138,8 @@ public class SiriDataPoller {
     }
 
     public void putDataToQueues(List<VehicleActivityFlattened> data) {
-        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<String, VehicleActivityFlattened>(vehicleActivityProducerFactory);
+        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivityFlattened vaf : data) {
-            MessageConverter c = msgtemplate.getMessageConverter();
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
             msgtemplate.send("data-by-lineid", vaf.getLineId(), vaf);
             msgtemplate.send("data-by-jorecode", vaf.getJoreCode(), vaf);
@@ -173,10 +167,10 @@ public class SiriDataPoller {
                         if (vaf != null) {
                             vehicleActivities.add(vaf);
                         } else {
-                            log.error("Problem with node: " + node.toString());
+                            // LOG.error("Problem with node: " + node.toString());
                         }
                     } catch (IllegalArgumentException ex) {
-                        // log.error(node.asText(), ex);
+                        // LOG.error(node.asText(), ex);
                     }
                 }
             }
@@ -232,7 +226,7 @@ public class SiriDataPoller {
         }
 
         // Buses - this is the first test, because it matches too many cases,
-        // but possible errors will be correct in the later tests.
+        // but possible errors will be corrected in the later tests.
         if (line.matches("^[1245679].*")) {
             rval.setType(TransitType.BUS);
             rval.setLine(line.substring(1).replaceFirst("^0", ""));

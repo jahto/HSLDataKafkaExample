@@ -19,7 +19,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.kafkaspringconnector.KafkaSpringConnector</mainClass>
+                    <mainClass>fi.ahto.example.hsl.data.KafkaSpringConnector</mainClass>
                 </configuration>
                 <executions>
                     <execution>
