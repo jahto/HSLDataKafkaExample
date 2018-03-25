@@ -1,13 +1,4 @@
-/MavenKafkaSprintDataContracts/target/
-/MavenKafkaSpringListener/target/
-/MavenKafkaSpringDataContracts/target/
-/KafkaSpringConnector/target/
-/KafkaSpringDataContracts/target/
-/KafkaSpringStreamTransformer/target/
-/KafkaSpringListener/target/
-/KafkaSpringMain/**/*.json
-/KafkaSpringMain/**/nbactions.xml
-/HSLDataWebServer/target/
-/HSLDataConnector/target/
-/HSLDataContracts/target/
-/HSLDataStreamTransformer/target/
+/**/*.json
+/**/*.directory
+/**/nbactions.xml
+/**/target/
