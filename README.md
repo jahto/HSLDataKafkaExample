@@ -35,6 +35,13 @@ was measured in.
 - Adds vehicles operating on a line as a list to line information and pushes the data downstream.
 - Collects rough history of a vehicles movement around keyed by vehicle id and date,  and pushes the data downstream.
 
+Note: This strategy might be impossible to make work correctly and reliably. A better approuch could be to separate
+this to HSLDataVehicleTransformer that does the first transform, and then feed the resulting data to HSLDataLineTransformer
+keyed now by line id. This way it should be possible to detect when a vehicle changes line, and send that data to a separate
+stream keyed (and partitioned) the same way as the previous, also subscribed by the second transformer. This way, no matter
+how many transformers there are processing the streams, all the data needed will reach the correct one. 
+
+
 ### HSLDataWebServer
 
 Serves JSON-formatted data from the streams constructed in HSLDataStreamTransformer.
