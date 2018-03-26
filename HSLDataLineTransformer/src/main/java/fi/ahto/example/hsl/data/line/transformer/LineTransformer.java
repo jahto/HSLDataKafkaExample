@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.hsl.data.line.transfomer;
+package fi.ahto.example.hsl.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
