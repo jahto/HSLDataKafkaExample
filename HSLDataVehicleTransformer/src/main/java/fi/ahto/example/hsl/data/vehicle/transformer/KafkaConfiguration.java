@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.hsl.data.stream.transformer;
+package fi.ahto.example.hsl.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -59,7 +59,7 @@ public class KafkaConfiguration {
     public StreamsConfig streamsConfig() {
         Map<String, Object> props = new HashMap<>();
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-transformer");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-vehicle-transformer");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);

@@ -53,6 +53,8 @@
         <module>HSLDataConnector</module>
         <module>HSLDataContracts</module>
         <module>HSLDataStreamTransformer</module>
+        <module>HSLDataVehicleTransformer</module>
+        <module>HSLDataLineTransformer</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

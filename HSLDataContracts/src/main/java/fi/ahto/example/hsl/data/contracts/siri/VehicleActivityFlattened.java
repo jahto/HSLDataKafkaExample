@@ -25,6 +25,22 @@ import java.time.ZonedDateTime;
  */
 public class VehicleActivityFlattened {
 
+    public boolean AddToHistory() {
+        return addToHistory;
+    }
+
+    public void setAddToHistory(boolean addToHistory) {
+        this.addToHistory = addToHistory;
+    }
+
+    public boolean LineHasChanged() {
+        return lineHasChanged;
+    }
+
+    public void setLineHasChanged(boolean lineHasChanged) {
+        this.lineHasChanged = lineHasChanged;
+    }
+
     public Integer getDelayChange() {
         return delayChange;
     }
@@ -155,5 +171,7 @@ public class VehicleActivityFlattened {
     private Integer delayChange;
     @JsonProperty("MeasurementLength")
     private Integer measurementLength;
+    private boolean addToHistory;
+    private boolean lineHasChanged;
     
 }
