@@ -51,9 +51,9 @@ import org.springframework.stereotype.Component;
  * @author Jouni Ahto
  */
 @Component
-public class VehicleActivityTransformers {
+public class VehicleActivityTransformer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VehicleActivityTransformers.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VehicleActivityTransformer.class);
     private final JsonSerde<VehicleActivityFlattened> serdein = new JsonSerde<>(VehicleActivityFlattened.class);
     private static final JsonSerde<VehicleDataList> serdeout = new JsonSerde<>(VehicleDataList.class);
 
@@ -72,14 +72,14 @@ public class VehicleActivityTransformers {
         LOG.info("Constructing stream from data-by-lineid to grouped-by-lineid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        VehiclyActivityTransformer transformer = new VehiclyActivityTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer");
 
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
         
+        VehiclyActivityTransformer transformer = new VehiclyActivityTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer");
         KStream<String, VehicleActivityFlattened> transformed  = streamin.transform(transformer, "vehicle-transformer");
         
-        KStream<String, VehicleActivityFlattened> tohistory  = 
-                transformed.filter((key, value) -> value.AddToHistory());
+        //KStream<String, VehicleActivityFlattened> tohistory  = 
+        //        transformed.filter((key, value) -> value.AddToHistory());
         
         KStream<String, VehicleActivityFlattened> linechanged  = 
                 transformed
@@ -112,58 +112,7 @@ public class VehicleActivityTransformers {
                 }, materialized)
                 ;
         */
-        Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
-            @Override
-            public VehicleDataList apply() {
-                VehicleDataList valist = new VehicleDataList();
-                List<VehicleActivityFlattened> list = new ArrayList<>();
-                valist.setVehicleActivity(list);
-                return valist;
-            }
-        };
-        
-        // Get a table of all vehicles currently operating on the line.
-        Aggregator<String, VehicleActivityFlattened, VehicleDataList> lineaggregator =
-                new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
-            @Override
-            public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
-                boolean remove = false;
-                List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
-
-                ListIterator<VehicleActivityFlattened> iter = list.listIterator();
-                long time1 = value.getRecordTime().getEpochSecond();
-
-                // Remove entries older than 90 seconds or value itself. Not a safe
-                // way to detect when a vehicle has changed line or gone out of traffic.
-                while (iter.hasNext()) {
-                    VehicleActivityFlattened vaf = iter.next();
-                    long time2 = vaf.getRecordTime().getEpochSecond();
-                    if (vaf.getVehicleId().equals(value.getVehicleId())) {
-                        remove = true;
-                    }
-                    if (time1 - time2 > 90) {
-                        remove = true;
-                    }
-                    if (remove) {
-                        iter.remove();
-                    }
-                }
-
-                list.add(value);
-                return aggregate;
-            }
-        };
-        
-        KTable<String, VehicleDataList> linedata = streamin
-                .groupByKey(Serialized.with(Serdes.String(), vafserde))
-                .aggregate(lineinitializer, lineaggregator,
-                    Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(vaflistserde)
-                );
-        
-        linedata.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
-
+        /*
         // Collect a rough history per vehicle and day.
         Initializer<VehicleDataList> vehicleinitializer = new Initializer<VehicleDataList>() {
             @Override
@@ -215,7 +164,7 @@ public class VehicleActivityTransformers {
                 );
         
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
-
+        */
         return streamin;
     }
 
@@ -230,6 +179,7 @@ public class VehicleActivityTransformers {
             return new TransformerImpl() {
                 @Override
                 protected VehicleActivityFlattened transformValue(VehicleActivityFlattened previous, VehicleActivityFlattened current) {
+                    LOG.info("Transforming vehicle " + current.getVehicleId());
                     // Vehicle hasn't been on the line.
                     if (previous == null) {
                         return current;

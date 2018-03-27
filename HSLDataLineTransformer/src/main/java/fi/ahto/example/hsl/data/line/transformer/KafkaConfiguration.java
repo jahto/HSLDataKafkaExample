@@ -59,7 +59,7 @@ public class KafkaConfiguration {
     public StreamsConfig streamsConfig() {
         Map<String, Object> props = new HashMap<>();
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-transformer");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-line-transformer");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
