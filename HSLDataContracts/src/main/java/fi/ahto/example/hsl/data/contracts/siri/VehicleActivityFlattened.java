@@ -25,7 +25,7 @@ import java.time.ZonedDateTime;
  */
 public class VehicleActivityFlattened {
 
-    public boolean setAddToHistory() {
+    public boolean AddToHistory() {
         return addToHistory;
     }
 

@@ -49,12 +49,7 @@ import org.springframework.stereotype.Component;
 public class LineTransformer {
 
     private static final Logger LOG = LoggerFactory.getLogger(LineTransformer.class);
-    private final JsonSerde<VehicleActivityFlattened> serdein = new JsonSerde<>(VehicleActivityFlattened.class);
-    private static final JsonSerde<VehicleDataList> serdeout = new JsonSerde<>(VehicleDataList.class);
 
-    @Autowired
-    private StreamsBuilderFactoryBean streamsBuilderFactoryBean;
-    
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -64,10 +59,13 @@ public class LineTransformer {
 
     @Bean
     public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
-        LOG.info("Constructing stream from data-by-lineid to grouped-by-lineid");
+        LOG.info("Constructing stream from data-by-lineid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        KStream<String, VehicleActivityFlattened> streamin = builder.stream("vehicle-data-transformed", Consumed.with(Serdes.String(), vafserde));
+        KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
+
+        // Do something with this stream...
+        KStream<String, VehicleActivityFlattened> changesin = builder.stream("changes-by-lineid", Consumed.with(Serdes.String(), vafserde));
         
         Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
             @Override

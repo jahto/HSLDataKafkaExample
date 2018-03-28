@@ -142,7 +142,7 @@ public class SiriDataPoller {
         KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivityFlattened vaf : data) {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            msgtemplate.send("data-by-lineid", vaf.getLineId(), vaf);
+            // msgtemplate.send("data-by-lineid", vaf.getLineId(), vaf);
             msgtemplate.send("data-by-jorecode", vaf.getJoreCode(), vaf);
         }
     }

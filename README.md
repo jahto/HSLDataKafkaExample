@@ -42,6 +42,14 @@ stream keyed (and partitioned) the same way as the previous, also subscribed by 
 how many transformers there are processing the streams, all the data needed will reach the correct one. 
 
 
+### HSLDataVehicleTransformer
+
+Works, but logic still faulty.
+
+### HSLDataLineTransformer
+
+Works, but logic still faulty.
+
 ### HSLDataWebServer
 
 Serves JSON-formatted data from the streams constructed in HSLDataStreamTransformer.
