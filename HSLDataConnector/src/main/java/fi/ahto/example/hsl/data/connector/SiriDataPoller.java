@@ -15,14 +15,17 @@
  */
 package fi.ahto.example.hsl.data.connector;
 
-import fi.ahto.example.hsl.data.contracts.siri.SiriRoot;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivity;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleMonitoringDelivery;
-import fi.ahto.example.hsl.data.contracts.siri.TransitType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import fi.ahto.example.traffic.data.contracts.siri.SiriRoot;
+import fi.ahto.example.traffic.data.contracts.siri.VehicleActivity;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.siri.VehicleMonitoringDelivery;
+import fi.ahto.example.traffic.data.contracts.siri.TransitType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static fi.ahto.example.hsl.data.connector.SiriDataPoller.testdata;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -36,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,43 +71,6 @@ public class SiriDataPoller {
     @Autowired
     ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
 
-    // @Scheduled(fixedRate = 1000)
-    public void pollTestData() {
-        // Seems to be unnecessary when using the default executor, it doesn't start a new
-        // task anyway until the previous one has finished. But things could change if
-        // some other executor is used...
-        if (!LOCK.tryLock()) {
-            LOG.info("Skipping polling");
-            return;
-        }
-        try {
-            LOG.info("Polling data...");
-            SiriRoot data = objectMapper.readValue(testdata, SiriRoot.class);
-            Instant foo = data.getSiri().getServiceDelivery().getResponseTimestamp();
-            ZonedDateTime bar = foo.atZone(ZoneId.of("Europe/Helsinki"));
-
-            List<VehicleActivityFlattened> vehicleList = new ArrayList<>();
-            for (VehicleMonitoringDelivery vmd : data.getSiri().getServiceDelivery().getVehicleMonitoringDelivery()) {
-                for (VehicleActivity va : vmd.getVehicleActivity()) {
-                    if (va.getMonitoredVehicleJourney().IsValid()) {
-                        VehicleActivityFlattened vaf = flattenVehicleActivity(va);
-                        if (vaf != null) {
-                            vehicleList.add(vaf);
-                        }
-                    }
-                }
-            }
-
-            Thread.sleep(6);
-        } catch (InterruptedException e) {
-            // Nothing to do, but must be catched.
-        } catch (IOException ex) {
-            LOG.error("", ex);
-        } finally {
-            LOCK.unlock();
-        }
-    }
-    
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {
@@ -144,6 +111,21 @@ public class SiriDataPoller {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
             // msgtemplate.send("data-by-lineid", vaf.getLineId(), vaf);
             msgtemplate.send("data-by-jorecode", vaf.getJoreCode(), vaf);
+            
+            //if (vaf.getVehicleId().equals("0351ab01")) {
+                try {
+                    BufferedWriter writer = new BufferedWriter(new FileWriter("onevehicle-" + vaf.getVehicleId() + ".json", true));
+                    String val = objectMapper.writeValueAsString(vaf);
+                    writer.append(val);
+                    writer.append("\n");
+                    writer.close();
+                } catch (JsonProcessingException ex) {
+                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            //}
+            
         }
     }
 
@@ -184,13 +166,14 @@ public class SiriDataPoller {
         if (va.getMonitoredVehicleJourney().IsValid() == false) {
             return null;
         }
-
+        
         LineInfo line;
         if ((line = decodeLineNumber(va.getMonitoredVehicleJourney().getLineRef().getValue())) == null) {
             return null;
         }
 
         VehicleActivityFlattened vaf = new VehicleActivityFlattened();
+        vaf.setSource("FI:HSL");
         vaf.setDelay(va.getMonitoredVehicleJourney().getDelaySeconds());
         vaf.setDirection(va.getMonitoredVehicleJourney().getDirectionRef().getValue());
         vaf.setJoreCode(va.getMonitoredVehicleJourney().getLineRef().getValue());

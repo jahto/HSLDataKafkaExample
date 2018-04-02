@@ -15,7 +15,7 @@
  */
 package fi.ahto.example.hsl.data.web.server;
 
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;

@@ -15,7 +15,7 @@
  */
 package fi.ahto.example.hsl.data.web.server;
 
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.QueryableStoreTypes;

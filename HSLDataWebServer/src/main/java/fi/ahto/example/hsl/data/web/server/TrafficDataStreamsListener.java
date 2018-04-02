@@ -16,7 +16,7 @@
 package fi.ahto.example.hsl.data.web.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;

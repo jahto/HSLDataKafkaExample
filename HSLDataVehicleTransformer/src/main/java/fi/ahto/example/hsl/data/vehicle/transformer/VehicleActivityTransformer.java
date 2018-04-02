@@ -16,16 +16,13 @@
 package fi.ahto.example.hsl.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
-import fi.ahto.kafka.streams.state.utils.SimpleTransformerSupplierWithStore;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -50,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.kafka.core.StreamsBuilderFactoryBean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
@@ -73,7 +69,6 @@ public class VehicleActivityTransformer {
     // Must be static when declared here as inner class, otherwise you run into
     // problems with Jackson objectmapper and databinder.
     static class VehicleSet extends TreeSet<VehicleActivityFlattened> {
-
         public VehicleSet() {
             super((VehicleActivityFlattened o1, VehicleActivityFlattened o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
         }
@@ -140,24 +135,28 @@ public class VehicleActivityTransformer {
         
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
 
-        KStream<String, VehicleActivityFlattened> toline  = 
-                transformed.filterNot((key, value) ->
-                        value.LineHasChanged())
+        KStream<String, VehicleActivityFlattened> tolines  = 
+            transformed
                 .map((key, value) -> 
                         KeyValue.pair(value.getLineId(), value))
                 ;
 
-        toline.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
-        
+        tolines.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
+
+        /* Seems not to be needed, but leaving still here just in case...
         KStream<String, VehicleActivityFlattened> tochanges  = 
                 transformed.filter((key, value) -> 
                         value.LineHasChanged())
                 .map((key, value) -> 
-                        KeyValue.pair(value.getLineId(), value))
+                    {
+                        LOG.info("Vehicle " + value.getVehicleId() + " changed line.");
+                        return KeyValue.pair(value.getLineId(), value);
+                })
                 ;
 
         tochanges.to("changes-by-lineid", Produced.with(Serdes.String(), vafserde));
-
+        */
+        
         return streamin;
     }
 
@@ -270,6 +269,24 @@ public class VehicleActivityTransformer {
                         if (reference.AddToHistory()) {
                             break;
                         }
+                    }
+                    
+                    // Calculate approximate bearing.
+                    if (current.getBearing() == null && reference.getBearing() == null && 
+                            (current.getSource().equals("FI:HSL") ||
+                             current.getSource().equals("FI:FOLI"))) {
+                        double lat1 = Math.toRadians(current.getLatitude());
+                        double long1 = Math.toRadians(current.getLongitude());
+                        double lat2 = Math.toRadians(previous.getLatitude());
+                        double long2 = Math.toRadians(previous.getLongitude());
+
+                        double bearingradians = Math.atan2(Math.asin(long2 - long1) * Math.cos(lat2), Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(long2 - long1));
+                        double bearingdegrees = Math.toDegrees(bearingradians);
+
+                        if (bearingdegrees < 0) {
+                            bearingdegrees = 360 + bearingdegrees;
+                        }
+                        current.setBearing(bearingdegrees);
                     }
                     
                     if (current.getDelay() != null && reference.getDelay() != null) {

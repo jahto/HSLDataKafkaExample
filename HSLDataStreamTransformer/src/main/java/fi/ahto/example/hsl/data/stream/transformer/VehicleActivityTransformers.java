@@ -16,8 +16,8 @@
 package fi.ahto.example.hsl.data.stream.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.SimpleValueTransformerSupplierWithStore;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;

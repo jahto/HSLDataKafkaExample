@@ -15,8 +15,8 @@
  */
 package fi.ahto.kafkaspringconnector.tests;
 
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
-import fi.ahto.example.hsl.data.contracts.siri.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.siri.TransitType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.hsl.data.connector.KafkaConfiguration;
@@ -58,7 +58,7 @@ public class SimpleTests {
     @Test
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
-            objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         try (InputStream stream = new ByteArrayInputStream(testdata.getBytes())) {
             List<VehicleActivityFlattened> list = siriDataPoller.readDataAsJsonNodes(stream);
             assertEquals(list.size(), 2);
@@ -69,18 +69,20 @@ public class SimpleTests {
             stream.reset();
             siriDataPoller.feedTestData(stream);
         }
+        /* Now considered as valid.
         try (InputStream stream = new ByteArrayInputStream(invaliddata.getBytes())) {
             List<VehicleActivityFlattened> list = siriDataPoller.readDataAsJsonNodes(stream);
             assertEquals(list.isEmpty(), true);
         }
+        */
     }
 
-    @Test /* Uncomment when needed */
+    // @Test /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 1000; i++) {
             String postfix = Integer.toString(i);
-            String filename = "exampledata" + postfix + ".json";
+            String filename = "exampledata-tre" + postfix + ".json";
 
             File file = new File("../testdata/" + filename);
             try (InputStream stream = new FileInputStream(file)) {

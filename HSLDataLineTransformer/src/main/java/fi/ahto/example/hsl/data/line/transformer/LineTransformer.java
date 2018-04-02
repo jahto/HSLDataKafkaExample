@@ -16,17 +16,19 @@
 package fi.ahto.example.hsl.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleActivityFlattened;
-import fi.ahto.example.hsl.data.contracts.siri.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Initializer;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -64,9 +66,6 @@ public class LineTransformer {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
-        // Do something with this stream...
-        KStream<String, VehicleActivityFlattened> changesin = builder.stream("changes-by-lineid", Consumed.with(Serdes.String(), vafserde));
-        
         Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
             @Override
             public VehicleDataList apply() {
@@ -79,10 +78,10 @@ public class LineTransformer {
         
         // Get a table of all vehicles currently operating on the line.
         Aggregator<String, VehicleActivityFlattened, VehicleDataList> lineaggregator =
-                new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+            new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
-                LOG.info("Aggregating line " + key);
+                // LOG.info("Aggregating line " + key);
                 boolean remove = false;
                 List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
 
@@ -105,21 +104,24 @@ public class LineTransformer {
                     }
                 }
 
-                list.add(value);
+                if (value.LineHasChanged() == false) {
+                    list.add(value);
+                } else {
+                    LOG.info("Removed vehicle " + value.getVehicleId() + " from line " + key);
+                }
                 return aggregate;
             }
         };
-        
-        KTable<String, VehicleDataList> linedata = streamin
+                
+        KTable<String, VehicleDataList> lines = streamin
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
                 .aggregate(lineinitializer, lineaggregator,
                     Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                     .withKeySerde(Serdes.String())
                     .withValueSerde(vaflistserde)
                 );
-        
-        linedata.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
 
+        lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         return streamin;
     }
 }
