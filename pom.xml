@@ -52,7 +52,6 @@
         <module>HSLDataWebServer</module>
         <module>HSLDataConnector</module>
         <module>HSLDataContracts</module>
-        <module>HSLDataStreamTransformer</module>
         <module>HSLDataVehicleTransformer</module>
         <module>HSLDataLineTransformer</module>
         <module>TKLDataConnector</module>
