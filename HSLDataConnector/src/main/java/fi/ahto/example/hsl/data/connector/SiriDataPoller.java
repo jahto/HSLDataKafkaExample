@@ -16,21 +16,17 @@
 package fi.ahto.example.hsl.data.connector;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import fi.ahto.example.traffic.data.contracts.siri.SiriRoot;
-import fi.ahto.example.traffic.data.contracts.siri.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
-import fi.ahto.example.traffic.data.contracts.siri.VehicleMonitoringDelivery;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import static fi.ahto.example.hsl.data.connector.SiriDataPoller.testdata;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.siri.TransitType;
+import fi.ahto.example.traffic.data.contracts.siri.VehicleActivity;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -49,7 +45,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -61,6 +56,8 @@ public class SiriDataPoller {
 
     private static final Logger LOG = LoggerFactory.getLogger(SiriDataPoller.class);
     private static final Lock LOCK = new ReentrantLock();
+    private static final String SOURCE = "FI:HSL";
+    private static final String PREFIX = SOURCE + ":";
 
     @Autowired
     private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
@@ -109,8 +106,6 @@ public class SiriDataPoller {
         KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivityFlattened vaf : data) {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            // msgtemplate.send("data-by-lineid", vaf.getLineId(), vaf);
-            msgtemplate.send("data-by-jorecode", vaf.getJoreCode(), vaf);
             
             //if (vaf.getVehicleId().equals("0351ab01")) {
                 try {
@@ -173,10 +168,10 @@ public class SiriDataPoller {
         }
 
         VehicleActivityFlattened vaf = new VehicleActivityFlattened();
-        vaf.setSource("FI:HSL");
+        vaf.setSource(SOURCE);
         vaf.setDelay(va.getMonitoredVehicleJourney().getDelaySeconds());
         vaf.setDirection(va.getMonitoredVehicleJourney().getDirectionRef().getValue());
-        vaf.setJoreCode(va.getMonitoredVehicleJourney().getLineRef().getValue());
+        vaf.setInternalLineId(PREFIX + va.getMonitoredVehicleJourney().getLineRef().getValue());
         vaf.setLatitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLatitude());
         vaf.setLineId(line.getLine());
         vaf.setLongitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLongitude());
@@ -184,7 +179,7 @@ public class SiriDataPoller {
         // What does this field refer to?
         vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
         vaf.setTransitType(line.getType());
-        vaf.setVehicleId(va.getMonitoredVehicleJourney().getVehicleRef().getValue());
+        vaf.setVehicleId(PREFIX + va.getMonitoredVehicleJourney().getVehicleRef().getValue());
 
         LocalDate date = va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDataFrameRef().getValue();
         if (va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef() != null) {

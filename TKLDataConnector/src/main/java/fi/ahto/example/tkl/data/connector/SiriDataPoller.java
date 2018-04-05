@@ -54,6 +54,8 @@ public class SiriDataPoller {
 
     private static final Logger LOG = LoggerFactory.getLogger(SiriDataPoller.class);
     private static final Lock LOCK = new ReentrantLock();
+    private static final String SOURCE = "FI:TKL";
+    private static final String PREFIX = SOURCE + ":";
 
     @Autowired
     private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
@@ -115,14 +117,8 @@ public class SiriDataPoller {
         List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
 
         if (response.isMissingNode() == false && response.isArray()) {
-            // There's only one element in the array, if the documentation is correct.
-            // JsonNode next = response.iterator().next();
-            // JsonNode values = next.path("VehicleActivity");
-
-            // if (values.isMissingNode() == false && values.isArray()) {
             for (JsonNode node : response) {
                 try {
-                    // VehicleActivity va = objectMapper.convertValue(node, VehicleActivity.class);
                     VehicleActivityFlattened vaf = flattenVehicleActivity(node);
                     if (vaf != null) {
                         vehicleActivities.add(vaf);
@@ -133,7 +129,6 @@ public class SiriDataPoller {
                     LOG.error(node.asText(), ex);
                 }
             }
-            //}
         }
 
         return vehicleActivities;
@@ -141,7 +136,7 @@ public class SiriDataPoller {
 
     public VehicleActivityFlattened flattenVehicleActivity(JsonNode node) {
         VehicleActivityFlattened vaf = new VehicleActivityFlattened();
-        vaf.setSource("FI:TKL");
+        vaf.setSource(SOURCE);
 
         String rat = node.path("recordedAtTime").asText();
         vaf.setRecordTime(OffsetDateTime.parse(rat).toInstant());
@@ -158,13 +153,12 @@ public class SiriDataPoller {
 
         vaf.setDirection(jrn.path("directionRef").asText());
 
-        // TKL actually hasn't any jorecode...
-        vaf.setJoreCode(jrn.path("lineRef").asText());
+        vaf.setInternalLineId(PREFIX + jrn.path("lineRef").asText());
         vaf.setLineId(jrn.path("lineRef").asText());
 
         // Good enough for TKL until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
-        vaf.setVehicleId(jrn.path("vehicleRef").asText());
+        vaf.setVehicleId(jrn.path(PREFIX + "vehicleRef").asText());
         vaf.setBearing(jrn.path("bearing").asDouble());
         vaf.setSpeed(jrn.path("speed").asDouble());
 

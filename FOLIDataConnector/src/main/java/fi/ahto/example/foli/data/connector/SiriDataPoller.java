@@ -26,9 +26,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -55,6 +52,8 @@ public class SiriDataPoller {
 
     private static final Logger LOG = LoggerFactory.getLogger(SiriDataPoller.class);
     private static final Lock LOCK = new ReentrantLock();
+    private static final String SOURCE = "FI:FOLI";
+    private static final String PREFIX = SOURCE + ":";
 
     @Autowired
     private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
@@ -115,45 +114,37 @@ public class SiriDataPoller {
 
         List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
 
-        // if (response.isMissingNode() == false && response.isArray()) {
-            // There's only one element in the array, if the documentation is correct.
-            // JsonNode next = response.iterator().next();
-            // JsonNode values = next.path("VehicleActivity");
-
-            // if (values.isMissingNode() == false && values.isArray()) {
-            for (JsonNode node : response) {
-                try {
-                    // VehicleActivity va = objectMapper.convertValue(node, VehicleActivity.class);
-                    VehicleActivityFlattened vaf = flattenVehicleActivity(node);
-                    if (vaf != null) {
-                        vehicleActivities.add(vaf);
-                    } else {
-                        // LOG.error("Problem with node: " + node.toString());
-                    }
-                } catch (IllegalArgumentException ex) {
-                    LOG.error(node.asText(), ex);
+        // if (values.isMissingNode() == false && values.isArray()) {
+        for (JsonNode node : response) {
+            try {
+                VehicleActivityFlattened vaf = flattenVehicleActivity(node);
+                if (vaf != null) {
+                    vehicleActivities.add(vaf);
+                } else {
+                    // LOG.error("Problem with node: " + node.toString());
                 }
+            } catch (IllegalArgumentException ex) {
+                LOG.error(node.asText(), ex);
             }
-            //}
-        // }
+        }
+        //}
 
         return vehicleActivities;
     }
 
     public VehicleActivityFlattened flattenVehicleActivity(JsonNode node) {
         VehicleActivityFlattened vaf = new VehicleActivityFlattened();
-        vaf.setSource("FI:FOLI");
+        vaf.setSource(SOURCE);
         vaf.setRecordTime(Instant.ofEpochSecond(node.path("recordedattime").asLong()));
         vaf.setDelay((int) Duration.parse(node.path("delay").asText()).getSeconds());
 
         vaf.setDirection(node.path("directionref").asText());
-        // FOLI actually hasn't any jorecode...
-        vaf.setJoreCode(node.path("lineref").asText());
+        vaf.setInternalLineId(PREFIX + node.path("lineref").asText());
         vaf.setLineId(node.path("lineref").asText());
 
         // Good enough for FOLI until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
-        vaf.setVehicleId(node.path("vehicleref").asText());
+        vaf.setVehicleId(node.path(PREFIX + "vehicleref").asText());
         vaf.setBearing(node.path("bearing").asDouble());
         vaf.setLatitude(node.path("latitude").asDouble());
         vaf.setLongitude(node.path("longitude").asDouble());
@@ -162,12 +153,12 @@ public class SiriDataPoller {
         if (va.getMonitoredVehicleJourney().getMonitoredCall() != null) {
             vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
         }
-        */
-        
+         */
+
         Instant start = Instant.ofEpochSecond(node.path("originaimeddeparturetime").asLong());
         ZonedDateTime zdt = ZonedDateTime.ofInstant(start, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
-        
+
         return vaf;
     }
 }

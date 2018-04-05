@@ -106,12 +106,12 @@ public class VehicleActivityFlattened {
         this.tripStart = TripStart;
     }
 
-    public String getJoreCode() {
-        return joreCode;
+    public String getInternalLineId() {
+        return internalLineId;
     }
 
-    public void setJoreCode(String joreCode) {
-        this.joreCode = joreCode;
+    public void setInternalLineId(String internalLineId) {
+        this.internalLineId = internalLineId;
     }
 
     public TransitType getTransitType() {
@@ -182,8 +182,8 @@ public class VehicleActivityFlattened {
     private Double latitude;
     @JsonProperty("Delay")
     private Integer delay;
-    @JsonProperty("JoreCode")
-    private String joreCode;
+    @JsonProperty("InternalLineId")
+    private String internalLineId;
     @JsonProperty("StopPoint")
     private String stopPoint;
     @JsonProperty("RecordTime")

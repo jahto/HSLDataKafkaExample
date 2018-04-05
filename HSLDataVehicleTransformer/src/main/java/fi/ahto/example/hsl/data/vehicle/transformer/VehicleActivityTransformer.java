@@ -138,7 +138,7 @@ public class VehicleActivityTransformer {
         KStream<String, VehicleActivityFlattened> tolines  = 
             transformed
                 .map((key, value) -> 
-                        KeyValue.pair(value.getLineId(), value))
+                        KeyValue.pair(value.getInternalLineId(), value))
                 ;
 
         tolines.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
@@ -227,7 +227,7 @@ public class VehicleActivityTransformer {
 
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
-                if (current.getLineId().equals(previous.getLineId()) == false) {
+                if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {
                     current.setAddToHistory(true);
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
