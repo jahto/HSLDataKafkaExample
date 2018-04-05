@@ -26,29 +26,29 @@ come available on Maven central before the end of April 2018.
 
 Very simple. Just polls the endpoint (http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json)
 and pushes received list of JSON-data from HSL real-time feed to a Kafka stream as separate messages. More connectors
-could be added later.
+could be added later. Consider switching to MQTT feed instead.
 
-### HSLDataStreamTransformer
+### HSLMQTTConnector
 
-- Adds some data to vehicle information. Difference of delay since last received sample and the length of time the difference
-was measured in.
-- Adds vehicles operating on a line as a list to line information and pushes the data downstream.
-- Collects rough history of a vehicles movement around keyed by vehicle id and date,  and pushes the data downstream.
+Unfinished.
 
-Note: This strategy might be impossible to make work correctly and reliably. A better approuch could be to separate
-this to HSLDataVehicleTransformer that does the first transform, and then feed the resulting data to HSLDataLineTransformer
-keyed now by line id. This way it should be possible to detect when a vehicle changes line, and send that data to a separate
-stream keyed (and partitioned) the same way as the previous, also subscribed by the second transformer. This way, no matter
-how many transformers there are processing the streams, all the data needed will reach the correct one. 
+### FOLIDataConnector
 
+For Turku area feed.
+
+### TKLDataConnector
+
+For Tampere area feed.
 
 ### HSLDataVehicleTransformer
 
-Works, but logic still faulty.
+- Adds some data to vehicle information. Difference of delay since last suitable sample, the length of time the difference
+was calculated in, and vehicles approximaty bearing.
+- Collects rough history of a vehicles movement around keyed by vehicle id and date, and pushes the data downstream.
 
 ### HSLDataLineTransformer
 
-Works, but logic still faulty.
+- Adds vehicles operating on a line as a list to line information and pushes the data downstream.
 
 ### HSLDataWebServer
 
