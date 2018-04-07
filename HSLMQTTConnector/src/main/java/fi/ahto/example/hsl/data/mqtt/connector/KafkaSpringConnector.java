@@ -17,13 +17,13 @@ package fi.ahto.example.hsl.data.mqtt.connector;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.integration.annotation.IntegrationComponentScan;
 /**
  *
  * @author Jouni Ahto
  */
 @SpringBootApplication
-@EnableScheduling
+@IntegrationComponentScan
 public class KafkaSpringConnector {
 
     public static void main(String[] args) {

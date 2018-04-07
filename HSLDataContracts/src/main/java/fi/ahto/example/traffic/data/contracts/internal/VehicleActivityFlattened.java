@@ -26,6 +26,22 @@ import java.time.ZonedDateTime;
  */
 public class VehicleActivityFlattened {
 
+    public String getNextStopId() {
+        return nextStopId;
+    }
+
+    public void setNextStopId(String nextStopId) {
+        this.nextStopId = nextStopId;
+    }
+
+    public String getNextStopName() {
+        return nextStopName;
+    }
+
+    public void setNextStopName(String nextStopName) {
+        this.nextStopName = nextStopName;
+    }
+
     public String getSource() {
         return source;
     }
@@ -206,4 +222,8 @@ public class VehicleActivityFlattened {
     private Double speed;
     @JsonProperty("Source")
     private String source;
+    @JsonProperty("NextStopId")
+    private String nextStopId;
+    @JsonProperty("NextStopName")
+    private String nextStopName;
 }

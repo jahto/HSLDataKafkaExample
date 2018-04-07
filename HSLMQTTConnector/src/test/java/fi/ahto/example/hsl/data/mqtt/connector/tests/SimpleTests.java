@@ -49,7 +49,9 @@ public class SimpleTests {
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        List<VehicleActivityFlattened> list = dataPoller.readDataAsJsonNodes(testdata);
+        String[] splitted = testdata.split(" ", 2);
+
+        VehicleActivityFlattened list = dataPoller.readDataAsJsonNodes(splitted[0], splitted[1]);
         // assertEquals(list.size(), 1);
         /*
             VehicleActivityFlattened vaf = list.get(0);

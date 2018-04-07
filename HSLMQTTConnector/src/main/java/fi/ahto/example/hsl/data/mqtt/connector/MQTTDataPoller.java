@@ -40,12 +40,27 @@ import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.integration.annotation.IntegrationComponentScan;
+import org.springframework.integration.annotation.MessagingGateway;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.config.EnableIntegration;
+import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
+import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+import org.springframework.integration.mqtt.support.MqttHeaders;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -53,6 +68,8 @@ import org.springframework.stereotype.Component;
  * @author Jouni Ahto
  */
 @Component
+@IntegrationComponentScan
+@EnableIntegration
 public class MQTTDataPoller {
 
     private static final Logger LOG = LoggerFactory.getLogger(MQTTDataPoller.class);
@@ -65,80 +82,80 @@ public class MQTTDataPoller {
 
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Autowired
     ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
-
-    // Remove comment below when trying to actually run this...
-    // @Scheduled(fixedRate = 60000)
     /*
-    public void pollRealData() throws URISyntaxException {
-        try {
-            List<VehicleActivityFlattened> dataFlattened;
-            // URI uri = getServiceURI();
-            URI uri = new URI("http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json");
-            try (InputStream data = fetchData(uri)) {
-                dataFlattened = readDataAsJsonNodes(data);
-            }
-            if (dataFlattened != null) {
-                putDataToQueues(dataFlattened);
-            }
-        } catch (IOException ex) {
-            LOG.error("Problem reading data");
-        }
-    }
-    */
-    /*
-    public void feedTestData(InputStream data) throws IOException {
-        List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
-        if (dataFlattened != null) {
-            LOG.info("Putting data to queues");
-            putDataToQueues(dataFlattened);
-        }
-    }
-    */
-    public InputStream fetchData(URI uri) throws IOException {
-        // Use lower level methods instead of RestTemplate.
-        SimpleClientHttpRequestFactory rf = new SimpleClientHttpRequestFactory();
-        ClientHttpRequest request = rf.createRequest(uri, HttpMethod.GET);
-        ClientHttpResponse response = request.execute();
-        return response.getBody();
+    @Bean
+    public MessageChannel mqttInputChannel() {
+        return new DirectChannel();
     }
 
-    public void putDataToQueues(List<VehicleActivityFlattened> data) {
-        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
-        for (VehicleActivityFlattened vaf : data) {
-            msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            
-            //if (vaf.getVehicleId().equals("0351ab01")) {
+    @Bean
+    public MessageProducer inbound() {
+        MqttPahoMessageDrivenChannelAdapter adapter
+                = new MqttPahoMessageDrivenChannelAdapter("tcp://213.138.147.225:1883", "testClient", "/hfp/journey/#");
+        adapter.setCompletionTimeout(5000);
+        adapter.setConverter(new DefaultPahoMessageConverter());
+        adapter.setQos(1);
+        adapter.setOutputChannel(mqttInputChannel());
+        return adapter;
+    }
+    */
+    @Bean
+    @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
+    public MessageHandler handler() {
+        return new MessageHandler() {
+
+            @Override
+            public void handleMessage(Message<?> message) throws MessagingException {
+                MessageHeaders headers = message.getHeaders();
+                String topic = (String) headers.get(MqttHeaders.RECEIVED_TOPIC);
+                String data = (String) message.getPayload();
+                System.out.println(topic);
+                System.out.println(data);
+                System.exit(0);
+                
                 try {
-                    BufferedWriter writer = new BufferedWriter(new FileWriter("onevehicle-" + vaf.getVehicleId() + ".json", true));
-                    String val = objectMapper.writeValueAsString(vaf);
-                    writer.append(val);
-                    writer.append("\n");
-                    writer.close();
-                } catch (JsonProcessingException ex) {
-                    java.util.logging.Logger.getLogger(MQTTDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                    VehicleActivityFlattened vaf = readDataAsJsonNodes(topic, data);
+                    putDataToQueues(vaf);
                 } catch (IOException ex) {
-                    java.util.logging.Logger.getLogger(MQTTDataPoller.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            //}
-            //}
-            //}
-            //}
-            
+            }
+        };
+    }
+    /*
+    @MessagingGateway(defaultRequestChannel = "mqttInputChannel")
+    public interface MqttMsgproducer {
+
+        void sendToMqtt(String data);
+    }
+    */
+    public void putDataToQueues(VehicleActivityFlattened data) {
+        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
+        msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
+        /*
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter("onevehicle-" + vaf.getVehicleId() + ".json", true));
+            String val = objectMapper.writeValueAsString(data);
+            writer.append(val);
+            writer.append("\n");
+            writer.close();
+        } catch (JsonProcessingException ex) {
+            java.util.logging.Logger.getLogger(MQTTDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(MQTTDataPoller.class.getName()).log(Level.SEVERE, null, ex);
         }
+        */
     }
 
-    public List<VehicleActivityFlattened> readDataAsJsonNodes(String in) throws IOException {
+    public VehicleActivityFlattened readDataAsJsonNodes(String queue, String msg) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.
-        String[] splitted = in.split(" ", 2);
-        
-        JsonNode data = objectMapper.readTree(splitted[1]);
-        List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
-        VehicleActivityFlattened vaf = flattenVehicleActivity(splitted[0], data);
-        return vehicleActivities;
+
+        JsonNode data = objectMapper.readTree(msg);
+        VehicleActivityFlattened vaf = flattenVehicleActivity(queue, data);
+        return vaf;
     }
 
     public VehicleActivityFlattened flattenVehicleActivity(String queue, JsonNode node) {
@@ -148,7 +165,7 @@ public class MQTTDataPoller {
         String direction = splitted[6];
         String starttime = splitted[8];
         String nextstop = splitted[9];
-        
+
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
@@ -158,16 +175,19 @@ public class MQTTDataPoller {
         vaf.setLineId(info.getLine());
         vaf.setTransitType(info.getType());
         vaf.setVehicleId(PREFIX + vehicle);
-        
+
         vaf.setDelay(vp.path("dl").asInt());
         vaf.setLatitude(vp.path("lat").asDouble());
         vaf.setLongitude(vp.path("long").asDouble());
         vaf.setDirection(vp.path("dir").asText());
         vaf.setRecordTime(Instant.ofEpochSecond(vp.path("tsi").asLong()));
-        
+
         Instant tripstart = Instant.parse(vp.path("tst").asText());
         ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
+        
+        vaf.setNextStopId(PREFIX + nextstop);
+        
         int i = 0;
         /*
         if (va.getMonitoredVehicleJourney().IsValid() == false) {
@@ -202,7 +222,7 @@ public class MQTTDataPoller {
         }
 
         return vaf;
-        */
+         */
         return vaf;
     }
 

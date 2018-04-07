@@ -57,6 +57,7 @@
         <module>TKLDataConnector</module>
         <module>FOLIDataConnector</module>
         <module>HSLMQTTConnector</module>
+        <module>GTFSDataFeeder</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

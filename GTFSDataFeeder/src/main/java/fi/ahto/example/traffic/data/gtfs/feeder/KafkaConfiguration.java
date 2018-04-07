@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.hsl.data.mqtt.connector;
+package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,19 +33,13 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.integration.channel.DirectChannel;
-import org.springframework.integration.config.EnableIntegration;
-import org.springframework.integration.core.MessageProducer;
-import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
-import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+// import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-import org.springframework.messaging.MessageChannel;
 
 /**
  *
@@ -53,8 +47,8 @@ import org.springframework.messaging.MessageChannel;
  */
 @Configuration
 @EnableKafka
-@EnableIntegration
 public class KafkaConfiguration {
+
     private static final Logger log = LoggerFactory.getLogger(KafkaConfiguration.class);
 
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
@@ -63,27 +57,11 @@ public class KafkaConfiguration {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Bean
-    public MessageChannel mqttInputChannel() {
-        return new DirectChannel();
-    }
-
-    @Bean
-    public MessageProducer inbound() {
-        MqttPahoMessageDrivenChannelAdapter adapter
-                = new MqttPahoMessageDrivenChannelAdapter("tcp://213.138.147.225:1883", "testClient", "/hfp/journey/#");
-        adapter.setCompletionTimeout(5000);
-        adapter.setConverter(new DefaultPahoMessageConverter());
-        adapter.setQos(1);
-        adapter.setOutputChannel(mqttInputChannel());
-        return adapter;
-    }
-
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
     @Bean
     public Map<String, Object> producerConfigs() {
         final JsonSerde<VehicleActivityFlattened> serdeinfinal = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
-        
+
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -93,20 +71,21 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test-connector");
         return props;
     }
+
     /*
     @Bean
     public ObjectMapper customizeObjectMapper(ObjectMapper om) {
         log.info("Return customizeObjectMapper");
         return om;
     }
-    */
+     */
 
     @Bean
     // @DependsOn("jackson2ObjectMapperBuilderCustomizer")
     public ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory() {
         // This seems to work and will really use the customized objectMapper.
         final JsonSerde<VehicleActivityFlattened> serde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
-        Serializer<VehicleActivityFlattened> ser =  serde.serializer();
+        Serializer<VehicleActivityFlattened> ser = serde.serializer();
         DefaultKafkaProducerFactory<String, VehicleActivityFlattened> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
         factory.setValueSerializer(ser);
         log.info("Return vehicleActivityProducerFactory");
@@ -119,7 +98,19 @@ public class KafkaConfiguration {
         log.info("Return vehicleActivityKafkaTemplate");
         return new KafkaTemplate<>(vehicleActivityProducerFactory());
     }
-    
+
+    @Bean
+    public ObjectMapper customizedObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // LOG.debug("customizedObjectMapper constructed");
+        return mapper;
+    }
+
+    /*
     @Bean
     @Primary
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
@@ -134,21 +125,5 @@ public class KafkaConfiguration {
             jacksonObjectMapperBuilder.modulesToInstall(new JavaTimeModule());
         };
     }
-
-    // To keep the tests happy...
-    @Bean
-    public MQTTDataPoller siriDataPoller() {
-        return new MQTTDataPoller();
-    }
-    /*
-    @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        return builder.build();
-    }
-    
-    @Bean
-    public RestTemplateBuilder restTemplateBuilder() {
-        return new RestTemplateBuilder();
-    }
-    */
+     */
 }

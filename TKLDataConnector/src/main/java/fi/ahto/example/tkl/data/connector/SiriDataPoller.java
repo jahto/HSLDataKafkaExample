@@ -158,7 +158,7 @@ public class SiriDataPoller {
 
         // Good enough for TKL until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
-        vaf.setVehicleId(jrn.path(PREFIX + "vehicleRef").asText());
+        vaf.setVehicleId(PREFIX + jrn.path("vehicleRef").asText());
         vaf.setBearing(jrn.path("bearing").asDouble());
         vaf.setSpeed(jrn.path("speed").asDouble());
 
@@ -182,6 +182,14 @@ public class SiriDataPoller {
         Integer minute = Integer.parseInt(timestr.substring(2));
         LocalTime time = LocalTime.of(hour, minute);
         vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
+        
+        JsonNode stops = jrn.path("onwardCalls");
+        if (stops.isMissingNode() == false && stops.isArray()) {
+            JsonNode stop = stops.get(0);
+            String stopid = stop.path("stopPointRef").asText();
+            int index = stopid.lastIndexOf('/');
+            vaf.setNextStopId(PREFIX + stopid.substring(index + 1));
+        }
         
         return vaf;
     }
