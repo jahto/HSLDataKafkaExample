@@ -55,7 +55,7 @@ public class SimpleTests {
     @Autowired
     private SiriDataPoller siriDataPoller;
 
-    @Test
+    // @Test
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -77,12 +77,12 @@ public class SimpleTests {
         */
     }
 
-    // @Test /* Uncomment when needed */
+    @Test /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 1000; i++) {
             String postfix = Integer.toString(i);
-            String filename = "exampledata-tre" + postfix + ".json";
+            String filename = "exampledata" + postfix + ".json";
 
             File file = new File("../testdata/" + filename);
             try (InputStream stream = new FileInputStream(file)) {

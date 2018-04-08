@@ -15,21 +15,15 @@
  */
 package fi.ahto.kafkaspringconnector.tests;
 
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.tkl.data.connector.KafkaConfiguration;
 import fi.ahto.example.tkl.data.connector.SiriDataPoller;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.logging.Level;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -71,10 +65,11 @@ public class SimpleTests {
             stream.reset();
             siriDataPoller.feedTestData(stream);
         }
-        */
+         */
     }
 
-    @Test /* Uncomment when needed */
+    @Test
+    /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 1000; i++) {

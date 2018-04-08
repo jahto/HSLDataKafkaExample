@@ -21,17 +21,17 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.serialization.GtfsReader;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
 
 /**
  *
@@ -39,7 +39,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class GTFSDataReader implements ApplicationRunner {
+
     private static String prefix = null;
+
+    @Autowired
+    private GtfsEntityHandler entityHandler;
 
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
@@ -95,7 +99,7 @@ public class GTFSDataReader implements ApplicationRunner {
 
     void processdir(File dir) {
         GtfsReader reader = new GtfsReader();
-        reader.addEntityHandler(new GtfsEntityHandler());
+        reader.addEntityHandler(entityHandler);
         File input = dir.getAbsoluteFile();
         try {
             reader.setInputLocation(input);
@@ -105,18 +109,24 @@ public class GTFSDataReader implements ApplicationRunner {
         }
     }
 
+    @Component
     private static class GtfsEntityHandler implements EntityHandler {
+
+        @Autowired
+        private KafkaTemplate<String, String> kafkaTemplate;
 
         @Override
         public void handleEntity(Object bean) {
             if (bean instanceof Stop) {
                 Stop stop = (Stop) bean;
-                System.out.println("stop: " + stop.getName());
+                // System.out.println("stop: " + prefix + stop.getId().getId() + " " + stop.getName());
+                kafkaTemplate.send("stops", prefix + stop.getId().getId(), stop.getName());
             }
 
             if (bean instanceof Route) {
                 Route route = (Route) bean;
-                System.out.println("route: " + route.getShortName());
+                // System.out.println("route: " + prefix + route.getId().getId() + " " + route.getLongName());
+                kafkaTemplate.send("routes", prefix + route.getId().getId(), route.getLongName());
             }
         }
     }

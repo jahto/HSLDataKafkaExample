@@ -178,6 +178,7 @@ public class SiriDataPoller {
         vaf.setRecordTime(va.getRecordedAtTime());
         // What does this field refer to?
         vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
+        vaf.setNextStopId(PREFIX + va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
         vaf.setTransitType(line.getType());
         vaf.setVehicleId(PREFIX + va.getMonitoredVehicleJourney().getVehicleRef().getValue());
 

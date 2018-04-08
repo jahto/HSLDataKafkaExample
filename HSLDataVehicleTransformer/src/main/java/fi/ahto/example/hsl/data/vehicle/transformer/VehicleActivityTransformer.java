@@ -31,6 +31,7 @@ import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
+import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -69,6 +70,7 @@ public class VehicleActivityTransformer {
     // Must be static when declared here as inner class, otherwise you run into
     // problems with Jackson objectmapper and databinder.
     static class VehicleSet extends TreeSet<VehicleActivityFlattened> {
+
         public VehicleSet() {
             super((VehicleActivityFlattened o1, VehicleActivityFlattened o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
         }
@@ -82,13 +84,33 @@ public class VehicleActivityTransformer {
 
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
+        GlobalKTable<String, String> stops
+                = builder.globalTable("stops",
+                        Consumed.with(Serdes.String(), Serdes.String()),
+                        Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("stops"));
+
+        KStream<String, VehicleActivityFlattened> streamout = streamin.leftJoin(stops,
+                (String key, VehicleActivityFlattened value) -> {
+                    if (value.getNextStopId() == null) {
+                        return "FOOBARBAZ"; // Will most probably not match...
+                    }
+                    return value.getNextStopId();
+                },
+                (VehicleActivityFlattened left, String right) -> {
+                    if (right == null || left.getNextStopName() != null) {
+                        return left;
+                    }
+                    left.setNextStopName(right);
+                    return left;
+                });
+        
         final JsonSerde treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), treeserde, "vehicle-transformer-extended");
         KStream<String, VehicleActivityFlattened> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
-        KStream<String, VehicleActivityFlattened> tohistory  = 
-                transformed.filter((key, value) -> value.AddToHistory());
+        KStream<String, VehicleActivityFlattened> tohistory
+                = transformed.filter((key, value) -> value.AddToHistory());
 
         Initializer<VehicleDataList> vehicleinitializer = new Initializer<VehicleDataList>() {
             @Override
@@ -99,13 +121,13 @@ public class VehicleActivityTransformer {
                 return valist;
             }
         };
-        
-        Aggregator<String, VehicleActivityFlattened, VehicleDataList> vehicleaggregator =
-                new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+
+        Aggregator<String, VehicleActivityFlattened, VehicleDataList> vehicleaggregator
+                = new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
                 List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
-                
+
                 // Just in case, guard once again against duplicates
                 Iterator<VehicleActivityFlattened> iter = list.iterator();
                 while (iter.hasNext()) {
@@ -114,12 +136,12 @@ public class VehicleActivityTransformer {
                         return aggregate;
                     }
                 }
-                
+
                 list.add(value);
                 return aggregate;
             }
         };
-        
+
         KTable<String, VehicleDataList> vehiclehistory = tohistory
                 .map((String key, VehicleActivityFlattened value) -> {
                     String postfix = value.getTripStart().format(DateTimeFormatter.ISO_LOCAL_DATE);
@@ -128,18 +150,17 @@ public class VehicleActivityTransformer {
                 })
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
                 .aggregate(vehicleinitializer, vehicleaggregator,
-                    Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(vaflistserde)
+                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
+                                .withKeySerde(Serdes.String())
+                                .withValueSerde(vaflistserde)
                 );
-        
+
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
 
-        KStream<String, VehicleActivityFlattened> tolines  = 
-            transformed
-                .map((key, value) -> 
-                        KeyValue.pair(value.getInternalLineId(), value))
-                ;
+        KStream<String, VehicleActivityFlattened> tolines
+                = transformed
+                        .map((key, value)
+                                -> KeyValue.pair(value.getInternalLineId(), value));
 
         tolines.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
 
@@ -155,13 +176,12 @@ public class VehicleActivityTransformer {
                 ;
 
         tochanges.to("changes-by-lineid", Produced.with(Serdes.String(), vafserde));
-        */
-        
+         */
         return streamin;
     }
 
     class VehicleTransformer
-        implements TransformerSupplier<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> {
+            implements TransformerSupplier<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> {
 
         final protected String storeName;
 
@@ -213,7 +233,7 @@ public class VehicleActivityTransformer {
                 boolean calculate = true;
 
                 VehicleActivityFlattened previous = data.last();
-                
+
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
                     return previous;
@@ -265,16 +285,16 @@ public class VehicleActivityTransformer {
 
                     while (iter.hasNext()) {
                         reference = iter.next();
-                        
+
                         if (reference.AddToHistory()) {
                             break;
                         }
                     }
-                    
-                    // Calculate approximate bearing.
-                    if (current.getBearing() == null && reference.getBearing() == null && 
-                            (current.getSource().equals("FI:HSL") ||
-                             current.getSource().equals("FI:FOLI"))) {
+
+                    // Calculate approximate bearing if missing. Must check later
+                    // if I got the direction right or 180 degrees wrong, and that
+                    // both samples actually have the needed coordinates.
+                    if (current.getBearing() == null) {
                         double lat1 = Math.toRadians(current.getLatitude());
                         double long1 = Math.toRadians(current.getLongitude());
                         double lat2 = Math.toRadians(previous.getLatitude());
@@ -288,7 +308,7 @@ public class VehicleActivityTransformer {
                         }
                         current.setBearing(bearingdegrees);
                     }
-                    
+
                     if (current.getDelay() != null && reference.getDelay() != null) {
                         Integer delaychange = current.getDelay() - reference.getDelay();
                         current.setDelayChange(delaychange);
@@ -306,7 +326,7 @@ public class VehicleActivityTransformer {
 
                 while (iter.hasNext()) {
                     VehicleActivityFlattened next = iter.next();
-                    
+
                     if (next.getRecordTime().isBefore(compareto)) {
                         iter.remove();
                         continue;
