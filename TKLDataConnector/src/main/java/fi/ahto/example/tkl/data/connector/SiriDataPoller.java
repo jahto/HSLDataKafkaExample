@@ -183,12 +183,26 @@ public class SiriDataPoller {
         LocalTime time = LocalTime.of(hour, minute);
         vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
         
+        // In the hope that the first stop in onwardCalls is the next stop.
         JsonNode stops = jrn.path("onwardCalls");
         if (stops.isMissingNode() == false && stops.isArray()) {
             JsonNode stop = stops.get(0);
             String stopid = stop.path("stopPointRef").asText();
             int index = stopid.lastIndexOf('/');
+
+            // Noted that there's the case when the vehicles speed is 0.0,
+            // stops order is 1, and originShortName matches with this stop.
+            // So the vehicle is clearly still waiting to start the journey.
+            // Should we in that case use next stop?
+            
             vaf.setNextStopId(PREFIX + stopid.substring(index + 1));
+        }
+        else {
+            // Sometimes there are no onwardCalls. Could be because the vehicle
+            // has arrived/is arriving to the last stop on the route, or something
+            // else. This is just guesswork.
+            String stopid = jrn.path("destinationShortName").asText();
+            vaf.setNextStopId(PREFIX + stopid);
         }
         
         return vaf;

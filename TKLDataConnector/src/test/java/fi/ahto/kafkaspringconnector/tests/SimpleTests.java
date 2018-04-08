@@ -83,7 +83,7 @@ public class SimpleTests {
                 LOG.info("Problem with file", ex);
             }
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
             } catch (InterruptedException ex) {
                 java.util.logging.Logger.getLogger(SimpleTests.class.getName()).log(Level.SEVERE, null, ex);
             }
