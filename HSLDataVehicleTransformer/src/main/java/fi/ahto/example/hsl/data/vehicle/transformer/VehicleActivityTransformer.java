@@ -231,6 +231,7 @@ public class VehicleActivityTransformer {
                             if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
                                 context.forward(vaf.getVehicleId(), vaf);
                                 entry.value.clear();
+                                this.store.put(entry.key, entry.value);
                                 LOG.info("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
                             }
                         }
