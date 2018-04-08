@@ -41,6 +41,8 @@ import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.PunctuationType;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -103,7 +105,7 @@ public class VehicleActivityTransformer {
                     left.setNextStopName(right);
                     return left;
                 });
-        
+
         final JsonSerde treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), treeserde, "vehicle-transformer-extended");
         KStream<String, VehicleActivityFlattened> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
@@ -205,11 +207,39 @@ public class VehicleActivityTransformer {
 
             protected KeyValueStore<String, VehicleSet> store;
             protected ProcessorContext context;
+            
+            // See next method init. Almost impossible to debug
+            // with old data if we clean it away every 60 seconds. 
+            private static final boolean TESTING = true;
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleSet>) context.getStateStore(storeName);
+                
+                // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
+                // The idea is to finally get rid of vehicles we haven't received any data for a while.
+                // Like night-time.
+                this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
+                    KeyValueIterator<String, VehicleSet> iter = this.store.all();
+                    while (iter.hasNext()) {
+                        KeyValue<String, VehicleSet> entry = iter.next();
+                        if (entry.value.isEmpty() == false) {
+                            VehicleActivityFlattened vaf = entry.value.last();
+                            Instant now  = Instant.ofEpochMilli(timestamp);
+                            
+                            if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
+                                context.forward(vaf.getVehicleId(), vaf);
+                                entry.value.clear();
+                                LOG.info("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
+                            }
+                        }
+                    }
+                    iter.close();
+
+                    // commit the current processing progress
+                    context.commit();
+                });
             }
 
             @Override
