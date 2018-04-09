@@ -50,7 +50,7 @@ public class TrafficDataStreamsListener {
     @Bean
     public GlobalKTable<String, VehicleDataList> constructLineDataTable(StreamsBuilder streamBuilder) {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        LOG.info("Constructing " + lineDataStore + " with StreamsBuilder");
+        LOG.debug("Constructing " + lineDataStore + " with StreamsBuilder");
         GlobalKTable<String, VehicleDataList> table
                 = streamBuilder.globalTable(lineDataStream,
                         Consumed.with(Serdes.String(), vaflistserde),
@@ -61,7 +61,7 @@ public class TrafficDataStreamsListener {
     @Bean
     public GlobalKTable<String, VehicleDataList> constructVehicleDataTable(StreamsBuilder streamBuilder) {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        LOG.info("Constructing " + vehicleDataStore + " with StreamsBuilder");
+        LOG.debug("Constructing " + vehicleDataStore + " with StreamsBuilder");
         GlobalKTable<String, VehicleDataList> table
                 = streamBuilder.globalTable(vehicleDataStream,
                         Consumed.with(Serdes.String(), vaflistserde),

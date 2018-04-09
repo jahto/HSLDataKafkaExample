@@ -53,12 +53,12 @@ public class LineTransformer {
     private ObjectMapper objectMapper;
 
     void VehicleActivityTransformers() {
-        LOG.info("VehicleActivityTransformers created");
+        LOG.debug("VehicleActivityTransformers created");
     }
 
     @Bean
     public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
-        LOG.info("Constructing stream from data-by-lineid");
+        LOG.debug("Constructing stream from data-by-lineid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
@@ -78,7 +78,7 @@ public class LineTransformer {
             new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
-                // LOG.info("Aggregating line " + key);
+                // LOG.debug("Aggregating line " + key);
                 boolean remove = false;
                 List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
 
@@ -104,7 +104,7 @@ public class LineTransformer {
                 if (value.LineHasChanged() == false) {
                     list.add(value);
                 } else {
-                    LOG.info("Removed vehicle " + value.getVehicleId() + " from line " + key);
+                    LOG.debug("Removed vehicle " + value.getVehicleId() + " from line " + key);
                 }
                 return aggregate;
             }

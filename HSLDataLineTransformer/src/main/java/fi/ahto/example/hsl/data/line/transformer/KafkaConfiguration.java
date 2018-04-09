@@ -16,6 +16,7 @@
 package fi.ahto.example.hsl.data.line.transformer;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.HashMap;
@@ -28,10 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
@@ -46,13 +45,10 @@ import org.springframework.kafka.core.StreamsBuilderFactoryBean;
 @EnableKafkaStreams
 public class KafkaConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaConfiguration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaConfiguration.class);
 
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
     private String bootstrapServers;
-
-    @Autowired
-    private StreamsBuilderFactoryBean myStreamsBuilderFactoryBean;
 
     // Using Kafka Streams
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
@@ -65,39 +61,15 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
         return new StreamsConfig(props);
     }
-    /*
-    @Bean
-    KafkaStreams getStreams(StreamsBuilderFactoryBean streamBuilder) {
-        if (streamBuilder.isRunning() == false) {
-            log.info("Starting StreamsBuilderFactoryBean");
-            streamBuilder.start();
-        }
-        log.info("Starting KafkaStreams");
-        KafkaStreams streams = streamBuilder.getKafkaStreams();
-        // streams.start();
-        return streams;
-    }
-    */
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
-        return new Jackson2ObjectMapperBuilderCustomizer() {
 
-            @Override
-            public void customize(Jackson2ObjectMapperBuilder jacksonObjectMapperBuilder) {
-                log.info("Customizing jacksonObjectMapperBuilder");
-                // Module jackson-datatype-jsr310 is automatically registered if found on classpath.
-                // Unfortunately, it's not the one we want, so that's why we install the newer JavaTimeModule later.
-                jacksonObjectMapperBuilder.modulesToInstall(new JavaTimeModule());
-                jacksonObjectMapperBuilder.featuresToDisable(
-                        SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS,
-                        DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
-                jacksonObjectMapperBuilder.featuresToEnable(
-                        SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
-                );
-                // jacksonObjectMapperBuilder.modulesToInstall(new JavaTimeModule());
-                int i = 0;
-            }
-
-        };
+    @Bean
+    public ObjectMapper customizedObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        LOG.debug("customizedObjectMapper constructed");
+        return mapper;
     }
 }

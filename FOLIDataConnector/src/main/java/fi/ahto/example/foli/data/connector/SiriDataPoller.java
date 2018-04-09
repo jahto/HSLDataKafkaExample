@@ -85,7 +85,7 @@ public class SiriDataPoller {
     public void feedTestData(InputStream data) throws IOException {
         List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
         if (dataFlattened != null) {
-            LOG.info("Putting data to queues");
+            LOG.debug("Putting data to queues");
             putDataToQueues(dataFlattened);
         }
     }
@@ -144,7 +144,7 @@ public class SiriDataPoller {
 
         // Good enough for FOLI until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
-        vaf.setVehicleId(node.path(PREFIX + "vehicleref").asText());
+        vaf.setVehicleId(PREFIX + node.path("vehicleref").asText());
         vaf.setBearing(node.path("bearing").asDouble());
         vaf.setLatitude(node.path("latitude").asDouble());
         vaf.setLongitude(node.path("longitude").asDouble());

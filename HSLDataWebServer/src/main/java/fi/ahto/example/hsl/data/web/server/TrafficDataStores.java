@@ -48,22 +48,22 @@ public class TrafficDataStores {
     @Lazy(true)
     @DependsOn("constructLineDataTable")
     public ReadOnlyKeyValueStore<String, VehicleDataList> lineDataStore() {
-        LOG.info("Constructing lineDataStore");
+        LOG.debug("Constructing lineDataStore");
 
         while (true) {
             try {
                 try {
                     KafkaStreams streams = streamsBuilderFactoryBean.getKafkaStreams();
                     if (streams == null) {
-                        LOG.info("Waiting for streams to be constructed and ready");
+                        LOG.debug("Waiting for streams to be constructed and ready");
                         Thread.sleep(100);
                         continue;
                     }
                     ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(lineDataStore, QueryableStoreTypes.keyValueStore());
-                    LOG.info("Store is now open for querying");
+                    LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
-                    LOG.info("Waiting for store to open... " + ex.getMessage());
+                    LOG.debug("Waiting for store to open... " + ex.getMessage());
                     Thread.sleep(100);
                 }
             } catch (InterruptedException ex) {
@@ -76,22 +76,22 @@ public class TrafficDataStores {
     @Lazy(true)
     @DependsOn("constructVehicleDataTable")
     public ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore() {
-        LOG.info("Constructing vehicleDataStore");
+        LOG.debug("Constructing vehicleDataStore");
 
         while (true) {
             try {
                 try {
                     KafkaStreams streams = streamsBuilderFactoryBean.getKafkaStreams();
                     if (streams == null) {
-                        LOG.info("Waiting for streams to be constructed and ready");
+                        LOG.debug("Waiting for streams to be constructed and ready");
                         Thread.sleep(100);
                         continue;
                     }
                     ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(vehicleDataStore, QueryableStoreTypes.keyValueStore());
-                    LOG.info("Store is now open for querying");
+                    LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
-                    LOG.info("Waiting for store to open... " + ex.getMessage());
+                    LOG.debug("Waiting for store to open... " + ex.getMessage());
                     Thread.sleep(100);
                 }
             } catch (InterruptedException ex) {

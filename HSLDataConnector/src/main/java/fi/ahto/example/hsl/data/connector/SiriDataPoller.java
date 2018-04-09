@@ -89,7 +89,7 @@ public class SiriDataPoller {
     public void feedTestData(InputStream data) throws IOException {
         List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
         if (dataFlattened != null) {
-            LOG.info("Putting data to queues");
+            LOG.debug("Putting data to queues");
             putDataToQueues(dataFlattened);
         }
     }

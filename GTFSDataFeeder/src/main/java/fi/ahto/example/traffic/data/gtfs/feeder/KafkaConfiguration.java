@@ -58,19 +58,19 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test-connector");
-        LOG.info("ProducerConfigs");
+        LOG.debug("ProducerConfigs");
         return props;
     }
 
     @Bean
     public KafkaTemplate<?, ?> kafkaTemplate() {
-        LOG.info("KafkaTempate");
+        LOG.debug("KafkaTempate");
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
     public ProducerFactory<?, ?> producerFactory() {
-        LOG.info("ProducerFactory");
+        LOG.debug("ProducerFactory");
         DefaultKafkaProducerFactory<?, ?> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
         return factory;
     }

@@ -80,7 +80,7 @@ public class SimpleTests {
             try (InputStream stream = new FileInputStream(file)) {
                 siriDataPoller.feedTestData(stream);
             } catch (IOException ex) {
-                LOG.info("Problem with file", ex);
+                LOG.debug("Problem with file", ex);
             }
             try {
                 Thread.sleep(100);

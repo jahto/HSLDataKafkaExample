@@ -15,49 +15,27 @@
  */
 package fi.ahto.example.hsl.data.mqtt.connector;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import fi.ahto.example.traffic.data.contracts.siri.TransitType;
-import fi.ahto.example.traffic.data.contracts.siri.VehicleActivity;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.integration.annotation.IntegrationComponentScan;
-import org.springframework.integration.annotation.MessagingGateway;
 import org.springframework.integration.annotation.ServiceActivator;
-import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
-import org.springframework.integration.core.MessageProducer;
-import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
-import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.integration.mqtt.support.MqttHeaders;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.MessagingException;
@@ -85,23 +63,7 @@ public class MQTTDataPoller {
 
     @Autowired
     ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
-    /*
-    @Bean
-    public MessageChannel mqttInputChannel() {
-        return new DirectChannel();
-    }
 
-    @Bean
-    public MessageProducer inbound() {
-        MqttPahoMessageDrivenChannelAdapter adapter
-                = new MqttPahoMessageDrivenChannelAdapter("tcp://213.138.147.225:1883", "testClient", "/hfp/journey/#");
-        adapter.setCompletionTimeout(5000);
-        adapter.setConverter(new DefaultPahoMessageConverter());
-        adapter.setQos(1);
-        adapter.setOutputChannel(mqttInputChannel());
-        return adapter;
-    }
-    */
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
     public MessageHandler handler() {
@@ -124,13 +86,7 @@ public class MQTTDataPoller {
             }
         };
     }
-    /*
-    @MessagingGateway(defaultRequestChannel = "mqttInputChannel")
-    public interface MqttMsgproducer {
 
-        void sendToMqtt(String data);
-    }
-    */
     public void putDataToQueues(VehicleActivityFlattened data) {
         KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
@@ -304,89 +260,4 @@ public class MQTTDataPoller {
         private String line = null;
         private TransitType type = TransitType.UNKNOWN;
     }
-
-    public static final String testdata = "{\n"
-            + "    \"Siri\": {\n"
-            + "        \"version\": \"1.3\",\n"
-            + "        \"ServiceDelivery\": {\n"
-            + "            \"ResponseTimestamp\": 1509970911494,\n"
-            + "            \"ProducerRef\": {\n"
-            + "                \"value\": \"HSL\"\n"
-            + "            },\n"
-            + "            \"Status\": true,\n"
-            + "            \"MoreData\": false,\n"
-            + "            \"VehicleMonitoringDelivery\": [{\n"
-            + "                    \"version\": \"1.3\",\n"
-            + "                    \"ResponseTimestamp\": 1509970911494,\n"
-            + "                    \"Status\": true,\n"
-            + "                    \"VehicleActivity\": [{\n"
-            + "                            \"ValidUntilTime\": 1509970818000,\n"
-            + "                            \"RecordedAtTime\": 1509970788000,\n"
-            + "                            \"MonitoredVehicleJourney\": {\n"
-            + "                                \"LineRef\": {\n"
-            + "                                    \"value\": \"2105\"\n"
-            + "                                },\n"
-            + "                                \"DirectionRef\": {\n"
-            + "                                    \"value\": \"2\"\n"
-            + "                                },\n"
-            + "                                \"FramedVehicleJourneyRef\": {\n"
-            + "                                    \"DataFrameRef\": {\n"
-            + "                                        \"value\": \"2017-11-06\"\n"
-            + "                                    },\n"
-            + "                                    \"DatedVehicleJourneyRef\": \"1355\"\n"
-            + "                                },\n"
-            + "                                \"OperatorRef\": {\n"
-            + "                                    \"value\": \"HSL\"\n"
-            + "                                },\n"
-            + "                                \"Monitored\": true,\n"
-            + "                                \"VehicleLocation\": {\n"
-            + "                                    \"Longitude\": 24.84252,\n"
-            + "                                    \"Latitude\": 60.16583\n"
-            + "                                },\n"
-            + "                                \"Delay\": 168,\n"
-            + "                                \"MonitoredCall\": {\n"
-            + "                                    \"StopPointRef\": \"1201130\"\n"
-            + "                                },\n"
-            + "                                \"VehicleRef\": {\n"
-            + "                                    \"value\": \"10428788\"\n"
-            + "                                }\n"
-            + "                            }\n"
-            + "                        }, {\n"
-            + "                            \"ValidUntilTime\": 1509970940000,\n"
-            + "                            \"RecordedAtTime\": 1509970910000,\n"
-            + "                            \"MonitoredVehicleJourney\": {\n"
-            + "                                \"LineRef\": {\n"
-            + "                                    \"value\": \"4723\"\n"
-            + "                                },\n"
-            + "                                \"DirectionRef\": {\n"
-            + "                                    \"value\": \"1\"\n"
-            + "                                },\n"
-            + "                                \"FramedVehicleJourneyRef\": {\n"
-            + "                                    \"DataFrameRef\": {\n"
-            + "                                        \"value\": \"2017-11-06\"\n"
-            + "                                    },\n"
-            + "                                    \"DatedVehicleJourneyRef\": \"1420\"\n"
-            + "                                },\n"
-            + "                                \"OperatorRef\": {\n"
-            + "                                    \"value\": \"HSL\"\n"
-            + "                                },\n"
-            + "                                \"Monitored\": true,\n"
-            + "                                \"VehicleLocation\": {\n"
-            + "                                    \"Longitude\": 25.10179,\n"
-            + "                                    \"Latitude\": 60.31573\n"
-            + "                                },\n"
-            + "                                \"Delay\": 110,\n"
-            + "                                \"MonitoredCall\": {\n"
-            + "                                    \"StopPointRef\": \"4750216\"\n"
-            + "                                },\n"
-            + "                                \"VehicleRef\": {\n"
-            + "                                    \"value\": \"46400ba6\"\n"
-            + "                                }\n"
-            + "                            }\n"
-            + "                        }]\n"
-            + "                }]\n"
-            + "        }\n"
-            + "    }\n"
-            + "}\n"
-            + "";
 }

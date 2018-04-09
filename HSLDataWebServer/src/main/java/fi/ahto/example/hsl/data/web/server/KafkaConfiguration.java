@@ -16,6 +16,7 @@
 package fi.ahto.example.hsl.data.web.server;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.HashMap;
@@ -26,10 +27,8 @@ import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
@@ -59,9 +58,20 @@ public class KafkaConfiguration {
     }
     
     @Bean
+    public ObjectMapper customizedObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        LOG.debug("customizedObjectMapper constructed");
+        return mapper;
+    }
+    /*
+    @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
         return (Jackson2ObjectMapperBuilder jacksonObjectMapperBuilder) -> {
-            LOG.info("Customizing jacksonObjectMapperBuilder");
+            LOG.debug("Customizing jacksonObjectMapperBuilder");
             // Module jackson-datatype-jsr310 is automatically registered if found on classpath.
             // Unfortunately, it's not the one we want, so that's why we install the newer JavaTimeModule later.
             jacksonObjectMapperBuilder.featuresToDisable(
@@ -70,19 +80,6 @@ public class KafkaConfiguration {
             jacksonObjectMapperBuilder.featuresToEnable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             jacksonObjectMapperBuilder.modulesToInstall(new JavaTimeModule());
         };
-    }
-
-    /*
-    @Bean
-    KafkaStreams getStreams(StreamsBuilderFactoryBean streamBuilder) {
-        if (streamBuilder.isRunning() == false) {
-        LOG.info("Starting StreamsBuilderFactoryBean");
-            streamBuilder.start();
-        }
-        LOG.info("Starting KafkaStreams");
-        KafkaStreams streams = streamBuilder.getKafkaStreams();
-        // streams.start();
-        return streams;
     }
     */
 }

@@ -2,7 +2,7 @@
 /**/*.directory
 /**/nbactions.xml
 /**/target/
+/**/logback-test.xml
+/**/nbproject/
 /GTFSDataFeeder/data/**/*.txt
 /GTFSDataFeeder/data/**/*.zip
-/FOLIDataConnector/nbproject/
-/HSLMQTTConnector/nbproject/

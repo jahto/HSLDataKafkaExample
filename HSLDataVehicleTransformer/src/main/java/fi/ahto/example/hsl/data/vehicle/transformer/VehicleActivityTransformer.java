@@ -66,7 +66,7 @@ public class VehicleActivityTransformer {
     private ObjectMapper objectMapper;
 
     void VehicleActivityTransformers() {
-        LOG.info("VehicleActivityTransformers created");
+        LOG.debug("VehicleActivityTransformers created");
     }
 
     // Must be static when declared here as inner class, otherwise you run into
@@ -80,7 +80,7 @@ public class VehicleActivityTransformer {
 
     @Bean
     public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
-        LOG.info("Constructing stream from data-by-vehicleid");
+        LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
 
@@ -172,7 +172,7 @@ public class VehicleActivityTransformer {
                         value.LineHasChanged())
                 .map((key, value) -> 
                     {
-                        LOG.info("Vehicle " + value.getVehicleId() + " changed line.");
+                        LOG.debug("Vehicle " + value.getVehicleId() + " changed line.");
                         return KeyValue.pair(value.getLineId(), value);
                 })
                 ;
@@ -210,7 +210,7 @@ public class VehicleActivityTransformer {
             
             // See next method init. Almost impossible to debug
             // with old data if we clean it away every 60 seconds. 
-            private static final boolean TESTING = true;
+            private static final boolean TESTING = false;
 
             @Override
             public void init(ProcessorContext context) {
@@ -232,7 +232,7 @@ public class VehicleActivityTransformer {
                                 context.forward(vaf.getVehicleId(), vaf);
                                 entry.value.clear();
                                 this.store.put(entry.key, entry.value);
-                                LOG.info("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
+                                LOG.debug("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
                             }
                         }
                     }

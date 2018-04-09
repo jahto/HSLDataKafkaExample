@@ -77,7 +77,7 @@ public class SimpleTests {
         */
     }
 
-    @Test /* Uncomment when needed */
+    // @Test /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 1000; i++) {
@@ -88,7 +88,7 @@ public class SimpleTests {
             try (InputStream stream = new FileInputStream(file)) {
                 siriDataPoller.feedTestData(stream);
             } catch (IOException ex) {
-                LOG.info("Problem with file", ex);
+                LOG.debug("Problem with file", ex);
             }
         }
     }
