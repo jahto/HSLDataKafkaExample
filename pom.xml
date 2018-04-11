@@ -58,6 +58,7 @@
         <module>TrafficDataLineTransformer</module>
         <module>TrafficDataWebServer</module>
         <module>TrafficDataVehicleTransformer</module>
+        <module>EnturDataConnector</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
