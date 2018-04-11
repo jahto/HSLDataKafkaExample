@@ -8,7 +8,7 @@ package fi.ahto.example.hsl.data.mqtt.connector.tests;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.hsl.data.mqtt.connector.KafkaConfiguration;
-import fi.ahto.example.hsl.data.mqtt.connector.MQTTDataPoller;
+import fi.ahto.example.hsl.data.mqtt.connector.HSLDataMQTTListener;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class SimpleTests {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private MQTTDataPoller dataPoller;
+    private HSLDataMQTTListener dataPoller;
 
     @Test
     public void testReadDataAsJsonNodes() throws IOException {

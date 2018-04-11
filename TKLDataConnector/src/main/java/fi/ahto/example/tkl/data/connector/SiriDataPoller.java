@@ -58,9 +58,6 @@ public class SiriDataPoller {
     private static final String PREFIX = SOURCE + ":";
 
     @Autowired
-    private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
@@ -123,10 +120,10 @@ public class SiriDataPoller {
                     if (vaf != null) {
                         vehicleActivities.add(vaf);
                     } else {
-                        // LOG.error("Problem with node: " + node.toString());
+                        LOG.error("Problem with node: " + node.asText());
                     }
                 } catch (IllegalArgumentException ex) {
-                    LOG.error(node.asText(), ex);
+                    LOG.error("Problem with node: " + node.asText(), ex);
                 }
             }
         }

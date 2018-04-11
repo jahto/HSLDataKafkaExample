@@ -49,20 +49,20 @@
     </dependencies>
     <modules>
         <module>../KafkaStreamsStateUtils</module>
-        <module>HSLDataWebServer</module>
         <module>HSLDataConnector</module>
-        <module>HSLDataContracts</module>
-        <module>HSLDataVehicleTransformer</module>
-        <module>HSLDataLineTransformer</module>
         <module>TKLDataConnector</module>
         <module>FOLIDataConnector</module>
         <module>HSLMQTTConnector</module>
         <module>GTFSDataFeeder</module>
+        <module>TrafficDataContracts</module>
+        <module>TrafficDataLineTransformer</module>
+        <module>TrafficDataWebServer</module>
+        <module>TrafficDataVehicleTransformer</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <name>HSLDataKafkaExample</name>
+    <name>TrafficDataKafkaExample</name>
     <build>
         <plugins>
             <plugin>

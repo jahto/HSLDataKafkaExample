@@ -119,7 +119,7 @@ public class KafkaConfiguration {
 
     // To keep the tests happy...
     @Bean
-    public MQTTDataPoller siriDataPoller() {
-        return new MQTTDataPoller();
+    public HSLDataMQTTListener siriDataPoller() {
+        return new HSLDataMQTTListener();
     }
 }
