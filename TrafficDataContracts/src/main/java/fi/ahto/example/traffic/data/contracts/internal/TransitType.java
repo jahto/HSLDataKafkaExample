@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.siri;
+package fi.ahto.example.traffic.data.contracts.internal;
 
 /**
  *

@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.hsl.data.connector.KafkaConfiguration;
 import fi.ahto.example.hsl.data.connector.SiriDataPoller;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;

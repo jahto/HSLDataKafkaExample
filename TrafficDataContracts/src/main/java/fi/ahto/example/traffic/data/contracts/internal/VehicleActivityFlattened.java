@@ -16,7 +16,6 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 

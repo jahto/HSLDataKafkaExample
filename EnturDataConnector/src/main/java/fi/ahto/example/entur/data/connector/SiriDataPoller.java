@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;

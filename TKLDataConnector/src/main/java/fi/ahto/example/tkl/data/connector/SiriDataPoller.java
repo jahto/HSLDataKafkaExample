@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
-import fi.ahto.example.traffic.data.contracts.siri.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
