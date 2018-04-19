@@ -16,37 +16,29 @@
 package fi.ahto.example.entur.data.connector;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
+import static org.rutebanken.siri20.util.SiriXml.parseXml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
@@ -54,8 +46,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
-
-import static org.rutebanken.siri20.util.SiriXml.parseXml;
 import uk.org.siri.siri20.MonitoredCallStructure;
 import uk.org.siri.siri20.OnwardCallStructure;
 import uk.org.siri.siri20.OnwardCallsStructure;
@@ -74,7 +64,7 @@ public class SiriDataPoller {
     private static final Logger LOG = LoggerFactory.getLogger(SiriDataPoller.class);
     private static final Lock LOCK = new ReentrantLock();
     private static final String SOURCE = "NO:ENTUR";
-    private static final String PREFIX = SOURCE + ":";
+    private static final String PREFIX = "NO:";
     private static final UUID uuid = UUID.randomUUID();
 
     @Autowired
@@ -196,16 +186,34 @@ public class SiriDataPoller {
         }
 
         if (mvh.getDirectionRef() != null) {
-            vaf.setDirection(mvh.getDirectionRef().getValue());
+            // Some oddities with norwegian data.
+            switch (mvh.getDirectionRef().getValue()) {
+                case "go":
+                    vaf.setDirection("1");
+                    break;
+                case "back":
+                    vaf.setDirection("2");
+                    break;
+                default:
+                    vaf.setDirection(mvh.getDirectionRef().getValue());
+                    break;
+            }
         } else {
             vaf.setDirection("UNKNOWN");
         }
+
+        // Entur uses this format for LineRef "ATB:Line:10".
+        // We need the first part to distiguish between vehicles
+        // with the same VehicleRef operated by different companies.
+        String[] splitted = mvh.getLineRef().getValue().split(":");
+        String prefix = PREFIX + splitted[0] + ":";
+        
         vaf.setInternalLineId(PREFIX + mvh.getLineRef().getValue());
         vaf.setLineId(mvh.getPublishedLineNames().get(0).getValue());
 
         // How to get the right value?.
         vaf.setTransitType(decodeTransitType(mvh));
-        vaf.setVehicleId(PREFIX + mvh.getVehicleRef().getValue());
+        vaf.setVehicleId(prefix + mvh.getVehicleRef().getValue());
         if (mvh.getBearing() != null) {
             vaf.setBearing(mvh.getBearing().doubleValue());
         }
