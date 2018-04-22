@@ -4,5 +4,8 @@
 /**/target/
 /**/logback-test.xml
 /**/nbproject/
+/**/.project
+/**/.classpath
+/**/.settings/
 /GTFSDataFeeder/data/**/*.txt
 /GTFSDataFeeder/data/**/*.zip
