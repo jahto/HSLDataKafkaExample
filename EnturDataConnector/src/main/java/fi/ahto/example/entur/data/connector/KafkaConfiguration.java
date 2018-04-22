@@ -54,7 +54,6 @@ public class KafkaConfiguration {
     private String bootstrapServers;
 
     @Autowired
-    @Qualifier("json")
     private ObjectMapper objectMapper;
 
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
@@ -88,7 +87,6 @@ public class KafkaConfiguration {
     }
     
     @Bean
-    @Qualifier("json")
     public ObjectMapper customizedObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -97,15 +95,6 @@ public class KafkaConfiguration {
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
-    }
-
-    @Bean
-    @Qualifier("xml")
-    public XmlMapper customizedXmlMapper() {
-        JacksonXmlModule module = new JacksonXmlModule();
-        module.setDefaultUseWrapper(false);
-        XmlMapper xmlMapper = new XmlMapper(module);
-        return xmlMapper;
     }
 
     // To keep the tests happy...

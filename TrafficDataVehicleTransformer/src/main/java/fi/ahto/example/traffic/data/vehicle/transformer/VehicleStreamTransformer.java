@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.web.server;
+package fi.ahto.example.traffic.data.vehicle.transformer;
+
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,10 +24,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Jouni Ahto
  */
 @SpringBootApplication
-public class KafkaSpringListener {
-
+public class VehicleStreamTransformer {
     public static void main(String[] args) {
-        SpringApplication.run(KafkaSpringListener.class, args);
+        SpringApplication.run(VehicleStreamTransformer.class, args);
     }
-
 }

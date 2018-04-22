@@ -36,7 +36,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.example.hsl.data.web.server.KafkaSpringListener</mainClass>
+                    <mainClass>fi.ahto.example.hsl.data.web.server.TrafficDataWebServer</mainClass>
+                    <finalName>TrafficDataWebServer</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -49,5 +50,4 @@
         </plugins>
     </build>
     <name>TrafficDataWebServer</name>
-    <groupId>com.github.jahto</groupId>
 </project>

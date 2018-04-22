@@ -18,7 +18,6 @@ package fi.ahto.example.entur.data.connector;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import java.io.IOException;
@@ -38,7 +37,6 @@ import static org.rutebanken.siri20.util.SiriXml.parseXml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
@@ -71,12 +69,7 @@ public class SiriDataPoller {
     private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
 
     @Autowired
-    @Qualifier("json")
     private ObjectMapper objectMapper;
-
-    @Autowired
-    @Qualifier("xml")
-    private XmlMapper xmlMapper;
 
     @Autowired
     ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
@@ -230,10 +223,9 @@ public class SiriDataPoller {
          */
 
         MonitoredCallStructure mc = mvh.getMonitoredCall();
-        OnwardCallsStructure oc = null;
+        OnwardCallsStructure oc = mvh.getOnwardCalls();
         List<OnwardCallStructure> list = null;
         OnwardCallStructure next = null;
-        oc = mvh.getOnwardCalls();
         if (oc != null) {
             list = oc.getOnwardCalls();
             if (list != null && list.size() > 0) {
@@ -241,7 +233,7 @@ public class SiriDataPoller {
             }
         }
 
-        // Vehicles on line "Extra Line" of contain no information about the stops.
+        // Vehicles on line "Extra Line" contain no information about the stops.
         if (mc.getStopPointRef() != null) {
             // Happens when the next stop is also the last one on the route
             if (oc == null) {

@@ -24,8 +24,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Jouni Ahto
  */
 @SpringBootApplication
-public class KafkaSpringStreamTransformer {
+public class LineStreamTransformer {
     public static void main(String[] args) {
-        SpringApplication.run(KafkaSpringStreamTransformer.class, args);
+        SpringApplication.run(LineStreamTransformer.class, args);
     }
 }
