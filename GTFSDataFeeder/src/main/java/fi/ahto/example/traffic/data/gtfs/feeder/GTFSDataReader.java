@@ -24,6 +24,8 @@ import java.util.List;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
+import org.onebusaway.gtfs.model.StopTime;
+import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -41,6 +43,7 @@ import org.springframework.stereotype.Component;
 public class GTFSDataReader implements ApplicationRunner {
 
     private static String prefix = null;
+    private static RouteToStopsMapper mapper = null;
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -102,13 +105,19 @@ public class GTFSDataReader implements ApplicationRunner {
         reader.addEntityHandler(entityHandler);
         File input = dir.getAbsoluteFile();
         try {
+            mapper = new RouteToStopsMapper();
             reader.setInputLocation(input);
             reader.run();
+            triggerChanges();
         } catch (IOException ex) {
 
         }
     }
 
+    private void triggerChanges() {
+        // Should now put the collected to kafka queues, TBD tomorrow.
+    }
+    
     @Component
     private static class GtfsEntityHandler implements EntityHandler {
 
@@ -128,6 +137,16 @@ public class GTFSDataReader implements ApplicationRunner {
                 // System.out.println("route: " + prefix + route.getId().getId() + " " + route.getLongName());
                 kafkaTemplate.send("routes", prefix + route.getId().getId(), route.getLongName());
             }
+            
+            if (bean instanceof StopTime) {
+                StopTime stoptime = (StopTime) bean;
+                mapper.add(prefix, stoptime);
+            }
+            /*
+            if (bean instanceof Trip) {
+                Trip trip = (Trip) bean;
+            }
+            */
         }
     }
 }
