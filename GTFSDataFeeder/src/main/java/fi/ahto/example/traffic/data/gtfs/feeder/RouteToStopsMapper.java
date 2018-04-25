@@ -15,13 +15,12 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import fi.ahto.example.traffic.data.contracts.internal.StopDataSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.TreeSet;
-import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.StopTime;
 
 /**
@@ -30,60 +29,21 @@ import org.onebusaway.gtfs.model.StopTime;
  */
 public class RouteToStopsMapper {
 
-    Map<String, StopSet> forward = new HashMap<>();
-    Map<String, StopSet> backward = new HashMap<>();
+    Map<String, StopDataSet> forward = new HashMap<>();
+    Map<String, StopDataSet> backward = new HashMap<>();
     Map<String, List<String>> routes = new HashMap<>();
 
-    class StopInfo {
-        String id;
-        int seq;
-        Stop stop;
-
-        @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 23 * hash + Objects.hashCode(this.id);
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final StopInfo other = (StopInfo) obj;
-            if (!Objects.equals(this.id, other.id)) {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    class StopSet extends TreeSet<StopInfo> {
-
-        public StopSet() {
-            super((StopInfo o1, StopInfo o2) -> Integer.compare(o1.seq, o2.seq));
-        }
-    }
-
     public void add(String prefix, StopTime st) {
-        StopInfo si = new StopInfo();
+        StopData si = new StopData();
         si.id = prefix + st.getStop().getId().getId();
         si.seq = st.getStopSequence();
-        si.stop = st.getStop();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
-        StopSet set = null;
+        StopDataSet set = null;
         
         if (st.getTrip().getDirectionId().equals("0")) {
             set = forward.get(routeid);
             if (set == null) {
-                set = new StopSet();
+                set = new StopDataSet();
                 forward.put(routeid, set);
             }
         }
@@ -91,7 +51,7 @@ public class RouteToStopsMapper {
         if (st.getTrip().getDirectionId().equals("1")) {
             set = backward.get(routeid);
             if (set == null) {
-                set = new StopSet();
+                set = new StopDataSet();
                 backward.put(routeid, set);
             }
         }
