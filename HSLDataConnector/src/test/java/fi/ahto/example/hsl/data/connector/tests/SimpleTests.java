@@ -53,7 +53,7 @@ public class SimpleTests {
     @Autowired
     private SiriDataPoller siriDataPoller;
 
-    // @Test
+    @Test
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
         try (InputStream stream = new ByteArrayInputStream(testdata.getBytes())) {

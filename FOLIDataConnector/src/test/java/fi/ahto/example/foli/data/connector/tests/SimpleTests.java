@@ -15,8 +15,6 @@
  */
 package fi.ahto.example.foli.data.connector.tests;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.foli.data.connector.KafkaConfiguration;
 import fi.ahto.example.foli.data.connector.SiriDataPoller;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
@@ -26,7 +24,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.logging.Level;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.runner.RunWith;

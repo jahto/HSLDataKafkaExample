@@ -19,11 +19,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
-import fi.ahto.example.traffic.data.contracts.siri.VehicleActivity;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -109,7 +109,7 @@ public class SiriDataPoller {
             } catch (JsonProcessingException ex) {
             } catch (IOException ex) {
             }
-            */
+             */
         }
     }
 
@@ -129,8 +129,7 @@ public class SiriDataPoller {
             if (values.isMissingNode() == false && values.isArray()) {
                 for (JsonNode node : values) {
                     try {
-                        VehicleActivity va = objectMapper.convertValue(node, VehicleActivity.class);
-                        VehicleActivityFlattened vaf = flattenVehicleActivity(va);
+                        VehicleActivityFlattened vaf = flattenVehicleActivity(node);
                         if (vaf != null) {
                             vehicleActivities.add(vaf);
                         } else {
@@ -146,32 +145,73 @@ public class SiriDataPoller {
         return vehicleActivities;
     }
 
-    public VehicleActivityFlattened flattenVehicleActivity(VehicleActivity va) {
-        if (va.getMonitoredVehicleJourney().IsValid() == false) {
+    public VehicleActivityFlattened flattenVehicleActivity(JsonNode node) {
+        VehicleActivityFlattened vaf = new VehicleActivityFlattened();
+        vaf.setSource(SOURCE);
+
+        String rat = node.path("RecordedAtTime").asText();
+        long inst = Long.parseLong(rat);
+        vaf.setRecordTime(Instant.ofEpochMilli(inst));
+        JsonNode jrn = node.path("MonitoredVehicleJourney");
+
+        LineInfo line;
+        if ((line = decodeLineNumber(jrn.path("LineRef").path("value").asText())) == null) {
             return null;
         }
 
+        vaf.setDelay(jrn.path("Delay").asInt());
+        vaf.setDirection(jrn.path("DirectionRef").asText());
+
+        vaf.setInternalLineId(PREFIX + jrn.path("LineRef").path("value").asText());
+        vaf.setLineId(line.getLine());
+
+        vaf.setTransitType(line.getType());
+        vaf.setVehicleId(PREFIX + jrn.path("VehicleRef").asText());
+        // vaf.setBearing(jrn.path("bearing").asDouble());
+        // vaf.setSpeed(jrn.path("speed").asDouble());
+
+        JsonNode loc = jrn.path("VehicleLocation");
+        vaf.setLatitude(loc.path("Latitude").asDouble());
+        vaf.setLongitude(loc.path("Longitude").asDouble());
+
+        vaf.setStopPoint(PREFIX + jrn.path("MonitoredCall").path("StopPointRef").asText());
+
+        String datestr = jrn.path("FramedVehicleJourneyRef").path("DataFrameRef").path("value").asText();
+        String timestr = jrn.path("FramedVehicleJourneyRef").path("DatedVehicleJourneyRef").asText();
+
+        if (datestr != null && timestr != null) {
+            LocalDate date = LocalDate.parse(datestr);
+            Integer hour = Integer.parseInt(timestr.substring(0, 2));
+            Integer minute = Integer.parseInt(timestr.substring(2));
+            LocalTime time = LocalTime.of(hour, minute);
+            vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
+        }
+
+        return vaf;
+    }
+    /*
+    public VehicleActivityFlattened flattenVehicleActivityOld(VehicleActivityStructure va) {
         LineInfo line;
         if ((line = decodeLineNumber(va.getMonitoredVehicleJourney().getLineRef().getValue())) == null) {
             return null;
         }
 
         VehicleActivityFlattened vaf = new VehicleActivityFlattened();
-        vaf.setSource(SOURCE);
-        vaf.setDelay(va.getMonitoredVehicleJourney().getDelaySeconds());
+        // vaf.setDelay(va.getMonitoredVehicleJourney().getDelaySeconds());
         vaf.setDirection(va.getMonitoredVehicleJourney().getDirectionRef().getValue());
         vaf.setInternalLineId(PREFIX + va.getMonitoredVehicleJourney().getLineRef().getValue());
-        vaf.setLatitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLatitude());
+        vaf.setLatitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLatitude().doubleValue());
         vaf.setLineId(line.getLine());
-        vaf.setLongitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLongitude());
-        vaf.setRecordTime(va.getRecordedAtTime());
+        vaf.setLongitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLongitude().doubleValue());
+        vaf.setRecordTime(va.getRecordedAtTime().toInstant());
         // What does this field refer to?
-        vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
-        vaf.setNextStopId(PREFIX + va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
+        vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef().getValue());
+        vaf.setNextStopId(PREFIX + va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef().getValue());
         vaf.setTransitType(line.getType());
         vaf.setVehicleId(PREFIX + va.getMonitoredVehicleJourney().getVehicleRef().getValue());
 
-        LocalDate date = va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDataFrameRef().getValue();
+        // LocalDate date = va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDataFrameRef().getValue();
+        LocalDate date = LocalDate.parse(va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDataFrameRef().getValue());
         if (va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef() != null) {
             Integer hour = Integer.parseInt(va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef().substring(0, 2));
             Integer minute = Integer.parseInt(va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef().substring(2));
@@ -181,7 +221,7 @@ public class SiriDataPoller {
 
         return vaf;
     }
-
+    */
     public LineInfo decodeLineNumber(String line) throws IllegalArgumentException {
         LineInfo rval = new LineInfo();
 
