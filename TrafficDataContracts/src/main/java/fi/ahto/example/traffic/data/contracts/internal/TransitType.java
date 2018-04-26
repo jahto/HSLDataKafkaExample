@@ -15,15 +15,45 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  * @author Jouni Ahto
  */
 public enum TransitType {
-    UNKNOWN,
-    FERRY,
-    TRAIN,
-    METRO,
-    TRAM,
-    BUS
+    UNKNOWN(-1),
+    TRAM(0),
+    METRO(1),
+    TRAIN(2),
+    BUS(3),
+    FERRY(4),
+    // The next ones do not match with each other in GTFS and Siri enum VehicleMode
+    // First ones from GTFS
+    CABLECAR(5),
+    AERIALLIFT(6),
+    FUNICULAR(7),
+    // And the rest from Siri
+    COUCH(8),
+    UNDERGROUND(9),
+    AIR(10)
+    ;
+    
+    private final int value;
+    private static final Map<Integer, TransitType> map = new HashMap<>();
+    
+    private TransitType(int val) {
+        value = val;
+    }
+    
+    static {
+        for (TransitType type : TransitType.values()) {
+            map.put(type.value, type);
+        }
+    }
+    
+    public TransitType from(int val) {
+        return map.getOrDefault(val, UNKNOWN);
+    }
 }
