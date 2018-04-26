@@ -142,43 +142,8 @@ public class HSLDataMQTTListener {
         ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
         
-        vaf.setNextStopId(PREFIX + nextstop);
+        vaf.setStopPoint(PREFIX + nextstop);
         
-        int i = 0;
-        /*
-        if (va.getMonitoredVehicleJourney().IsValid() == false) {
-            return null;
-        }
-        
-        LineInfo line;
-        if ((line = decodeLineNumber(va.getMonitoredVehicleJourney().getLineRef().getValue())) == null) {
-            return null;
-        }
-
-        VehicleActivityFlattened vaf = new VehicleActivityFlattened();
-        vaf.setSource(SOURCE);
-        vaf.setDelay(va.getMonitoredVehicleJourney().getDelaySeconds());
-        vaf.setDirection(va.getMonitoredVehicleJourney().getDirectionRef().getValue());
-        vaf.setInternalLineId(PREFIX + va.getMonitoredVehicleJourney().getLineRef().getValue());
-        vaf.setLatitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLatitude());
-        vaf.setLineId(line.getLine());
-        vaf.setLongitude(va.getMonitoredVehicleJourney().getVehicleLocation().getLongitude());
-        vaf.setRecordTime(va.getRecordedAtTime());
-        // What does this field refer to?
-        vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
-        vaf.setTransitType(line.getType());
-        vaf.setVehicleId(PREFIX + va.getMonitoredVehicleJourney().getVehicleRef().getValue());
-
-        LocalDate date = va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDataFrameRef().getValue();
-        if (va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef() != null) {
-            Integer hour = Integer.parseInt(va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef().substring(0, 2));
-            Integer minute = Integer.parseInt(va.getMonitoredVehicleJourney().getFramedVehicleJourneyRef().getDatedVehicleJourneyRef().substring(2));
-            LocalTime time = LocalTime.of(hour, minute);
-            vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
-        }
-
-        return vaf;
-         */
         return vaf;
     }
 

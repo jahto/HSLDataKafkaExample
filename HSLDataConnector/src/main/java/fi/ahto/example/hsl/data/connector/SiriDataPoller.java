@@ -129,11 +129,15 @@ public class SiriDataPoller {
             if (values.isMissingNode() == false && values.isArray()) {
                 for (JsonNode node : values) {
                     try {
-                        VehicleActivityFlattened vaf = flattenVehicleActivity(node);
-                        if (vaf != null) {
-                            vehicleActivities.add(vaf);
-                        } else {
-                            LOG.error("Problem with node: " + node.asText());
+                        // This feed contains also data for Tampere, we handle it separately. 
+                        String operator = node.path("MonitoredVehicleJourney").path("OperatorRef").path("value").asText("");
+                        if (operator.equals("HSL")) {
+                            VehicleActivityFlattened vaf = flattenVehicleActivity(node);
+                            if (vaf != null) {
+                                vehicleActivities.add(vaf);
+                            } else {
+                                LOG.error("Problem with node: " + node.asText());
+                            }
                         }
                     } catch (IllegalArgumentException ex) {
                         LOG.error(node.asText(), ex);
@@ -160,13 +164,14 @@ public class SiriDataPoller {
         }
 
         vaf.setDelay(jrn.path("Delay").asInt());
-        vaf.setDirection(jrn.path("DirectionRef").asText());
+        vaf.setDirection(jrn.path("DirectionRef").path("value").asText());
 
         vaf.setInternalLineId(PREFIX + jrn.path("LineRef").path("value").asText());
         vaf.setLineId(line.getLine());
 
         vaf.setTransitType(line.getType());
         vaf.setVehicleId(PREFIX + jrn.path("VehicleRef").asText());
+        // Feed does not contain these fields yet.
         // vaf.setBearing(jrn.path("bearing").asDouble());
         // vaf.setSpeed(jrn.path("speed").asDouble());
 
@@ -189,6 +194,7 @@ public class SiriDataPoller {
 
         return vaf;
     }
+
     /*
     public VehicleActivityFlattened flattenVehicleActivityOld(VehicleActivityStructure va) {
         LineInfo line;
@@ -221,7 +227,7 @@ public class SiriDataPoller {
 
         return vaf;
     }
-    */
+     */
     public LineInfo decodeLineNumber(String line) throws IllegalArgumentException {
         LineInfo rval = new LineInfo();
 

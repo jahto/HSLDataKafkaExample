@@ -63,7 +63,7 @@ public class SimpleTests {
         }
     }
 
-    // @Test /* Uncomment when needed */
+    @Test /* Uncomment when needed */
     public void feedExampleDataToQueues() {
         for (int i = 0; i < 1000; i++) {
             String postfix = Integer.toString(i);

@@ -114,20 +114,18 @@ public class SiriDataPoller {
 
         List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
 
-        // if (values.isMissingNode() == false && values.isArray()) {
         for (JsonNode node : response) {
             try {
                 VehicleActivityFlattened vaf = flattenVehicleActivity(node);
                 if (vaf != null) {
                     vehicleActivities.add(vaf);
                 } else {
-                    // LOG.error("Problem with node: " + node.toString());
+                    LOG.error("Problem with node: " + node.asText());
                 }
             } catch (IllegalArgumentException ex) {
                 LOG.error(node.asText(), ex);
             }
         }
-        //}
 
         return vehicleActivities;
     }

@@ -16,6 +16,9 @@
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStops;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
@@ -83,6 +86,7 @@ public class VehicleActivityTransformer {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
+        final JsonSerde<RouteStops> routestopsserde = new JsonSerde<>(RouteStops.class, objectMapper);
 
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
@@ -91,7 +95,45 @@ public class VehicleActivityTransformer {
                         Consumed.with(Serdes.String(), Serdes.String()),
                         Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("stops"));
 
-        KStream<String, VehicleActivityFlattened> streamout = streamin.leftJoin(stops,
+        GlobalKTable<String, RouteStops> routestops
+                = builder.globalTable("routes-to-stops",
+                        Consumed.with(Serdes.String(), routestopsserde),
+                        Materialized.<String, RouteStops, KeyValueStore<Bytes, byte[]>>as("routestops"));
+
+        // We do currently not use this stream for anything other than its side effects.
+        KStream<String, VehicleActivityFlattened> foostream = streamin.leftJoin(routestops,
+                (String key, VehicleActivityFlattened value) -> {
+                    return value.getInternalLineId();
+                },
+                (VehicleActivityFlattened left, RouteStops right) -> {
+                    if (left.getNextStopId() == null && left.getStopPoint() != null) {
+                        if (right != null) {
+                            RouteStopSet set = null;
+                            if (left.getDirection().equals("1")) {
+                                set = right.forward;
+                            }
+                            if (left.getDirection().equals("2")) {
+                                set = right.backward;
+                            }
+                            if (set != null) {
+                                Iterator<RouteStop> iter = set.iterator();
+                                while (iter.hasNext()) {
+                                    RouteStop stop = iter.next();
+                                    if (left.getStopPoint().equals(stop.stopid)) {
+                                        if (iter.hasNext()) {
+                                            RouteStop next = iter.next();
+                                            left.setNextStopId(next.stopid);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                   return left; 
+                });
+        // We do currently not use this stream for anything other than its side effects.
+        KStream<String, VehicleActivityFlattened> barstream = streamin.leftJoin(stops,
                 (String key, VehicleActivityFlattened value) -> {
                     if (value.getNextStopId() == null) {
                         return "FOOBARBAZ"; // Will most probably not match...
@@ -210,7 +252,7 @@ public class VehicleActivityTransformer {
             
             // See next method init. Almost impossible to debug
             // with old data if we clean it away every 60 seconds. 
-            private static final boolean TESTING = false;
+            private static final boolean TESTING = true;
 
             @Override
             public void init(ProcessorContext context) {
