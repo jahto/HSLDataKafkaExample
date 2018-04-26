@@ -15,17 +15,20 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStops;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -47,6 +50,15 @@ public class GTFSDataReader implements ApplicationRunner {
 
     @Autowired
     private GtfsEntityHandler entityHandler;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private KafkaTemplate<String, List<String>> stopsTemplate;
+
+    @Autowired
+    private KafkaTemplate<String, RouteStops> routeStopsTemplate;
 
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
@@ -115,9 +127,14 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     private void triggerChanges() {
-        // Should now put the collected to kafka queues, TBD tomorrow.
+        mapper.routesserved.forEach((k, v) -> {
+            stopsTemplate.send("stops-to-routes", k, v);
+        });
+        mapper.routes.forEach((k, v) -> {
+            routeStopsTemplate.send("routes-to-stops", k, v);
+        });
     }
-    
+
     @Component
     private static class GtfsEntityHandler implements EntityHandler {
 
@@ -137,7 +154,7 @@ public class GTFSDataReader implements ApplicationRunner {
                 // System.out.println("route: " + prefix + route.getId().getId() + " " + route.getLongName());
                 kafkaTemplate.send("routes", prefix + route.getId().getId(), route.getLongName());
             }
-            
+
             if (bean instanceof StopTime) {
                 StopTime stoptime = (StopTime) bean;
                 mapper.add(prefix, stoptime);
@@ -146,7 +163,7 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Trip) {
                 Trip trip = (Trip) bean;
             }
-            */
+             */
         }
     }
 }

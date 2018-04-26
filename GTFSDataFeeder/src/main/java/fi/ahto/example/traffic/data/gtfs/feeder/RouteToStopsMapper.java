@@ -15,8 +15,9 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import fi.ahto.example.traffic.data.contracts.internal.StopDataSet;
-import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStops;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,31 +29,47 @@ import org.onebusaway.gtfs.model.StopTime;
  * @author Jouni Ahto
  */
 public class RouteToStopsMapper {
-
-    Map<String, StopDataSet> forward = new HashMap<>();
-    Map<String, StopDataSet> backward = new HashMap<>();
-    Map<String, List<String>> routes = new HashMap<>();
+    Map<String, RouteStops> routes = new HashMap();
+    Map<String, List<String>> routesserved = new HashMap<>();
 
     public void add(String prefix, StopTime st) {
-        StopData si = new StopData();
-        si.id = prefix + st.getStop().getId().getId();
-        si.seq = st.getStopSequence();
+        RouteStop si = new RouteStop();
+        si.stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
-        StopDataSet set = null;
+        RouteStopSet set = null;
+        
+        List<String> list = routesserved.get(si.stopid);
+        if (list == null) {
+            list = new ArrayList<>();
+            routesserved.put(si.stopid, list);
+        }
+        if (list.contains(routeid) == false) {
+            list.add(routeid);
+            // System.out.println("Added route " + routeid + " to stop " + si.stopid);
+        }
+
+        si.seq = st.getStopSequence();
+
+        RouteStops route = routes.get(routeid);
+        if (route == null) {
+            route = new RouteStops();
+            route.routeid = routeid;
+            routes.put(routeid, route);
+        }
         
         if (st.getTrip().getDirectionId().equals("0")) {
-            set = forward.get(routeid);
+            set = route.forward;
             if (set == null) {
-                set = new StopDataSet();
-                forward.put(routeid, set);
+                set = new RouteStopSet();
+                route.forward = set;
             }
         }
         
         if (st.getTrip().getDirectionId().equals("1")) {
-            set = backward.get(routeid);
+            set = route.backward;
             if (set == null) {
-                set = new StopDataSet();
-                backward.put(routeid, set);
+                set = new RouteStopSet();
+                route.backward = set;
             }
         }
         
@@ -68,16 +85,6 @@ public class RouteToStopsMapper {
         
         else {
             System.out.println("Unknown direction " + st.getTrip().getDirectionId());
-        }
-        
-        List<String> list = routes.get(si.id);
-        if (list == null) {
-            list = new ArrayList<>();
-            routes.put(si.id, list);
-        }
-        if (list.contains(routeid) == false) {
-            list.add(routeid);
-            // System.out.println("Added route " + routeid + " to stop " + si.id);
         }
     }
 }
