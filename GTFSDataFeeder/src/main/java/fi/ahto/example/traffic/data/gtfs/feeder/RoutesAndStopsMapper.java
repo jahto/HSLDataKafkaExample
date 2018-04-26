@@ -28,7 +28,7 @@ import org.onebusaway.gtfs.model.StopTime;
  *
  * @author Jouni Ahto
  */
-public class RouteToStopsMapper {
+public class RoutesAndStopsMapper {
     Map<String, RouteStops> routes = new HashMap();
     Map<String, List<String>> routesserved = new HashMap<>();
 

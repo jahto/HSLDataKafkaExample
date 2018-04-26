@@ -46,7 +46,7 @@ import org.springframework.stereotype.Component;
 public class GTFSDataReader implements ApplicationRunner {
 
     private static String prefix = null;
-    private static RouteToStopsMapper mapper = null;
+    private static RoutesAndStopsMapper mapper = null;
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -117,7 +117,7 @@ public class GTFSDataReader implements ApplicationRunner {
         reader.addEntityHandler(entityHandler);
         File input = dir.getAbsoluteFile();
         try {
-            mapper = new RouteToStopsMapper();
+            mapper = new RoutesAndStopsMapper();
             reader.setInputLocation(input);
             reader.run();
             triggerChanges();
@@ -143,12 +143,14 @@ public class GTFSDataReader implements ApplicationRunner {
 
         @Override
         public void handleEntity(Object bean) {
+            // TODO: Combine this data with routes served by
             if (bean instanceof Stop) {
                 Stop stop = (Stop) bean;
                 // System.out.println("stop: " + prefix + stop.getId().getId() + " " + stop.getName());
                 kafkaTemplate.send("stops", prefix + stop.getId().getId(), stop.getName());
             }
 
+            // TODO: Combine this data with stops served by
             if (bean instanceof Route) {
                 Route route = (Route) bean;
                 // System.out.println("route: " + prefix + route.getId().getId() + " " + route.getLongName());
