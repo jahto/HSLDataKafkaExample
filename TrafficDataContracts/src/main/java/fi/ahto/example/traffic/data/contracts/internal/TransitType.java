@@ -35,7 +35,7 @@ public enum TransitType {
     AERIALLIFT(6),
     FUNICULAR(7),
     // And the rest from Siri
-    COUCH(8),
+    COACH(8),
     UNDERGROUND(9),
     AIR(10)
     ;
