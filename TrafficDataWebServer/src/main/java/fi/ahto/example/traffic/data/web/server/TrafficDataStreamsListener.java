@@ -16,6 +16,9 @@
 package fi.ahto.example.traffic.data.web.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -43,6 +46,12 @@ public class TrafficDataStreamsListener {
     private static final String lineDataStore = "data-by-lineid-enhanced-store";
     private static final String vehicleDataStream = "vehicle-history";
     private static final String vehicleDataStore = "vehicle-history-store";
+    private static final String routeDataStream = "routes";
+    private static final String routeDataStore = "routes-store";
+    private static final String stopDataStream = "stops";
+    private static final String stopDataStore = "stops-store";
+    private static final String shapeDataStream = "shapes";
+    private static final String shapeDataStore = "shapes-store";
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -66,6 +75,39 @@ public class TrafficDataStreamsListener {
                 = streamBuilder.globalTable(vehicleDataStream,
                         Consumed.with(Serdes.String(), vaflistserde),
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(vehicleDataStore));
+        return table;
+    }
+
+    @Bean
+    public GlobalKTable<String, RouteData> constructRouteDataTable(StreamsBuilder streamBuilder) {
+        final JsonSerde<RouteData> stopserde = new JsonSerde<>(RouteData.class, objectMapper);
+        LOG.debug("Constructing " + routeDataStore + " with StreamsBuilder");
+        GlobalKTable<String, RouteData> table
+                = streamBuilder.globalTable(routeDataStream,
+                        Consumed.with(Serdes.String(), stopserde),
+                        Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as(routeDataStore));
+        return table;
+    }
+
+    @Bean
+    public GlobalKTable<String, StopData> constructStopDataTable(StreamsBuilder streamBuilder) {
+        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
+        LOG.debug("Constructing " + stopDataStore + " with StreamsBuilder");
+        GlobalKTable<String, StopData> table
+                = streamBuilder.globalTable(stopDataStream,
+                        Consumed.with(Serdes.String(), stopserde),
+                        Materialized.<String, StopData, KeyValueStore<Bytes, byte[]>>as(stopDataStore));
+        return table;
+    }
+
+    @Bean
+    public GlobalKTable<String, ShapeSet> constructShapeDataTable(StreamsBuilder streamBuilder) {
+        final JsonSerde<ShapeSet> shapeserde = new JsonSerde<>(ShapeSet.class, objectMapper);
+        LOG.debug("Constructing " + shapeDataStore + " with StreamsBuilder");
+        GlobalKTable<String, ShapeSet> table
+                = streamBuilder.globalTable(shapeDataStream,
+                        Consumed.with(Serdes.String(), shapeserde),
+                        Materialized.<String, ShapeSet, KeyValueStore<Bytes, byte[]>>as(shapeDataStore));
         return table;
     }
 }

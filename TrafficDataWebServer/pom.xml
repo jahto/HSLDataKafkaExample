@@ -36,7 +36,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.example.hsl.data.web.server.TrafficDataWebServer</mainClass>
+                    <mainClass>fi.ahto.example.traffic.data.web.server.TrafficDataWebServer</mainClass>
                     <finalName>TrafficDataWebServer</finalName>
                 </configuration>
                 <executions>

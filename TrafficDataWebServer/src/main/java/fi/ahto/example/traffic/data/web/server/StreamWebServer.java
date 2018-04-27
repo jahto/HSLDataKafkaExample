@@ -15,6 +15,9 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +41,18 @@ public class StreamWebServer {
     @Lazy(true)
     private ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore;
     
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, RouteData> routeDataStore;
+    
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, StopData> stopDataStore;
+    
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, ShapeSet> shapeDataStore;
+    
     @RequestMapping(value = "/line/{id}", method = RequestMethod.GET)
     public VehicleDataList findLine(@PathVariable String id) {
         return lineDataStore.get(id);
@@ -46,5 +61,20 @@ public class StreamWebServer {
     @RequestMapping(value = "/vehicle/{id}", method = RequestMethod.GET)
     public VehicleDataList findVehicle(@PathVariable String id) {
         return vehicleDataStore.get(id);
+    }
+
+    @RequestMapping(value = "/route/{id}", method = RequestMethod.GET)
+    public RouteData findRoute(@PathVariable String id) {
+        return routeDataStore.get(id);
+    }
+    
+    @RequestMapping(value = "/stop/{id}", method = RequestMethod.GET)
+    public StopData findStop(@PathVariable String id) {
+        return stopDataStore.get(id);
+    }
+    
+    @RequestMapping(value = "/shape/{id}", method = RequestMethod.GET)
+    public ShapeSet findShape(@PathVariable String id) {
+        return shapeDataStore.get(id);
     }
 }
