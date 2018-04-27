@@ -170,7 +170,7 @@ public class SiriDataPoller {
         vaf.setLineId(line.getLine());
 
         vaf.setTransitType(line.getType());
-        vaf.setVehicleId(PREFIX + jrn.path("VehicleRef").asText());
+        vaf.setVehicleId(PREFIX + jrn.path("VehicleRef").path("value").asText());
         // Feed does not contain these fields yet.
         // vaf.setBearing(jrn.path("bearing").asDouble());
         // vaf.setSpeed(jrn.path("speed").asDouble());

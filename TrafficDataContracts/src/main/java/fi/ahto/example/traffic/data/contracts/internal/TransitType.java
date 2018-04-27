@@ -53,7 +53,7 @@ public enum TransitType {
         }
     }
     
-    public TransitType from(int val) {
+    public static TransitType from(int val) {
         return map.getOrDefault(val, UNKNOWN);
     }
 }

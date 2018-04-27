@@ -16,43 +16,26 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class RouteStop {
-    
+public class StopData {
     @JsonProperty("StopId")
     public String stopid;
-    @JsonProperty("Sequence")
-    public int seq;
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 23 * hash + Objects.hashCode(this.stopid);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final RouteStop other = (RouteStop) obj;
-        if (!Objects.equals(this.stopid, other.stopid)) {
-            return false;
-        }
-        return true;
-    }
-    
+    @JsonProperty("StopName")
+    public String stopname;
+    @JsonProperty("Latitude")
+    public double latitude;
+    @JsonProperty("Longitude")
+    public double longitude;
+    @JsonProperty("StopCode")
+    public String stopcode;
+    @JsonProperty("Description")
+    public String desc;
+    @JsonProperty("RoutesServed")
+    public List<String> routesserved = new ArrayList<>();
 }

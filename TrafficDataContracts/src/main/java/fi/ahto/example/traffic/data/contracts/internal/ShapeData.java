@@ -21,11 +21,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Jouni Ahto
  */
-public class RouteStops {
-    @JsonProperty("RouteId")
-    public String routeid;
-    @JsonProperty("StopsForward")
-    public RouteStopSet forward;
-    @JsonProperty("StopsBackward")
-    public RouteStopSet backward;
+public class ShapeData {
+    @JsonProperty("Sequence")
+    public int seq;
+    @JsonProperty("Latitude")
+    public double latitude;
+    @JsonProperty("Longitude")
+    public double longitude;
 }

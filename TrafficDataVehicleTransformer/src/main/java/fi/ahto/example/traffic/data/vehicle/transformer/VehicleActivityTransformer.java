@@ -17,8 +17,9 @@ package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
-import fi.ahto.example.traffic.data.contracts.internal.RouteStops;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
@@ -86,34 +87,35 @@ public class VehicleActivityTransformer {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        final JsonSerde<RouteStops> routestopsserde = new JsonSerde<>(RouteStops.class, objectMapper);
+        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
+        final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
 
         KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
-        GlobalKTable<String, String> stops
+        GlobalKTable<String, StopData> stops
                 = builder.globalTable("stops",
-                        Consumed.with(Serdes.String(), Serdes.String()),
-                        Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("stops"));
+                        Consumed.with(Serdes.String(), stopserde),
+                        Materialized.<String, StopData, KeyValueStore<Bytes, byte[]>>as("stops"));
 
-        GlobalKTable<String, RouteStops> routestops
-                = builder.globalTable("routes-to-stops",
-                        Consumed.with(Serdes.String(), routestopsserde),
-                        Materialized.<String, RouteStops, KeyValueStore<Bytes, byte[]>>as("routestops"));
+        GlobalKTable<String, RouteData> routes
+                = builder.globalTable("routes",
+                        Consumed.with(Serdes.String(), routeserde),
+                        Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routestops"));
 
         // We do currently not use this stream for anything other than its side effects.
-        KStream<String, VehicleActivityFlattened> foostream = streamin.leftJoin(routestops,
+        KStream<String, VehicleActivityFlattened> foostream = streamin.leftJoin(routes,
                 (String key, VehicleActivityFlattened value) -> {
                     return value.getInternalLineId();
                 },
-                (VehicleActivityFlattened left, RouteStops right) -> {
+                (VehicleActivityFlattened left, RouteData right) -> {
                     if (left.getNextStopId() == null && left.getStopPoint() != null) {
                         if (right != null) {
                             RouteStopSet set = null;
                             if (left.getDirection().equals("1")) {
-                                set = right.forward;
+                                set = right.stopsforward;
                             }
                             if (left.getDirection().equals("2")) {
-                                set = right.backward;
+                                set = right.stopsbackward;
                             }
                             if (set != null) {
                                 Iterator<RouteStop> iter = set.iterator();
@@ -132,6 +134,7 @@ public class VehicleActivityTransformer {
                     }
                    return left; 
                 });
+        
         // We do currently not use this stream for anything other than its side effects.
         KStream<String, VehicleActivityFlattened> barstream = streamin.leftJoin(stops,
                 (String key, VehicleActivityFlattened value) -> {
@@ -140,11 +143,11 @@ public class VehicleActivityTransformer {
                     }
                     return value.getNextStopId();
                 },
-                (VehicleActivityFlattened left, String right) -> {
+                (VehicleActivityFlattened left, StopData right) -> {
                     if (right == null || left.getNextStopName() != null) {
                         return left;
                     }
-                    left.setNextStopName(right);
+                    left.setNextStopName(right.stopname);
                     return left;
                 });
 
