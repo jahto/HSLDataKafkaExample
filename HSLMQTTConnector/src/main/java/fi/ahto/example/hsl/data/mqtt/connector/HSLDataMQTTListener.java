@@ -17,7 +17,7 @@ package fi.ahto.example.hsl.data.mqtt.connector;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
 import java.time.Instant;
@@ -56,13 +56,13 @@ public class HSLDataMQTTListener {
     private static final String PREFIX = SOURCE + ":";
 
     @Autowired
-    private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
+    private KafkaTemplate<String, VehicleActivity> msgtemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
-    ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
+    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
 
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
@@ -79,7 +79,7 @@ public class HSLDataMQTTListener {
                 System.exit(0);
                 
                 try {
-                    VehicleActivityFlattened vaf = readDataAsJsonNodes(topic, data);
+                    VehicleActivity vaf = readDataAsJsonNodes(topic, data);
                     putDataToQueues(vaf);
                 } catch (IOException ex) {
                 }
@@ -87,8 +87,8 @@ public class HSLDataMQTTListener {
         };
     }
 
-    public void putDataToQueues(VehicleActivityFlattened data) {
-        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
+    public void putDataToQueues(VehicleActivity data) {
+        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
         /*
         try {
@@ -105,16 +105,16 @@ public class HSLDataMQTTListener {
         */
     }
 
-    public VehicleActivityFlattened readDataAsJsonNodes(String queue, String msg) throws IOException {
+    public VehicleActivity readDataAsJsonNodes(String queue, String msg) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.
 
         JsonNode data = objectMapper.readTree(msg);
-        VehicleActivityFlattened vaf = flattenVehicleActivity(queue, data);
+        VehicleActivity vaf = flattenVehicleActivity(queue, data);
         return vaf;
     }
 
-    public VehicleActivityFlattened flattenVehicleActivity(String queue, JsonNode node) {
+    public VehicleActivity flattenVehicleActivity(String queue, JsonNode node) {
         String[] splitted = queue.split("/");
         String vehicle = splitted[4];
         String line = splitted[5];
@@ -125,7 +125,7 @@ public class HSLDataMQTTListener {
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
-        VehicleActivityFlattened vaf = new VehicleActivityFlattened();
+        VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
         vaf.setInternalLineId(PREFIX + line);
         vaf.setLineId(info.getLine());

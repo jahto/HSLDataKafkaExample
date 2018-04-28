@@ -23,7 +23,7 @@ import java.time.ZonedDateTime;
  *
  * @author Jouni Ahto
  */
-public class VehicleActivityFlattened {
+public class VehicleActivity {
 
     public String getNextStopId() {
         return nextStopId;

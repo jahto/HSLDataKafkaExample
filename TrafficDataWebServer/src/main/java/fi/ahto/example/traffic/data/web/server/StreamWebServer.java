@@ -18,7 +18,12 @@ package fi.ahto.example.traffic.data.web.server;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -39,7 +44,11 @@ public class StreamWebServer {
     
     @Autowired
     @Lazy(true)
-    private ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore;
+    private ReadOnlyKeyValueStore<String, VehicleActivity> vehicleDataStore;
+    
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, VehicleDataList> vehicleHistoryDataStore;
     
     @Autowired
     @Lazy(true)
@@ -59,8 +68,13 @@ public class StreamWebServer {
     }
 
     @RequestMapping(value = "/vehicle/{id}", method = RequestMethod.GET)
-    public VehicleDataList findVehicle(@PathVariable String id) {
+    public VehicleActivity findVehicle(@PathVariable String id) {
         return vehicleDataStore.get(id);
+    }
+
+    @RequestMapping(value = "/history/vehicle/{id}", method = RequestMethod.GET)
+    public VehicleDataList findVehicleHistory(@PathVariable String id) {
+        return vehicleHistoryDataStore.get(id);
     }
 
     @RequestMapping(value = "/route/{id}", method = RequestMethod.GET)
@@ -77,4 +91,71 @@ public class StreamWebServer {
     public ShapeSet findShape(@PathVariable String id) {
         return shapeDataStore.get(id);
     }
+
+    @RequestMapping(value = "/lines", method = RequestMethod.GET)
+    public Map<String, VehicleDataList> findLinesAll() {
+        Map<String, VehicleDataList> map = new HashMap<>();
+        KeyValueIterator<String, VehicleDataList> iter = lineDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, VehicleDataList> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+
+    @RequestMapping(value = "/vehicles", method = RequestMethod.GET)
+    public Map<String, VehicleActivity> findVehicleAll() {
+        Map<String, VehicleActivity> map = new HashMap<>();
+        KeyValueIterator<String, VehicleActivity> iter = vehicleDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, VehicleActivity> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+
+    @RequestMapping(value = "/history/vehicles", method = RequestMethod.GET)
+    public Map<String, VehicleDataList> findVehicleHistoryAll() {
+        Map<String, VehicleDataList> map = new HashMap<>();
+        KeyValueIterator<String, VehicleDataList> iter = vehicleHistoryDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, VehicleDataList> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+
+    @RequestMapping(value = "/routes", method = RequestMethod.GET)
+    public Map<String, RouteData> findRouteAll() {
+        Map<String, RouteData> map = new HashMap<>();
+        KeyValueIterator<String, RouteData> iter = routeDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, RouteData> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+    
+    @RequestMapping(value = "/stops", method = RequestMethod.GET)
+    public Map<String, StopData> findStopAll() {
+        Map<String, StopData> map = new HashMap<>();
+        KeyValueIterator<String, StopData> iter = stopDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, StopData> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+    
+    @RequestMapping(value = "/shapes", method = RequestMethod.GET)
+    public Map<String, ShapeSet> findShapeAll(@PathVariable String id) {
+        Map<String, ShapeSet> map = new HashMap<>();
+        KeyValueIterator<String, ShapeSet> iter = shapeDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, ShapeSet> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
+
 }

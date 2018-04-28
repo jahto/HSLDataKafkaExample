@@ -24,15 +24,15 @@ import java.util.List;
  */
 public class VehicleDataList {
     @JsonProperty("VehicleDataFlattened")
-    private List<VehicleActivityFlattened> vehicleDataFlattened = null;
+    private List<VehicleActivity> vehicleDataFlattened = null;
     
     @JsonProperty("VehicleDataFlattened")
-    public List<VehicleActivityFlattened> getVehicleActivity() {
+    public List<VehicleActivity> getVehicleActivity() {
         return vehicleDataFlattened;
     }
 
     @JsonProperty("VehicleDataFlattened")
-    public void setVehicleActivity(List<VehicleActivityFlattened> vehicleDataFlattened) {
+    public void setVehicleActivity(List<VehicleActivity> vehicleDataFlattened) {
         this.vehicleDataFlattened = vehicleDataFlattened;
     }
 

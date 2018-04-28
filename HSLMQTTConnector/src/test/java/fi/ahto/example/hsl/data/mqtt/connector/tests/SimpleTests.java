@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.hsl.data.mqtt.connector.KafkaConfiguration;
 import fi.ahto.example.hsl.data.mqtt.connector.HSLDataMQTTListener;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,10 +51,10 @@ public class SimpleTests {
         objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         String[] splitted = testdata.split(" ", 2);
 
-        VehicleActivityFlattened list = dataPoller.readDataAsJsonNodes(splitted[0], splitted[1]);
+        VehicleActivity list = dataPoller.readDataAsJsonNodes(splitted[0], splitted[1]);
         // assertEquals(list.size(), 1);
         /*
-            VehicleActivityFlattened vaf = list.get(0);
+            VehicleActivity vaf = list.get(0);
             objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             String result = objectMapper.writeValueAsString(vaf);
          */

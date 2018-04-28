@@ -16,7 +16,7 @@
 package fi.ahto.example.traffic.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,38 +57,38 @@ public class LineTransformer {
     }
 
     @Bean
-    public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
+    public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
-        final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
+        final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
+        KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
         Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
-                List<VehicleActivityFlattened> list = new ArrayList<>();
+                List<VehicleActivity> list = new ArrayList<>();
                 valist.setVehicleActivity(list);
                 return valist;
             }
         };
         
         // Get a table of all vehicles currently operating on the line.
-        Aggregator<String, VehicleActivityFlattened, VehicleDataList> lineaggregator =
-            new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+        Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator =
+            new Aggregator<String, VehicleActivity, VehicleDataList>() {
             @Override
-            public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
+            public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
                 // LOG.debug("Aggregating line " + key);
                 boolean remove = false;
-                List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
+                List<VehicleActivity> list = aggregate.getVehicleActivity();
 
-                ListIterator<VehicleActivityFlattened> iter = list.listIterator();
+                ListIterator<VehicleActivity> iter = list.listIterator();
                 long time1 = value.getRecordTime().getEpochSecond();
 
                 // Remove entries older than 90 seconds or value itself. Not a safe
                 // way to detect when a vehicle has changed line or gone out of traffic.
                 while (iter.hasNext()) {
-                    VehicleActivityFlattened vaf = iter.next();
+                    VehicleActivity vaf = iter.next();
                     long time2 = vaf.getRecordTime().getEpochSecond();
                     if (vaf.getVehicleId().equals(value.getVehicleId())) {
                         remove = true;

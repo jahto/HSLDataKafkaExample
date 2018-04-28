@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -66,19 +66,19 @@ public class SiriDataPoller {
     private static final UUID uuid = UUID.randomUUID();
 
     @Autowired
-    private KafkaTemplate<String, VehicleActivityFlattened> msgtemplate;
+    private KafkaTemplate<String, VehicleActivity> msgtemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
-    ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
+    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
 
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {
         try {
-            List<VehicleActivityFlattened> dataFlattened;
+            List<VehicleActivity> dataFlattened;
             // URI uri = getServiceURI();
             // datasetId=RUT
             URI uri = new URI("http://api.entur.org/anshar/1.0/rest/vm" + "?requestorId=" + uuid.toString());
@@ -94,7 +94,7 @@ public class SiriDataPoller {
     }
 
     public void feedTestData(InputStream data) throws IOException {
-        List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
+        List<VehicleActivity> dataFlattened = readDataAsJsonNodes(data);
         /*
         if (dataFlattened != null) {
             LOG.debug("Putting data to queues");
@@ -111,14 +111,14 @@ public class SiriDataPoller {
         return response.getBody();
     }
 
-    public void putDataToQueues(List<VehicleActivityFlattened> data) {
-        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
-        for (VehicleActivityFlattened vaf : data) {
+    public void putDataToQueues(List<VehicleActivity> data) {
+        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
+        for (VehicleActivity vaf : data) {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
         }
     }
 
-    public List<VehicleActivityFlattened> readDataAsJsonNodes(InputStream in) throws IOException {
+    public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
         objectMapper.setSerializationInclusion(Include.NON_EMPTY);
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         int i = 0;
@@ -127,10 +127,10 @@ public class SiriDataPoller {
             List<VehicleMonitoringDeliveryStructure> vms = s.getServiceDelivery().getVehicleMonitoringDeliveries();
             List<VehicleActivityStructure> vas = vms.get(0).getVehicleActivities();
 
-            List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
+            List<VehicleActivity> vehicleActivities = new ArrayList<>();
             for (VehicleActivityStructure va : vas) {
                 try {
-                    VehicleActivityFlattened vaf = flattenVehicleActivity(va);
+                    VehicleActivity vaf = flattenVehicleActivity(va);
                     if (vaf != null) {
                         vehicleActivities.add(vaf);
                     } else {
@@ -153,8 +153,8 @@ public class SiriDataPoller {
         return null;
     }
 
-    public VehicleActivityFlattened flattenVehicleActivity(VehicleActivityStructure va) {
-        VehicleActivityFlattened vaf = new VehicleActivityFlattened();
+    public VehicleActivity flattenVehicleActivity(VehicleActivityStructure va) {
+        VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
         va.getRecordedAtTime().toInstant();
         vaf.setRecordTime(va.getRecordedAtTime().toInstant());

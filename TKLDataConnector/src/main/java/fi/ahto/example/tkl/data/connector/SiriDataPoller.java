@@ -18,7 +18,7 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,13 +61,13 @@ public class SiriDataPoller {
     private ObjectMapper objectMapper;
 
     @Autowired
-    ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory;
+    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
 
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {
         try {
-            List<VehicleActivityFlattened> dataFlattened;
+            List<VehicleActivity> dataFlattened;
             // URI uri = getServiceURI();
             URI uri = new URI("http://data.itsfactory.fi/journeys/api/1/vehicle-activity");
             try (InputStream data = fetchData(uri)) {
@@ -82,7 +82,7 @@ public class SiriDataPoller {
     }
 
     public void feedTestData(InputStream data) throws IOException {
-        List<VehicleActivityFlattened> dataFlattened = readDataAsJsonNodes(data);
+        List<VehicleActivity> dataFlattened = readDataAsJsonNodes(data);
         if (dataFlattened != null) {
             LOG.debug("Putting data to queues");
             putDataToQueues(dataFlattened);
@@ -97,26 +97,26 @@ public class SiriDataPoller {
         return response.getBody();
     }
 
-    public void putDataToQueues(List<VehicleActivityFlattened> data) {
-        KafkaTemplate<String, VehicleActivityFlattened> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
-        for (VehicleActivityFlattened vaf : data) {
+    public void putDataToQueues(List<VehicleActivity> data) {
+        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
+        for (VehicleActivity vaf : data) {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
         }
     }
 
-    public List<VehicleActivityFlattened> readDataAsJsonNodes(InputStream in) throws IOException {
+    public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.
         objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
         JsonNode data = objectMapper.readTree(in);
         JsonNode response = data.path("body");
 
-        List<VehicleActivityFlattened> vehicleActivities = new ArrayList<>();
+        List<VehicleActivity> vehicleActivities = new ArrayList<>();
 
         if (response.isMissingNode() == false && response.isArray()) {
             for (JsonNode node : response) {
                 try {
-                    VehicleActivityFlattened vaf = flattenVehicleActivity(node);
+                    VehicleActivity vaf = flattenVehicleActivity(node);
                     if (vaf != null) {
                         vehicleActivities.add(vaf);
                     } else {
@@ -131,8 +131,8 @@ public class SiriDataPoller {
         return vehicleActivities;
     }
 
-    public VehicleActivityFlattened flattenVehicleActivity(JsonNode node) {
-        VehicleActivityFlattened vaf = new VehicleActivityFlattened();
+    public VehicleActivity flattenVehicleActivity(JsonNode node) {
+        VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
 
         String rat = node.path("recordedAtTime").asText();

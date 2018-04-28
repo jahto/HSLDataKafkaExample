@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.web.server;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -37,22 +38,19 @@ import org.springframework.stereotype.Service;
  * @author Jouni Ahto
  */
 
+// TODO: Refactor this class, too much duplicate code.
+
 @Service
 // @DependsOn("TrafficDataStreamsListener")
 public class TrafficDataStores {
     private static final Logger LOG = LoggerFactory.getLogger(TrafficDataStreamsListener.class);
-    private static final String lineDataStore = "data-by-lineid-enhanced-store";
-    private static final String vehicleDataStore = "vehicle-history-store";
-    private static final String routeDataStore = "routea-store";
-    private static final String stopDataStore = "stops-store";
-    private static final String shapeDataStore = "shapes-store";
     
     @Autowired
     private StreamsBuilderFactoryBean streamsBuilderFactoryBean;
     
     @Bean
     @Lazy(true)
-    @DependsOn("constructLineDataTable")
+    //@DependsOn("constructLineDataTable")
     public ReadOnlyKeyValueStore<String, VehicleDataList> lineDataStore() {
         LOG.debug("Constructing lineDataStore");
 
@@ -65,7 +63,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(lineDataStore, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(StaticData.LINE_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
@@ -80,8 +78,8 @@ public class TrafficDataStores {
     
     @Bean
     @Lazy(true)
-    @DependsOn("constructVehicleDataTable")
-    public ReadOnlyKeyValueStore<String, VehicleDataList> vehicleDataStore() {
+    //@DependsOn("constructVehicleDataTable")
+    public ReadOnlyKeyValueStore<String, VehicleActivity> vehicleDataStore() {
         LOG.debug("Constructing vehicleDataStore");
 
         while (true) {
@@ -93,7 +91,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(vehicleDataStore, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, VehicleActivity> store = streams.store(StaticData.VEHICLE_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
@@ -108,7 +106,35 @@ public class TrafficDataStores {
 
     @Bean
     @Lazy(true)
-    @DependsOn("constructRouteDataTable")
+    //@DependsOn("constructVehicleDataTable")
+    public ReadOnlyKeyValueStore<String, VehicleDataList> vehicleHistoryDataStore() {
+        LOG.debug("Constructing vehicleHistoryDataStore");
+
+        while (true) {
+            try {
+                try {
+                    KafkaStreams streams = streamsBuilderFactoryBean.getKafkaStreams();
+                    if (streams == null) {
+                        LOG.debug("Waiting for streams to be constructed and ready");
+                        Thread.sleep(100);
+                        continue;
+                    }
+                    ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(StaticData.VEHICLE_HISTORY_STORE, QueryableStoreTypes.keyValueStore());
+                    LOG.debug("Store is now open for querying");
+                    return store;
+                } catch (InvalidStateStoreException ex) { // store not yet open for querying
+                    LOG.debug("Waiting for store to open... " + ex.getMessage());
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException ex) {
+                continue;
+            }
+        }
+    }
+
+    @Bean
+    @Lazy(true)
+    //@DependsOn("constructRouteDataTable")
     public ReadOnlyKeyValueStore<String, RouteData> routeDataStore() {
         LOG.debug("Constructing routeDataStore");
 
@@ -121,7 +147,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, RouteData> store = streams.store(routeDataStore, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, RouteData> store = streams.store(StaticData.ROUTE_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
@@ -136,7 +162,7 @@ public class TrafficDataStores {
 
     @Bean
     @Lazy(true)
-    @DependsOn("constructStopDataTable")
+    //@DependsOn("constructStopDataTable")
     public ReadOnlyKeyValueStore<String, StopData> stopDataStore() {
         LOG.debug("Constructing stopDataStore");
 
@@ -149,7 +175,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, StopData> store = streams.store(stopDataStore, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, StopData> store = streams.store(StaticData.STOP_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying
@@ -164,7 +190,7 @@ public class TrafficDataStores {
 
     @Bean
     @Lazy(true)
-    @DependsOn("constructShapeDataTable")
+    //@DependsOn("constructShapeDataTable")
     public ReadOnlyKeyValueStore<String, ShapeSet> shapeDataStore() {
         LOG.debug("Constructing shapeDataStore");
 
@@ -177,7 +203,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, ShapeSet> store = streams.store(shapeDataStore, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, ShapeSet> store = streams.store(StaticData.SHAPE_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying

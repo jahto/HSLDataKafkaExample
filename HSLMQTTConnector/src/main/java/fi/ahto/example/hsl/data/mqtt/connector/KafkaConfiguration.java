@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -79,7 +79,7 @@ public class KafkaConfiguration {
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
     @Bean
     public Map<String, Object> producerConfigs() {
-        final JsonSerde<VehicleActivityFlattened> serdeinfinal = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
+        final JsonSerde<VehicleActivity> serdeinfinal = new JsonSerde<>(VehicleActivity.class, objectMapper);
         
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -90,18 +90,18 @@ public class KafkaConfiguration {
     }
 
     @Bean
-    public ProducerFactory<String, VehicleActivityFlattened> vehicleActivityProducerFactory() {
+    public ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory() {
         // This seems to work and will really use the customized objectMapper.
-        final JsonSerde<VehicleActivityFlattened> serde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
-        Serializer<VehicleActivityFlattened> ser =  serde.serializer();
-        DefaultKafkaProducerFactory<String, VehicleActivityFlattened> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
+        final JsonSerde<VehicleActivity> serde = new JsonSerde<>(VehicleActivity.class, objectMapper);
+        Serializer<VehicleActivity> ser =  serde.serializer();
+        DefaultKafkaProducerFactory<String, VehicleActivity> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
         factory.setValueSerializer(ser);
         LOG.debug("Return vehicleActivityProducerFactory");
         return factory;
     }
 
     @Bean
-    public KafkaTemplate<String, VehicleActivityFlattened> vehicleActivityKafkaTemplate() {
+    public KafkaTemplate<String, VehicleActivity> vehicleActivityKafkaTemplate() {
         LOG.debug("Return vehicleActivityKafkaTemplate");
         return new KafkaTemplate<>(vehicleActivityProducerFactory());
     }

@@ -17,7 +17,7 @@ package fi.ahto.example.entur.data.connector.tests;
 
 import fi.ahto.example.entur.data.connector.KafkaConfiguration;
 import fi.ahto.example.entur.data.connector.SiriDataPoller;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,9 +51,9 @@ public class SimpleTests {
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
         try (InputStream stream = new ByteArrayInputStream(TESTDATA.getBytes())) {
-            List<VehicleActivityFlattened> list = siriDataPoller.readDataAsJsonNodes(stream);
+            List<VehicleActivity> list = siriDataPoller.readDataAsJsonNodes(stream);
             assertEquals(list.size(), 1);
-            VehicleActivityFlattened vaf = list.get(0);
+            VehicleActivity vaf = list.get(0);
         }
     }
 

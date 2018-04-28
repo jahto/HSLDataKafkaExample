@@ -20,7 +20,7 @@ import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivityFlattened;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -75,22 +75,22 @@ public class VehicleActivityTransformer {
 
     // Must be static when declared here as inner class, otherwise you run into
     // problems with Jackson objectmapper and databinder.
-    static class VehicleSet extends TreeSet<VehicleActivityFlattened> {
+    static class VehicleSet extends TreeSet<VehicleActivity> {
 
         public VehicleSet() {
-            super((VehicleActivityFlattened o1, VehicleActivityFlattened o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
+            super((VehicleActivity o1, VehicleActivity o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
         }
     }
 
     @Bean
-    public KStream<String, VehicleActivityFlattened> kStream(StreamsBuilder builder) {
+    public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
-        final JsonSerde<VehicleActivityFlattened> vafserde = new JsonSerde<>(VehicleActivityFlattened.class, objectMapper);
+        final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
         final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
 
-        KStream<String, VehicleActivityFlattened> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
+        KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
         GlobalKTable<String, StopData> stops
                 = builder.globalTable("stops",
@@ -103,11 +103,11 @@ public class VehicleActivityTransformer {
                         Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routestops"));
 
         // We do currently not use this stream for anything other than its side effects.
-        KStream<String, VehicleActivityFlattened> foostream = streamin.leftJoin(routes,
-                (String key, VehicleActivityFlattened value) -> {
+        KStream<String, VehicleActivity> foostream = streamin.leftJoin(routes,
+                (String key, VehicleActivity value) -> {
                     return value.getInternalLineId();
                 },
-                (VehicleActivityFlattened left, RouteData right) -> {
+                (VehicleActivity left, RouteData right) -> {
                     if (left.getNextStopId() == null && left.getStopPoint() != null) {
                         if (right != null) {
                             RouteStopSet set = null;
@@ -136,14 +136,14 @@ public class VehicleActivityTransformer {
                 });
         
         // We do currently not use this stream for anything other than its side effects.
-        KStream<String, VehicleActivityFlattened> barstream = streamin.leftJoin(stops,
-                (String key, VehicleActivityFlattened value) -> {
+        KStream<String, VehicleActivity> barstream = streamin.leftJoin(stops,
+                (String key, VehicleActivity value) -> {
                     if (value.getNextStopId() == null) {
                         return "FOOBARBAZ"; // Will most probably not match...
                     }
                     return value.getNextStopId();
                 },
-                (VehicleActivityFlattened left, StopData right) -> {
+                (VehicleActivity left, StopData right) -> {
                     if (right == null || left.getNextStopName() != null) {
                         return left;
                     }
@@ -153,32 +153,32 @@ public class VehicleActivityTransformer {
 
         final JsonSerde treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), treeserde, "vehicle-transformer-extended");
-        KStream<String, VehicleActivityFlattened> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
+        KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
-        KStream<String, VehicleActivityFlattened> tohistory
+        KStream<String, VehicleActivity> tohistory
                 = transformed.filter((key, value) -> value.AddToHistory());
 
         Initializer<VehicleDataList> vehicleinitializer = new Initializer<VehicleDataList>() {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
-                List<VehicleActivityFlattened> list = new ArrayList<>();
+                List<VehicleActivity> list = new ArrayList<>();
                 valist.setVehicleActivity(list);
                 return valist;
             }
         };
 
-        Aggregator<String, VehicleActivityFlattened, VehicleDataList> vehicleaggregator
-                = new Aggregator<String, VehicleActivityFlattened, VehicleDataList>() {
+        Aggregator<String, VehicleActivity, VehicleDataList> vehicleaggregator
+                = new Aggregator<String, VehicleActivity, VehicleDataList>() {
             @Override
-            public VehicleDataList apply(String key, VehicleActivityFlattened value, VehicleDataList aggregate) {
-                List<VehicleActivityFlattened> list = aggregate.getVehicleActivity();
+            public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
+                List<VehicleActivity> list = aggregate.getVehicleActivity();
 
                 // Just in case, guard once again against duplicates
-                Iterator<VehicleActivityFlattened> iter = list.iterator();
+                Iterator<VehicleActivity> iter = list.iterator();
                 while (iter.hasNext()) {
-                    VehicleActivityFlattened next = iter.next();
+                    VehicleActivity next = iter.next();
                     if (value.getRecordTime().equals(next.getRecordTime())) {
                         return aggregate;
                     }
@@ -190,7 +190,7 @@ public class VehicleActivityTransformer {
         };
 
         KTable<String, VehicleDataList> vehiclehistory = tohistory
-                .map((String key, VehicleActivityFlattened value) -> {
+                .map((String key, VehicleActivity value) -> {
                     String postfix = value.getTripStart().format(DateTimeFormatter.ISO_LOCAL_DATE);
                     String newkey = value.getVehicleId() + "-" + postfix;
                     return KeyValue.pair(newkey, value);
@@ -203,8 +203,9 @@ public class VehicleActivityTransformer {
                 );
 
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
+        transformed.to("vehicles", Produced.with(Serdes.String(), vafserde));
 
-        KStream<String, VehicleActivityFlattened> tolines
+        KStream<String, VehicleActivity> tolines
                 = transformed
                         .map((key, value)
                                 -> KeyValue.pair(value.getInternalLineId(), value));
@@ -212,7 +213,7 @@ public class VehicleActivityTransformer {
         tolines.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
 
         /* Seems not to be needed, but leaving still here just in case...
-        KStream<String, VehicleActivityFlattened> tochanges  = 
+        KStream<String, VehicleActivity> tochanges  = 
                 transformed.filter((key, value) -> 
                         value.LineHasChanged())
                 .map((key, value) -> 
@@ -228,7 +229,7 @@ public class VehicleActivityTransformer {
     }
 
     class VehicleTransformer
-            implements TransformerSupplier<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> {
+            implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
         final protected String storeName;
 
@@ -244,11 +245,11 @@ public class VehicleActivityTransformer {
         }
 
         @Override
-        public Transformer<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> get() {
+        public Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> get() {
             return new TransformerImpl();
         }
 
-        class TransformerImpl implements Transformer<String, VehicleActivityFlattened, KeyValue<String, VehicleActivityFlattened>> {
+        class TransformerImpl implements Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
             protected KeyValueStore<String, VehicleSet> store;
             protected ProcessorContext context;
@@ -270,7 +271,7 @@ public class VehicleActivityTransformer {
                     while (iter.hasNext()) {
                         KeyValue<String, VehicleSet> entry = iter.next();
                         if (entry.value.isEmpty() == false) {
-                            VehicleActivityFlattened vaf = entry.value.last();
+                            VehicleActivity vaf = entry.value.last();
                             Instant now  = Instant.ofEpochMilli(timestamp);
                             
                             if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
@@ -289,17 +290,17 @@ public class VehicleActivityTransformer {
             }
 
             @Override
-            public KeyValue<String, VehicleActivityFlattened> transform(String key, VehicleActivityFlattened value) {
+            public KeyValue<String, VehicleActivity> transform(String key, VehicleActivity value) {
                 VehicleSet data = store.get(key);
                 if (data == null) {
                     data = new VehicleSet();
                 }
-                VehicleActivityFlattened transformed = transform(value, data);
+                VehicleActivity transformed = transform(value, data);
                 store.put(key, data);
                 return KeyValue.pair(key, transformed);
             }
 
-            VehicleActivityFlattened transform(VehicleActivityFlattened current, VehicleSet data) {
+            VehicleActivity transform(VehicleActivity current, VehicleSet data) {
                 if (data.isEmpty()) {
                     current.setAddToHistory(true);
                     data.add(current);
@@ -308,7 +309,7 @@ public class VehicleActivityTransformer {
 
                 boolean calculate = true;
 
-                VehicleActivityFlattened previous = data.last();
+                VehicleActivity previous = data.last();
 
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
@@ -340,11 +341,11 @@ public class VehicleActivityTransformer {
                 // Not yet added to history? Find out when we added last time.
                 // If more than 60 seconds, then add.
                 if (current.AddToHistory() == false) {
-                    Iterator<VehicleActivityFlattened> iter = data.descendingIterator();
+                    Iterator<VehicleActivity> iter = data.descendingIterator();
                     Instant compareto = current.getRecordTime().minusSeconds(60);
 
                     while (iter.hasNext()) {
-                        VehicleActivityFlattened next = iter.next();
+                        VehicleActivity next = iter.next();
 
                         if (next.AddToHistory()) {
                             if (next.getRecordTime().isBefore(compareto)) {
@@ -356,8 +357,8 @@ public class VehicleActivityTransformer {
                 }
 
                 if (calculate) {
-                    VehicleActivityFlattened reference = null;
-                    Iterator<VehicleActivityFlattened> iter = data.descendingIterator();
+                    VehicleActivity reference = null;
+                    Iterator<VehicleActivity> iter = data.descendingIterator();
 
                     while (iter.hasNext()) {
                         reference = iter.next();
@@ -398,10 +399,10 @@ public class VehicleActivityTransformer {
 
                 // Clean up any data older than 600 seconds.
                 Instant compareto = current.getRecordTime().minusSeconds(600);
-                Iterator<VehicleActivityFlattened> iter = data.iterator();
+                Iterator<VehicleActivity> iter = data.iterator();
 
                 while (iter.hasNext()) {
-                    VehicleActivityFlattened next = iter.next();
+                    VehicleActivity next = iter.next();
 
                     if (next.getRecordTime().isBefore(compareto)) {
                         iter.remove();
@@ -417,7 +418,7 @@ public class VehicleActivityTransformer {
             }
 
             @Override
-            public KeyValue<String, VehicleActivityFlattened> punctuate(long timestamp) {
+            public KeyValue<String, VehicleActivity> punctuate(long timestamp) {
                 // Not needed and also deprecated.
                 return null;
             }
