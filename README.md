@@ -3,7 +3,8 @@
 This is just a small test project to bring my occasionally outdated knowledge
 about whats going up in Java world somewhat more up-to-date.
 Especially with Kafka, Spring and dockerized microservices. Uses
-HSL realtime data feed of vehicle positions as data source.
+several realtime data feeds of vehicle positions and static GTFS data
+as data source.
 
 Currently in a very unfinished state. Only suitable for looking around,
 you might get into some troubles when trying to run. Needs badly instructions
@@ -28,25 +29,34 @@ Very simple. Just polls the endpoint (http://api.digitransit.fi/realtime/vehicle
 and pushes received list of JSON-data from HSL real-time feed to a Kafka stream as separate messages. More connectors
 could be added later. Consider switching to MQTT feed instead.
 
-### HSLMQTTConnector
+### HSLDataMQTTConnector
 
-Unfinished.
+Seems to also work.
 
 ### FOLIDataConnector
 
-For Turku area feed.
+For Turku area feed. (http://data.foli.fi/siri/vm)
 
 ### TKLDataConnector
 
-For Tampere area feed.
+For Tampere area feed. (http://data.itsfactory.fi/journeys/api/1/vehicle-activity)
 
-### HSLDataVehicleTransformer
+### EnturDataConnector
+
+For norwegian feed, whole Norway. (http://api.entur.org/anshar/1.0/rest/vm)
+
+### GTFSDataFeeder
+
+Command utility for pushing static GTFS data to Kafka queues. Not all the data handled, only
+routes, stops and shapes.
+
+### TrafficDataVehicleTransformer
 
 - Adds some data to vehicle information. Difference of delay since last suitable sample, the length of time the difference
-was calculated in, and vehicles approximaty bearing.
+was calculated in, and vehicles approximaty bearing. Also the next stop, if missing.
 - Collects rough history of a vehicles movement around keyed by vehicle id and date, and pushes the data downstream.
 
-### HSLDataLineTransformer
+### TrafficDataLineTransformer
 
 - Adds vehicles operating on a line as a list to line information and pushes the data downstream.
 
@@ -54,14 +64,14 @@ was calculated in, and vehicles approximaty bearing.
 
 Serves JSON-formatted data from the streams constructed in HSLDataStreamTransformer.
 
-### HSLDataWebServer.NET
+### TrafficDataWebServer.NET
 
 Of course there needs also to be a dockerized .NET Core 2 version serving the same data to clients.
 
 Unfortunately, it hasn't been written (yet)... Depends on https://github.com/confluentinc/confluent-kafka-dotnet
-next version to be released first.
+next version to be released first. (It has been released!)
 
-### HSLDataDataContracts
+### TrafficDataContracts
 
 The name in itself should be quite self-explaining.
 
