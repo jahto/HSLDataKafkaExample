@@ -57,8 +57,6 @@ public class KafkaConfiguration {
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
     @Bean
     public Map<String, Object> producerConfigs() {
-        final JsonSerde<VehicleActivity> serdeinfinal = new JsonSerde<>(VehicleActivity.class, objectMapper);
-        
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);

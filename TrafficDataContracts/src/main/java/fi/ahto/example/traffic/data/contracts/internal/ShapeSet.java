@@ -22,7 +22,12 @@ import java.util.TreeSet;
  * @author Jouni Ahto
  */
 public class ShapeSet extends TreeSet<ShapeData>{
-    public ShapeSet() {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 8700721661729891433L;
+
+	public ShapeSet() {
         super((ShapeData o1, ShapeData o2) -> Integer.compare(o1.seq, o2.seq));
     }
 }

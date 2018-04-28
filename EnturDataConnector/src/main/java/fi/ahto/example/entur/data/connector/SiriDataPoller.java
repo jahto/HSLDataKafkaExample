@@ -66,9 +66,6 @@ public class SiriDataPoller {
     private static final UUID uuid = UUID.randomUUID();
 
     @Autowired
-    private KafkaTemplate<String, VehicleActivity> msgtemplate;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired

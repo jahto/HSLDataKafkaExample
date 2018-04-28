@@ -48,9 +48,6 @@ public class SimpleTests {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTests.class);
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private SiriDataPoller siriDataPoller;
 
     @Test

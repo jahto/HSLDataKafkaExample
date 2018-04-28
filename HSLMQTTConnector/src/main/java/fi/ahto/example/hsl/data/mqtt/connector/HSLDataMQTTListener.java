@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +49,8 @@ import org.springframework.stereotype.Component;
 public class HSLDataMQTTListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(HSLDataMQTTListener.class);
-    private static final Lock LOCK = new ReentrantLock();
     private static final String SOURCE = "FI:HSL";
     private static final String PREFIX = SOURCE + ":";
-
-    @Autowired
-    private KafkaTemplate<String, VehicleActivity> msgtemplate;
 
     @Autowired
     private ObjectMapper objectMapper;

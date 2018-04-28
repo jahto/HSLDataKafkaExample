@@ -15,7 +15,6 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -25,13 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.onebusaway.csv_entities.EntityHandler;
-import org.onebusaway.gtfs.model.Route;
-import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.model.ShapePoint;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,9 +49,6 @@ public class GTFSDataReader implements ApplicationRunner {
 
     @Autowired
     private GtfsEntityHandler entityHandler;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private KafkaTemplate<String, StopData> stopTemplate;
@@ -154,9 +145,6 @@ public class GTFSDataReader implements ApplicationRunner {
 
     @Component
     private static class GtfsEntityHandler implements EntityHandler {
-
-        @Autowired
-        private KafkaTemplate<String, String> kafkaTemplate;
 
         @Override
         public void handleEntity(Object bean) {

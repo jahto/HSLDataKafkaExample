@@ -56,9 +56,6 @@ public class SiriDataPoller {
     private static final String PREFIX = SOURCE + ":";
 
     @Autowired
-    private KafkaTemplate<String, VehicleActivity> msgtemplate;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired

@@ -20,14 +20,13 @@ import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.onebusaway.gtfs.model.ShapePoint;
-import org.onebusaway.gtfs.model.StopTime;
 
 /**
  *
  * @author Jouni Ahto
  */
 public class ShapeCollector {
-    public Map<String, ShapeSet> shapes = new HashMap();
+    public Map<String, ShapeSet> shapes = new HashMap<>();
 
     public void add(String prefix, ShapePoint sp) {
         String shape = prefix + sp.getShapeId().getId();

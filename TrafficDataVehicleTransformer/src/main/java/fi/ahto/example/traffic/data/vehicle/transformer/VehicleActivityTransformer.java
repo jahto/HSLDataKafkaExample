@@ -77,7 +77,12 @@ public class VehicleActivityTransformer {
     // problems with Jackson objectmapper and databinder.
     static class VehicleSet extends TreeSet<VehicleActivity> {
 
-        public VehicleSet() {
+        /**
+		 * 
+		 */
+		private static final long serialVersionUID = -5926884652895033023L;
+
+		public VehicleSet() {
             super((VehicleActivity o1, VehicleActivity o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
         }
     }
@@ -151,7 +156,7 @@ public class VehicleActivityTransformer {
                     return left;
                 });
 
-        final JsonSerde treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
+        final JsonSerde<VehicleSet> treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), treeserde, "vehicle-transformer-extended");
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 

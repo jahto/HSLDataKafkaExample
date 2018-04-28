@@ -10,16 +10,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.hsl.data.mqtt.connector.KafkaConfiguration;
 import fi.ahto.example.hsl.data.mqtt.connector.HSLDataMQTTListener;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +44,6 @@ public class SimpleTests {
         String[] splitted = testdata.split(" ", 2);
 
         VehicleActivity list = dataPoller.readDataAsJsonNodes(splitted[0], splitted[1]);
-        // assertEquals(list.size(), 1);
         /*
             VehicleActivity vaf = list.get(0);
             objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

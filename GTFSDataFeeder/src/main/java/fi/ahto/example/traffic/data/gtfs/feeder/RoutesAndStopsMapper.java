@@ -20,13 +20,10 @@ import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 
 /**
  *

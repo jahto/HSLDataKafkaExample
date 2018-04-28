@@ -48,9 +48,6 @@ public class KafkaConfiguration {
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
     private String bootstrapServers;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @Bean
     public Map<String, Object> producerConfigs() {
         Map<String, Object> props = new HashMap<>();

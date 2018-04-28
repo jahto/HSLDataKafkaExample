@@ -18,8 +18,6 @@ package fi.ahto.example.entur.data.connector;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
@@ -30,7 +28,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,8 +56,6 @@ public class KafkaConfiguration {
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
     @Bean
     public Map<String, Object> producerConfigs() {
-        final JsonSerde<VehicleActivity> serdeinfinal = new JsonSerde<>(VehicleActivity.class, objectMapper);
-        
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
