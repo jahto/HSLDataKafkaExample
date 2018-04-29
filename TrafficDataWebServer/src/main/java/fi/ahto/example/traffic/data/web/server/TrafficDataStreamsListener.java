@@ -25,6 +25,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -55,6 +56,12 @@ public class TrafficDataStreamsListener {
                 = streamBuilder.globalTable(StaticData.LINE_STREAM,
                         Consumed.with(Serdes.String(), vaflistserde),
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(StaticData.LINE_STORE));
+        // Should be safe, build() just returns the internal Topology object, no side effects.
+        Topology t = streamBuilder.build();
+        // Here we should be able to add a processor sends the changelog data to MessageBroker.
+        // Have to find out how to get the correct parentname. Check Topology.describe. An alternative
+        // could be Topology.connectProcessorAndStateStores(processorname, statestorename).
+        // t.addProcessor(name, supplier, parentNames);
         return table;
     }
 
