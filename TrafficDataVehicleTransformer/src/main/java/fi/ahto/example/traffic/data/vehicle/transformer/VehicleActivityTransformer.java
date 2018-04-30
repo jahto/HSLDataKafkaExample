@@ -169,7 +169,7 @@ public class VehicleActivityTransformer {
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
                 List<VehicleActivity> list = new ArrayList<>();
-                valist.setVehicleActivity(list);
+                valist.setVehicleActivities(list);
                 return valist;
             }
         };
@@ -178,7 +178,7 @@ public class VehicleActivityTransformer {
                 = new Aggregator<String, VehicleActivity, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
-                List<VehicleActivity> list = aggregate.getVehicleActivity();
+                List<VehicleActivity> list = aggregate.getVehicleActivities();
 
                 // Just in case, guard once again against duplicates
                 Iterator<VehicleActivity> iter = list.iterator();

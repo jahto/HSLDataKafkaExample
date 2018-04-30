@@ -68,7 +68,7 @@ public class LineTransformer {
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
                 List<VehicleActivity> list = new ArrayList<>();
-                valist.setVehicleActivity(list);
+                valist.setVehicleActivities(list);
                 return valist;
             }
         };
@@ -80,7 +80,7 @@ public class LineTransformer {
             public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
                 // LOG.debug("Aggregating line " + key);
                 boolean remove = false;
-                List<VehicleActivity> list = aggregate.getVehicleActivity();
+                List<VehicleActivity> list = aggregate.getVehicleActivities();
 
                 ListIterator<VehicleActivity> iter = list.listIterator();
                 long time1 = value.getRecordTime().getEpochSecond();

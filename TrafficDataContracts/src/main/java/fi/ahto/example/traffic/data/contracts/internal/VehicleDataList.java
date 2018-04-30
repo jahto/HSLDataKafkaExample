@@ -23,17 +23,17 @@ import java.util.List;
  * @author Jouni Ahto
  */
 public class VehicleDataList {
-    @JsonProperty("VehicleDataFlattened")
-    private List<VehicleActivity> vehicleDataFlattened = null;
+    @JsonProperty("VehicleActivities")
+    private List<VehicleActivity> vehicleActivities = null;
     
-    @JsonProperty("VehicleDataFlattened")
-    public List<VehicleActivity> getVehicleActivity() {
-        return vehicleDataFlattened;
+    @JsonProperty("VehicleActivities")
+    public List<VehicleActivity> getVehicleActivities() {
+        return vehicleActivities;
     }
 
-    @JsonProperty("VehicleDataFlattened")
-    public void setVehicleActivity(List<VehicleActivity> vehicleDataFlattened) {
-        this.vehicleDataFlattened = vehicleDataFlattened;
+    @JsonProperty("VehicleActivities")
+    public void setVehicleActivities(List<VehicleActivity> activities) {
+        this.vehicleActivities = activities;
     }
 
 }
