@@ -26,6 +26,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -40,14 +41,17 @@ import org.springframework.stereotype.Service;
  *
  * @author Jouni Ahto
  */
-
 @Service
 public class TrafficDataStreamsListener {
+
     private static final Logger LOG = LoggerFactory.getLogger(TrafficDataStreamsListener.class);
-    
+
     @Autowired
     private ObjectMapper objectMapper;
-    
+
+    @Autowired
+    private LineDataProcessorSupplier lineProcessorSupplier;
+
     @Bean
     public GlobalKTable<String, VehicleDataList> constructLineDataTable(StreamsBuilder streamBuilder) {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
@@ -57,11 +61,14 @@ public class TrafficDataStreamsListener {
                         Consumed.with(Serdes.String(), vaflistserde),
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(StaticData.LINE_STORE));
         // Should be safe, build() just returns the internal Topology object, no side effects.
-        Topology t = streamBuilder.build();
-        // Here we should be able to add a processor sends the changelog data to MessageBroker.
-        // Have to find out how to get the correct parentname. Check Topology.describe. An alternative
-        // could be Topology.connectProcessorAndStateStores(processorname, statestorename).
-        // t.addProcessor(name, supplier, parentNames);
+        TopologyDescription td = streamBuilder.build().describe();
+        String parent = "";
+        // We get an iterator to a TreeSet sorted by processing order,
+        // and just want the last one.
+        for (TopologyDescription.GlobalStore store : td.globalStores()) {
+            parent = store.processor().name();
+        }
+        streamBuilder.build().addProcessor("LineDataProcessor", lineProcessorSupplier, parent);
         return table;
     }
 
@@ -120,4 +127,3 @@ public class TrafficDataStreamsListener {
         return table;
     }
 }
-
