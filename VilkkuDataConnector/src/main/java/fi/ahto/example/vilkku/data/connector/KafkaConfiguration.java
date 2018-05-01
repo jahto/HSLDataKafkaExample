@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.vilkku.data.connector;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -90,7 +91,7 @@ public class KafkaConfiguration {
         mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
     }

@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,16 +25,15 @@ import java.util.List;
  */
 public class VehicleDataList {
     @JsonProperty("VehicleActivities")
-    private List<VehicleActivity> vehicleActivities = null;
+    private List<VehicleActivity> vehicleActivities = new ArrayList<>();
     
     @JsonProperty("VehicleActivities")
     public List<VehicleActivity> getVehicleActivities() {
         return vehicleActivities;
     }
-
+    
     @JsonProperty("VehicleActivities")
     public void setVehicleActivities(List<VehicleActivity> activities) {
         this.vehicleActivities = activities;
     }
-
 }

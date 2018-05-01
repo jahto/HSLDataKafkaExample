@@ -78,6 +78,7 @@ public class RoutesAndStopsMapper {
         }
 
         si.seq = st.getStopSequence();
+        si.name = st.getStop().getName();
 
         RouteData route = routes.get(routeid);
         if (route == null) {

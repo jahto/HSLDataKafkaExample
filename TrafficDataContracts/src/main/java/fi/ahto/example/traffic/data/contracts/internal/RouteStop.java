@@ -31,6 +31,8 @@ public class RouteStop {
     public int seq;
     @JsonProperty("ArrivalTime")
     public Instant arrivalTime;
+    @JsonProperty("Name")
+    public String name;
 
     @Override
     public int hashCode() {

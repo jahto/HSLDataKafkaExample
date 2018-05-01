@@ -169,6 +169,7 @@ public class SiriDataPoller {
                 RouteStop stop = new RouteStop();
                 stop.stopid = PREFIX + call.path("stoppointref").asText();
                 stop.seq = call.path("visitnumber").asInt();
+                stop.name = call.path("stoppointname").asText();
                 stop.arrivalTime = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
                 set.add(stop);
             }

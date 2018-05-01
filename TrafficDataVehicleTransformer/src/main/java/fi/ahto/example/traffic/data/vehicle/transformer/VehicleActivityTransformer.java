@@ -25,8 +25,11 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.Set;
 import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -77,12 +80,9 @@ public class VehicleActivityTransformer {
     // problems with Jackson objectmapper and databinder.
     static class VehicleSet extends TreeSet<VehicleActivity> {
 
-        /**
-		 * 
-		 */
-		private static final long serialVersionUID = -5926884652895033023L;
+        private static final long serialVersionUID = -5926884652895033023L;
 
-		public VehicleSet() {
+        public VehicleSet() {
             super((VehicleActivity o1, VehicleActivity o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
         }
     }
@@ -108,38 +108,15 @@ public class VehicleActivityTransformer {
                         Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routestops"));
 
         // We do currently not use this stream for anything other than its side effects.
+        // I.e. adding all the remaining stops to onwardcalls.
         KStream<String, VehicleActivity> foostream = streamin.leftJoin(routes,
                 (String key, VehicleActivity value) -> {
                     return value.getInternalLineId();
                 },
                 (VehicleActivity left, RouteData right) -> {
-                    if (left.getNextStopId() == null && left.getStopPoint() != null) {
-                        if (right != null) {
-                            RouteStopSet set = null;
-                            if (left.getDirection().equals("1")) {
-                                set = right.stopsforward;
-                            }
-                            if (left.getDirection().equals("2")) {
-                                set = right.stopsbackward;
-                            }
-                            if (set != null) {
-                                Iterator<RouteStop> iter = set.iterator();
-                                while (iter.hasNext()) {
-                                    RouteStop stop = iter.next();
-                                    if (left.getStopPoint().equals(stop.stopid)) {
-                                        if (iter.hasNext()) {
-                                            RouteStop next = iter.next();
-                                            left.setNextStopId(next.stopid);
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                   return left; 
+                    return mapNextStops(left, right);
                 });
-        
+
         // We do currently not use this stream for anything other than its side effects.
         KStream<String, VehicleActivity> barstream = streamin.leftJoin(stops,
                 (String key, VehicleActivity value) -> {
@@ -168,31 +145,33 @@ public class VehicleActivityTransformer {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
-                List<VehicleActivity> list = new ArrayList<>();
-                valist.setVehicleActivities(list);
+                // List<VehicleActivity> list = new ArrayList<>();
+                // valist.setVehicleActivities(list);
                 return valist;
             }
         };
 
         Aggregator<String, VehicleActivity, VehicleDataList> vehicleaggregator
-                = new Aggregator<String, VehicleActivity, VehicleDataList>() {
-            @Override
-            public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
-                List<VehicleActivity> list = aggregate.getVehicleActivities();
-
-                // Just in case, guard once again against duplicates
-                Iterator<VehicleActivity> iter = list.iterator();
-                while (iter.hasNext()) {
-                    VehicleActivity next = iter.next();
-                    if (value.getRecordTime().equals(next.getRecordTime())) {
-                        return aggregate;
+                = (String key, VehicleActivity value, VehicleDataList aggregate) -> {
+                    List<VehicleActivity> list = aggregate.getVehicleActivities();
+                    if (list == null) {
+                        LOG.warn("Should't be here anymore... (vehicleaggregator)");
+                        list = new ArrayList<>();
+                        aggregate.setVehicleActivities(list);
                     }
-                }
 
-                list.add(value);
-                return aggregate;
-            }
-        };
+                    // Just in case, guard once again against duplicates
+                    Iterator<VehicleActivity> iter = list.iterator();
+                    while (iter.hasNext()) {
+                        VehicleActivity next = iter.next();
+                        if (value.getRecordTime().equals(next.getRecordTime())) {
+                            return aggregate;
+                        }
+                    }
+
+                    list.add(value);
+                    return aggregate;
+                };
 
         KTable<String, VehicleDataList> vehiclehistory = tohistory
                 .map((String key, VehicleActivity value) -> {
@@ -233,6 +212,78 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
+    private VehicleActivity mapNextStops(VehicleActivity left, RouteData right) {
+        if (right == null) {
+            return left;
+        }
+
+        RouteStopSet set = null;
+        if (left.getDirection().equals("1")) {
+            set = right.stopsforward;
+        }
+        if (left.getDirection().equals("2")) {
+            set = right.stopsbackward;
+        }
+
+        if (set == null) {
+            return left;
+        }
+
+        if (left.getNextStopId() == null && left.getStopPoint() != null) {
+            LOG.warn("Should't be here anymore?... (mapNextStops)");
+            Iterator<RouteStop> iter = set.iterator();
+            while (iter.hasNext()) {
+                RouteStop stop = iter.next();
+                if (left.getStopPoint().equals(stop.stopid)) {
+                    if (iter.hasNext()) {
+                        RouteStop next = iter.next();
+                        left.setNextStopId(next.stopid);
+                    }
+                    break;
+                }
+            }
+        }
+
+        RouteStopSet calls = left.getOnwardCalls();
+        if (calls.isEmpty()) {
+            String next = left.getNextStopId();
+            if (next != null) {
+                for (RouteStop stop : set) {
+                    if (stop.stopid.equals(next)) {
+                        NavigableSet<RouteStop> missing = set.tailSet(stop, false);
+                        if (missing != null && missing.size() > 0) {
+                            calls.addAll(missing);
+                        }
+                        break;
+                    }
+                }
+            }
+        } else {
+            RouteStop last = calls.last();
+            NavigableSet<RouteStop> missing = set.tailSet(last, false);
+            if (missing != null && missing.size() > 0) {
+                calls.addAll(missing);
+            }
+        }
+
+        if (left.getNextStopId() != null) {
+            if (left.getNextStopId().equals(set.first().stopid)) {
+                left.setAtRouteStart(true);
+            }
+            if (left.getNextStopId().equals(set.last().stopid)) {
+                left.setAtRouteEnd(true);
+            }
+        } else {
+            LOG.warn("For some reason, we still haven't found next stop (mapNextStops)");
+        }
+
+        if (left.isAtRouteStart() && left.isAtRouteEnd()) {
+            LOG.warn("Something is clearly very wrong with the logic in method mapNextStops()!");
+        }
+
+        return left;
+    }
+
     class VehicleTransformer
             implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
@@ -258,7 +309,7 @@ public class VehicleActivityTransformer {
 
             protected KeyValueStore<String, VehicleSet> store;
             protected ProcessorContext context;
-            
+
             // See next method init. Almost impossible to debug
             // with old data if we clean it away every 60 seconds. 
             private static final boolean TESTING = true;
@@ -267,7 +318,7 @@ public class VehicleActivityTransformer {
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleSet>) context.getStateStore(storeName);
-                
+
                 // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
@@ -277,8 +328,8 @@ public class VehicleActivityTransformer {
                         KeyValue<String, VehicleSet> entry = iter.next();
                         if (entry.value.isEmpty() == false) {
                             VehicleActivity vaf = entry.value.last();
-                            Instant now  = Instant.ofEpochMilli(timestamp);
-                            
+                            Instant now = Instant.ofEpochMilli(timestamp);
+
                             if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
                                 context.forward(vaf.getVehicleId(), vaf);
                                 entry.value.clear();

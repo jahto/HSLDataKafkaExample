@@ -212,7 +212,9 @@ public class SiriDataPoller {
             
             for (JsonNode call : onwardcalls) {
                 RouteStop stop = new RouteStop();
-                stop.stopid = PREFIX + call.path("stoppointref").asText();
+                String stopid = call.path("stopPointRef").asText();
+                int index = stopid.lastIndexOf('/');
+                stop.stopid = PREFIX + stopid.substring(index + 1);
                 stop.seq = call.path("order").asInt();
                 stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toInstant();
                 set.add(stop);

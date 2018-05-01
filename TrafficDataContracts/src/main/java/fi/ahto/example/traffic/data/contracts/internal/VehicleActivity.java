@@ -24,6 +24,22 @@ import java.time.ZonedDateTime;
  * @author Jouni Ahto
  */
 public class VehicleActivity {
+
+    public boolean isAtRouteStart() {
+        return atRouteStart;
+    }
+
+    public void setAtRouteStart(boolean atRouteStart) {
+        this.atRouteStart = atRouteStart;
+    }
+
+    public boolean isAtRouteEnd() {
+        return atRouteEnd;
+    }
+
+    public void setAtRouteEnd(boolean atRouteEnd) {
+        this.atRouteEnd = atRouteEnd;
+    }
     
     public VehicleActivity() {
         onwardCalls = new RouteStopSet();
@@ -231,6 +247,10 @@ public class VehicleActivity {
     private String nextStopName;
     @JsonProperty("OnwardCalls")
     private RouteStopSet onwardCalls;
+    @JsonProperty("AtRouteStart")
+    private boolean atRouteStart;
+    @JsonProperty("AtRouteEnd")
+    private boolean atRouteEnd;
 
     public RouteStopSet getOnwardCalls() {
         return onwardCalls;

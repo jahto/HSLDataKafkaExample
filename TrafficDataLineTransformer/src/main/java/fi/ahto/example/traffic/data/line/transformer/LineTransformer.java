@@ -67,8 +67,8 @@ public class LineTransformer {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
-                List<VehicleActivity> list = new ArrayList<>();
-                valist.setVehicleActivities(list);
+                // List<VehicleActivity> list = new ArrayList<>();
+                // valist.setVehicleActivities(list);
                 return valist;
             }
         };
