@@ -30,11 +30,19 @@ import org.onebusaway.gtfs.model.StopTime;
  * @author Jouni Ahto
  */
 public class RoutesAndStopsMapper {
-    Map<String, RouteData> routes = new HashMap<>();
-    // Map<String, List<String>> routesserved = new HashMap<>();
-    Map<String, StopData> stops = new HashMap<>();
-    // Map<String, List<String>> trips = new HashMap<>();
-
+    public Map<String, RouteData> routes = new HashMap<>();
+    public Map<String, StopData> stops = new HashMap<>();
+    
+    private static Map<Integer, Integer> routeFixes = new HashMap<>();
+    
+    static {
+        routeFixes.put(109, 2);
+        routeFixes.put(700, 3);
+        routeFixes.put(701, 3);
+        routeFixes.put(704, 3);
+    }
+    
+    
     public void add(String prefix, StopTime st) {
         RouteStop si = new RouteStop();
         si.stopid = prefix + st.getStop().getId().getId();
@@ -68,22 +76,13 @@ public class RoutesAndStopsMapper {
         if (stop.routesserved.contains(routeid) == false) {
             stop.routesserved.add(routeid);
         }
-        /*
-        List<String> list = routesserved.get(si.stopid);
-        if (list == null) {
-            list = new ArrayList<>();
-            routesserved.put(si.stopid, list);
-        }
-        if (list.contains(routeid) == false) {
-            list.add(routeid);
-            // System.out.println("Added route " + routeid + " to stop " + si.stopid);
-        }
-        */
+
         si.seq = st.getStopSequence();
 
         RouteData route = routes.get(routeid);
         if (route == null) {
             Route rt = st.getTrip().getRoute();
+            routeFixer(prefix, rt);
             route = new RouteData();
             route.routeid = routeid;
             route.longname = rt.getLongName();
@@ -123,5 +122,10 @@ public class RoutesAndStopsMapper {
         else {
             System.out.println("Unknown direction " + st.getTrip().getDirectionId());
         }
+    }
+    
+    // Fix some observed anomalies or deviations from the standard.
+    private void routeFixer(String prefix, Route route) {
+        route.setType(routeFixes.getOrDefault(route.getType(), route.getType()));
     }
 }
