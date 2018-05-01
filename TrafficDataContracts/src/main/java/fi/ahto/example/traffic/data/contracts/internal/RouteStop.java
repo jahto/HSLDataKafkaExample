@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -28,6 +29,8 @@ public class RouteStop {
     public String stopid;
     @JsonProperty("Sequence")
     public int seq;
+    @JsonProperty("ArrivalTime")
+    public Instant arrivalTime;
 
     @Override
     public int hashCode() {

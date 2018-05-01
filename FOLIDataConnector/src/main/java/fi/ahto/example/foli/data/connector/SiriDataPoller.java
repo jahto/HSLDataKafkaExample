@@ -18,6 +18,8 @@ package fi.ahto.example.foli.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
@@ -157,6 +159,20 @@ public class SiriDataPoller {
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());
+        
+        JsonNode onwardcalls = node.path("onwardcalls");
+
+        if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
+            RouteStopSet set = vaf.getOnwardCalls();
+            
+            for (JsonNode call : onwardcalls) {
+                RouteStop stop = new RouteStop();
+                stop.stopid = PREFIX + call.path("stoppointref").asText();
+                stop.seq = call.path("visitnumber").asInt();
+                stop.arrivalTime = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
+                set.add(stop);
+            }
+        }
         
         return vaf;
     }

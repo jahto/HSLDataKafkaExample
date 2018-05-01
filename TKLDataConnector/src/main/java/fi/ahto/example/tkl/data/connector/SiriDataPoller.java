@@ -18,6 +18,8 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
+import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -200,6 +203,20 @@ public class SiriDataPoller {
             // else. This is just guesswork.
             String stopid = jrn.path("destinationShortName").asText();
             vaf.setNextStopId(PREFIX + stopid);
+        }
+        
+        JsonNode onwardcalls = jrn.path("onwardCalls");
+
+        if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
+            RouteStopSet set = vaf.getOnwardCalls();
+            
+            for (JsonNode call : onwardcalls) {
+                RouteStop stop = new RouteStop();
+                stop.stopid = PREFIX + call.path("stoppointref").asText();
+                stop.seq = call.path("order").asInt();
+                stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toInstant();
+                set.add(stop);
+            }
         }
         
         return vaf;

@@ -179,7 +179,8 @@ public class SiriDataPoller {
         vaf.setLatitude(loc.path("Latitude").asDouble());
         vaf.setLongitude(loc.path("Longitude").asDouble());
 
-        vaf.setStopPoint(PREFIX + jrn.path("MonitoredCall").path("StopPointRef").asText());
+        // HSL feed seems to refer to the next stop
+        vaf.setNextStopId(PREFIX + jrn.path("MonitoredCall").path("StopPointRef").asText());
 
         String datestr = jrn.path("FramedVehicleJourneyRef").path("DataFrameRef").path("value").asText();
         String timestr = jrn.path("FramedVehicleJourneyRef").path("DatedVehicleJourneyRef").asText();

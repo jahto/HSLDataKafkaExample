@@ -24,6 +24,10 @@ import java.time.ZonedDateTime;
  * @author Jouni Ahto
  */
 public class VehicleActivity {
+    
+    public VehicleActivity() {
+        onwardCalls = new RouteStopSet();
+    }
 
     public String getNextStopId() {
         return nextStopId;
@@ -225,4 +229,15 @@ public class VehicleActivity {
     private String nextStopId;
     @JsonProperty("NextStopName")
     private String nextStopName;
+    @JsonProperty("OnwardCalls")
+    private RouteStopSet onwardCalls;
+
+    public RouteStopSet getOnwardCalls() {
+        return onwardCalls;
+    }
+    /*
+    public void setOnwardCalls(RouteStopSet onwardCalls) {
+        this.onwardCalls = onwardCalls;
+    }
+    */
 }

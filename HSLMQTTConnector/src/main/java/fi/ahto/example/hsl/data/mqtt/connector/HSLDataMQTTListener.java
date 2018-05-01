@@ -135,8 +135,9 @@ public class HSLDataMQTTListener {
         Instant tripstart = Instant.parse(vp.path("tst").asText());
         ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
-        
-        vaf.setStopPoint(PREFIX + nextstop);
+
+        // HSL feed seems to refer to the next stop
+        vaf.setNextStopId(PREFIX + nextstop);
         
         return vaf;
     }
