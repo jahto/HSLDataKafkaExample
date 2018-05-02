@@ -30,25 +30,26 @@ import org.onebusaway.gtfs.model.StopTime;
  * @author Jouni Ahto
  */
 public class RoutesAndStopsMapper {
+
     public Map<String, RouteData> routes = new HashMap<>();
     public Map<String, StopData> stops = new HashMap<>();
-    
-    private static Map<Integer, Integer> routeFixes = new HashMap<>();
-    
+
+    private static final Map<Integer, Integer> routeFixes = new HashMap<>();
+
     static {
         routeFixes.put(109, 2);
         routeFixes.put(700, 3);
         routeFixes.put(701, 3);
         routeFixes.put(704, 3);
     }
-    
-    
+
     public void add(String prefix, StopTime st) {
+        dataFixer(prefix, st);
         RouteStop si = new RouteStop();
         si.stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
         RouteStopSet set = null;
-        
+
         /* Have to think how to handle these ones.
         String tripid = st.getTrip().getId().getId();
         List<String> tr = trips.get(routeid);
@@ -59,8 +60,7 @@ public class RoutesAndStopsMapper {
         if (tr.contains(tripid) == false) {
             tr.add(tripid);
         }
-        */
-        
+         */
         StopData stop = stops.get(si.stopid);
         if (stop == null) {
             stop = new StopData();
@@ -83,7 +83,6 @@ public class RoutesAndStopsMapper {
         RouteData route = routes.get(routeid);
         if (route == null) {
             Route rt = st.getTrip().getRoute();
-            routeFixer(prefix, rt);
             route = new RouteData();
             route.routeid = routeid;
             route.longname = rt.getLongName();
@@ -91,7 +90,7 @@ public class RoutesAndStopsMapper {
             route.type = TransitType.from(rt.getType());
             routes.put(routeid, route);
         }
-        
+
         if (st.getTrip().getDirectionId().equals("0")) {
             set = route.stopsforward;
             if (set == null) {
@@ -100,7 +99,7 @@ public class RoutesAndStopsMapper {
                 route.shapesforward = prefix + st.getTrip().getShapeId().getId();
             }
         }
-        
+
         if (st.getTrip().getDirectionId().equals("1")) {
             set = route.stopsbackward;
             if (set == null) {
@@ -109,24 +108,29 @@ public class RoutesAndStopsMapper {
                 route.shapesbackward = prefix + st.getTrip().getShapeId().getId();
             }
         }
-        
+
         if (set != null) {
             if (set.contains(si) == false) {
                 set.add(si);
                 // System.out.println("Added stop " + si.routeid + " to route " + routeid);
-            }
-            else {
+            } else {
                 // System.out.println("Skipping...");
             }
-        }
-        
-        else {
+        } else {
             System.out.println("Unknown direction " + st.getTrip().getDirectionId());
         }
     }
-    
+
     // Fix some observed anomalies or deviations from the standard.
-    private void routeFixer(String prefix, Route route) {
-        route.setType(routeFixes.getOrDefault(route.getType(), route.getType()));
+    private void dataFixer(String prefix, StopTime st) {
+        Route route = st.getTrip().getRoute();
+        // Unknown codes in HSL data
+        if ("FI:HSL:".equals(prefix)) {
+            route.setType(routeFixes.getOrDefault(route.getType(), route.getType()));
+        }
+        // FOLI realtime feed identifies the line with shortname, not with the route id in routes.txt
+        if ("FI:FOLI:".equals(prefix)) {
+            route.getId().setId(route.getShortName());
+        }
     }
 }

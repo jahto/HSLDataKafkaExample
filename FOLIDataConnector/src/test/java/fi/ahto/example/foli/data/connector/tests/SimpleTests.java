@@ -66,7 +66,7 @@ public class SimpleTests {
             File file = new File("../testdata/" + filename);
             try (InputStream stream = new FileInputStream(file)) {
                 siriDataPoller.feedTestData(stream);
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 LOG.debug("Problem with file", ex);
             }
             try {

@@ -121,7 +121,7 @@ public class SiriDataPoller {
                 } else {
                     LOG.error("Problem with node: " + node.asText());
                 }
-            } catch (IllegalArgumentException ex) {
+            } catch (Exception ex) {
                 LOG.error(node.asText(), ex);
             }
         }
@@ -133,11 +133,14 @@ public class SiriDataPoller {
         VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
         vaf.setRecordTime(Instant.ofEpochSecond(node.path("recordedattime").asLong()));
-        vaf.setDelay((int) Duration.parse(node.path("delay").asText()).getSeconds());
+        if (node.path("delay").isMissingNode() == false) {
+            vaf.setDelay((int) Duration.parse(node.path("delay").asText()).getSeconds());
+        }
 
         vaf.setDirection(node.path("directionref").asText());
         vaf.setInternalLineId(PREFIX + node.path("lineref").asText());
-        vaf.setLineId(node.path("lineref").asText());
+        // Seems to be the same as the previous one, anyway...
+        vaf.setLineId(node.path("publishedlinename").asText());
 
         // Good enough for FOLI until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
