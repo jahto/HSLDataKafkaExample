@@ -18,16 +18,22 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import org.apache.kafka.common.PartitionInfo;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.StopTime;
 import org.onebusaway.gtfs.model.ShapePoint;
+import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.serialization.GtfsReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -42,6 +48,7 @@ import org.springframework.stereotype.Component;
  */
 @SpringBootApplication
 public class GTFSDataReader implements ApplicationRunner {
+    private static final Logger LOG = LoggerFactory.getLogger(GTFSDataReader.class);
 
     private static String prefix = null;
     private static RoutesAndStopsMapper mapper = null;
@@ -58,6 +65,12 @@ public class GTFSDataReader implements ApplicationRunner {
 
     @Autowired
     private KafkaTemplate<String, ShapeSet> shapeTemplate;
+
+    @Autowired
+    private KafkaTemplate<String, TripStopSet> tripTemplate;
+
+    @Autowired
+    private KafkaTemplate<String, HashSet<String>> guessTemplate;
 
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
@@ -127,17 +140,25 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     private void triggerChanges() {
+        List<PartitionInfo> parts = routeTemplate.partitionsFor("routes");
         mapper.stops.forEach((k, v) -> {
             stopTemplate.send("stops", k, v);
         });
         mapper.routes.forEach((k, v) -> {
             routeTemplate.send("routes", k, v);
         });
-        /*
+        
         mapper.trips.forEach((k, v) -> {
-            System.out.println(k + " " + Integer.toString(v.size()));
+            // Try to find out how to get the right partition for k.routeid,
+            // so we don't have to use a global table, there's quite lof of
+            // data in trips...
+            tripTemplate.send("trips", k.tripid, v);
         });
-        */
+        
+        mapper.guesses.forEach((k, v) -> {
+            guessTemplate.send("guesses", k, v);
+        });
+        
         collector.shapes.forEach((k, v) -> {
             shapeTemplate.send("shapes", k, v);
         });
@@ -165,7 +186,12 @@ public class GTFSDataReader implements ApplicationRunner {
             */
             if (bean instanceof StopTime) {
                 StopTime stoptime = (StopTime) bean;
+                try {
                 mapper.add(prefix, stoptime);
+                }
+                catch (Exception e) {
+                    LOG.error("Problem with " + stoptime.toString(), e);
+                }
             }
             /*
             if (bean instanceof Trip) {

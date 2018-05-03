@@ -251,6 +251,8 @@ public class VehicleActivity {
     private boolean atRouteStart;
     @JsonProperty("AtRouteEnd")
     private boolean atRouteEnd;
+    @JsonProperty("TripID")
+    private String tripID;
 
     public RouteStopSet getOnwardCalls() {
         return onwardCalls;
@@ -260,4 +262,12 @@ public class VehicleActivity {
         this.onwardCalls = onwardCalls;
     }
     */
+
+    public String getTripID() {
+        return tripID;
+    }
+
+    public void setTripID(String tripID) {
+        this.tripID = tripID;
+    }
 }

@@ -162,6 +162,7 @@ public class SiriDataPoller {
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());
+        vaf.setTripID(node.path("blockref").asText());
         
         JsonNode onwardcalls = node.path("onwardcalls");
 

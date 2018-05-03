@@ -48,7 +48,9 @@ For norwegian feed, whole Norway. (http://api.entur.org/anshar/1.0/rest/vm)
 ### GTFSDataFeeder
 
 Command utility for pushing static GTFS data to Kafka queues. Not all the data handled, only
-routes, stops and shapes.
+routes, stops and shapes. (Not true anymore.)
+
+Note: uses a lot of memory. You might have to increase -Xms and -Xmx. Check with -verbose:gc if you have problems.
 
 ### TrafficDataVehicleTransformer
 
