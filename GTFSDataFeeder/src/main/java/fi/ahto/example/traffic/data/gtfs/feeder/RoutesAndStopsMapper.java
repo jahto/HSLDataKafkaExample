@@ -174,7 +174,7 @@ public class RoutesAndStopsMapper {
 
                     LocalTime lt = LocalTime.ofSecondOfDay(st.getArrivalTime());
 
-                    String namefinal = routeid + "_" + stopid + "_" + dir + "_" + lt.toString().replace(":", "");
+                    String namefinal = prefix + routeid + "_" + prefix + stopid + "_" + dir + "_" + lt.toString().replace(":", "");
 
                     HashSet<String> set = guesses.get(namefinal);
                     if (set == null) {

@@ -16,16 +16,22 @@
 package fi.ahto.example.traffic.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
+import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -56,12 +62,30 @@ public class LineTransformer {
         LOG.debug("VehicleActivityTransformers created");
     }
 
+    // Must be static when declared here as inner class, otherwise you run into
+    // problems with Jackson objectmapper and databinder.
+    static class GuessesMap extends HashSet<String> {
+    }
+
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
+        final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
+        final JsonSerde<GuessesMap> guessesserde = new JsonSerde<>(GuessesMap.class, objectMapper);
+
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
+
+        GlobalKTable<String, TripStopSet> trips
+                = builder.globalTable("trips",
+                        Consumed.with(Serdes.String(), tripsserde),
+                        Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("trips"));
+
+        GlobalKTable<String, GuessesMap> guesses
+                = builder.globalTable("guesses",
+                        Consumed.with(Serdes.String(), guessesserde),
+                        Materialized.<String, GuessesMap, KeyValueStore<Bytes, byte[]>>as("guesses"));
 
         Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
             @Override
@@ -72,10 +96,10 @@ public class LineTransformer {
                 return valist;
             }
         };
-        
+
         // Get a table of all vehicles currently operating on the line.
-        Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator =
-            new Aggregator<String, VehicleActivity, VehicleDataList>() {
+        Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator
+                = new Aggregator<String, VehicleActivity, VehicleDataList>() {
             @Override
             public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
                 // LOG.debug("Aggregating line " + key);
@@ -109,13 +133,42 @@ public class LineTransformer {
                 return aggregate;
             }
         };
-                
+
+        KStream<String, VehicleActivity> useguesses = streamin
+                .filter((String key, VehicleActivity va) -> {
+                    return va.getSource().equals("FI:HSL");
+                });
+
+        KStream<String, VehicleActivity> bar = useguesses
+                .leftJoin(guesses,
+                        (String key, VehicleActivity value) -> {
+                            LOG.info("Mapping " + value.getTripID());
+                            return value.getTripID();
+                        },
+                        (VehicleActivity left, GuessesMap right) -> {
+                            // Try to guess the right Trip based on available information.
+                            LOG.info("Mapping " + left.getTripID() + "succeeded");
+                            return left;
+                        }
+                );
+        
+        KStream<String, VehicleActivity> foo = streamin.leftJoin(trips,
+                (String key, VehicleActivity value) -> {
+                    return value.getTripID();
+                },
+                (VehicleActivity left, TripStopSet right) -> {
+                    // Compare here left.onwardcalls ro right, adjust and/or
+                    // add missing values.
+                    return left;
+                }
+        );
+
         KTable<String, VehicleDataList> lines = streamin
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
                 .aggregate(lineinitializer, lineaggregator,
-                    Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(vaflistserde)
+                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
+                                .withKeySerde(Serdes.String())
+                                .withValueSerde(vaflistserde)
                 );
 
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));

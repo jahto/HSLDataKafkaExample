@@ -23,6 +23,7 @@ import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -279,6 +280,16 @@ public class VehicleActivityTransformer {
 
         if (left.isAtRouteStart() && left.isAtRouteEnd()) {
             LOG.warn("Something is clearly very wrong with the logic in method mapNextStops()!");
+        }
+        
+        if ("FI:HSL".equals(left.getSource())) {
+            String routeid = left.getInternalLineId();
+            String stopid = set.first().stopid;
+            String dir = left.getDirection();
+            LocalTime lt = left.getTripStart().toLocalTime();
+            String namefinal = routeid + "_" + stopid + "_" + dir + "_" + lt.toString().replace(":", "");
+            left.setTripID(namefinal);
+
         }
 
         return left;
