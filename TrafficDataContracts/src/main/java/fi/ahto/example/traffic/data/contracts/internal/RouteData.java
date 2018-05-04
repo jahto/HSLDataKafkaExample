@@ -16,6 +16,8 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -30,12 +32,5 @@ public class RouteData {
     public String longname;
     @JsonProperty("TransitType")
     public TransitType type;
-    @JsonProperty("StopsForward")
-    public RouteStopSet stopsforward;
-    @JsonProperty("StopsBackward")
-    public RouteStopSet stopsbackward;
-    @JsonProperty("ShapesForward")
-    public String shapesforward;
-    @JsonProperty("ShapesBackward")
-    public String shapesbackward;
+    public Map<String, ServiceData> services = new HashMap<>();
 }

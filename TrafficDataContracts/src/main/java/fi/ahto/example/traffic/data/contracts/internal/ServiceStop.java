@@ -23,14 +23,14 @@ import java.util.Objects;
  *
  * @author Jouni Ahto
  */
-public class RouteStop {
+public class ServiceStop {
     
     @JsonProperty("StopId")
     public String stopid;
     @JsonProperty("Sequence")
     public int seq;
-    @JsonProperty("ArrivalTime")
-    public Instant arrivalTime;
+    // @JsonProperty("ArrivalTime")
+    // public Instant arrivalTime;
     @JsonProperty("Name")
     public String name;
 
@@ -52,7 +52,7 @@ public class RouteStop {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final RouteStop other = (RouteStop) obj;
+        final ServiceStop other = (ServiceStop) obj;
         if (!Objects.equals(this.stopid, other.stopid)) {
             return false;
         }

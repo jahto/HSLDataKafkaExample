@@ -24,6 +24,9 @@ import java.util.TreeSet;
 public class TripStopSet extends TreeSet<TripStop> {
 	private static final long serialVersionUID = -6790939219985230972L;
 
+    public String service;
+    public String route;
+    
 	public TripStopSet() {
         super((TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
     }

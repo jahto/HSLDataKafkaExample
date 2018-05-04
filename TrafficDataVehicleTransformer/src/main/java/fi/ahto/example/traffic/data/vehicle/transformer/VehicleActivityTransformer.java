@@ -16,19 +16,23 @@
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -95,6 +99,7 @@ public class VehicleActivityTransformer {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
         final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
+        final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
@@ -106,7 +111,12 @@ public class VehicleActivityTransformer {
         GlobalKTable<String, RouteData> routes
                 = builder.globalTable("routes",
                         Consumed.with(Serdes.String(), routeserde),
-                        Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routestops"));
+                        Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routes"));
+
+        GlobalKTable<String, ServiceData> services
+                = builder.globalTable("services",
+                        Consumed.with(Serdes.String(), serviceserde),
+                        Materialized.<String, ServiceData, KeyValueStore<Bytes, byte[]>>as("services"));
 
         // We do currently not use this stream for anything other than its side effects.
         // I.e. adding all the remaining stops to onwardcalls.
@@ -115,11 +125,19 @@ public class VehicleActivityTransformer {
                     return value.getInternalLineId();
                 },
                 (VehicleActivity left, RouteData right) -> {
+                    return mapServiceid(left, right);
+                });
+
+        KStream<String, VehicleActivity> barstream = streamin.leftJoin(routes,
+                (String key, VehicleActivity value) -> {
+                    return value.getInternalLineId();
+                },
+                (VehicleActivity left, RouteData right) -> {
                     return mapNextStops(left, right);
                 });
 
         // We do currently not use this stream for anything other than its side effects.
-        KStream<String, VehicleActivity> barstream = streamin.leftJoin(stops,
+        KStream<String, VehicleActivity> bazstream = streamin.leftJoin(stops,
                 (String key, VehicleActivity value) -> {
                     if (value.getNextStopId() == null) {
                         return "FOOBARBAZ"; // Will most probably not match...
@@ -213,31 +231,59 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
+    private VehicleActivity mapServiceid(VehicleActivity left, RouteData right) {
+        if (right == null) {
+            return left;
+        }
+        LocalDate date = left.getTripStart().toLocalDate();
+        List<ServiceData> possibilities = new ArrayList<>();
+        Map<String, ServiceData> services = right.services;
+
+        for (ServiceData sd : services.values()) {
+            int wd = date.getDayOfWeek().getValue();
+
+            if (sd.validfrom.isAfter(date)) {
+                continue;
+            }
+            if (sd.validuntil.isBefore(date)) {
+                continue;
+            }
+            if (sd.notinuse.contains(date)) {
+                continue;
+            }
+            
+            
+        }
+        
+        return left;
+    }
+
     private VehicleActivity mapNextStops(VehicleActivity left, RouteData right) {
         if (right == null) {
             return left;
         }
 
-        RouteStopSet set = null;
+        ServiceStopSet set = null;
+        /*
         if (left.getDirection().equals("1")) {
             set = right.stopsforward;
         }
         if (left.getDirection().equals("2")) {
             set = right.stopsbackward;
         }
-
+        */
         if (set == null) {
             return left;
         }
 
         if (left.getNextStopId() == null && left.getStopPoint() != null) {
             LOG.warn("Should't be here anymore?... (mapNextStops)");
-            Iterator<RouteStop> iter = set.iterator();
+            Iterator<ServiceStop> iter = set.iterator();
             while (iter.hasNext()) {
-                RouteStop stop = iter.next();
+                ServiceStop stop = iter.next();
                 if (left.getStopPoint().equals(stop.stopid)) {
                     if (iter.hasNext()) {
-                        RouteStop next = iter.next();
+                        ServiceStop next = iter.next();
                         left.setNextStopId(next.stopid);
                     }
                     break;
@@ -245,13 +291,18 @@ public class VehicleActivityTransformer {
             }
         }
 
-        RouteStopSet calls = left.getOnwardCalls();
+        // Moved here to help with debugging.
+        ServiceStop last = null;
+        NavigableSet<ServiceStop> missing = null;
+        
+        ServiceStopSet calls = left.getOnwardCalls();
         if (calls.isEmpty()) {
             String next = left.getNextStopId();
             if (next != null) {
-                for (RouteStop stop : set) {
+                for (ServiceStop stop : set) {
                     if (stop.stopid.equals(next)) {
-                        NavigableSet<RouteStop> missing = set.tailSet(stop, false);
+                        last = stop;
+                        missing = set.tailSet(stop, false);
                         if (missing != null && missing.size() > 0) {
                             calls.addAll(missing);
                         }
@@ -260,14 +311,17 @@ public class VehicleActivityTransformer {
                 }
             }
         } else {
-            RouteStop last = calls.last();
-            NavigableSet<RouteStop> missing = set.tailSet(last, false);
+            last = calls.last();
+            missing = set.tailSet(last, false);
             if (missing != null && missing.size() > 0) {
                 calls.addAll(missing);
             }
         }
 
         if (left.getNextStopId() != null) {
+            // Check also that speed is 0.0, if available (change to Optional)
+            // and location is close enough, whatever that means (10-30 meters?
+            // We don't know the exact location of GPS-transmitter on the vehicle.)
             if (left.getNextStopId().equals(set.first().stopid)) {
                 left.setAtRouteStart(true);
             }
@@ -280,6 +334,14 @@ public class VehicleActivityTransformer {
 
         if (left.isAtRouteStart() && left.isAtRouteEnd()) {
             LOG.warn("Something is clearly very wrong with the logic in method mapNextStops()!");
+        }
+        
+        if (left.isAtRouteStart() && left.getOnwardCalls().size() == 0) {
+            LOG.warn("There should be onwardcalls!");
+        }
+        
+        if (left.isAtRouteEnd() && left.getOnwardCalls().size() != 0) {
+            LOG.warn("There should not be onwardcalls! Size = " + Integer.toString(left.getOnwardCalls().size()));
         }
         
         if ("FI:HSL".equals(left.getSource())) {

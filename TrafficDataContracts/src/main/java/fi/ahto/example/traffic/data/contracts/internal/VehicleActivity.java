@@ -42,7 +42,7 @@ public class VehicleActivity {
     }
     
     public VehicleActivity() {
-        onwardCalls = new RouteStopSet();
+        onwardCalls = new ServiceStopSet();
     }
 
     public String getNextStopId() {
@@ -246,19 +246,21 @@ public class VehicleActivity {
     @JsonProperty("NextStopName")
     private String nextStopName;
     @JsonProperty("OnwardCalls")
-    private RouteStopSet onwardCalls;
+    private ServiceStopSet onwardCalls;
     @JsonProperty("AtRouteStart")
     private boolean atRouteStart;
     @JsonProperty("AtRouteEnd")
     private boolean atRouteEnd;
+    @JsonProperty("ServiceID")
+    private String serviceID;
     @JsonProperty("TripID")
     private String tripID;
 
-    public RouteStopSet getOnwardCalls() {
+    public ServiceStopSet getOnwardCalls() {
         return onwardCalls;
     }
     /*
-    public void setOnwardCalls(RouteStopSet onwardCalls) {
+    public void setOnwardCalls(ServiceStopSet onwardCalls) {
         this.onwardCalls = onwardCalls;
     }
     */

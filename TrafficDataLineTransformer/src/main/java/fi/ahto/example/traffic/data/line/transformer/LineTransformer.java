@@ -147,7 +147,7 @@ public class LineTransformer {
                         },
                         (VehicleActivity left, GuessesMap right) -> {
                             // Try to guess the right Trip based on available information.
-                            LOG.info("Mapping " + left.getTripID() + "succeeded");
+                            LOG.info("Mapping " + left.getTripID() + " succeeded, onwardcalls:" + Integer.toString(left.getOnwardCalls().size()));
                             return left;
                         }
                 );

@@ -18,8 +18,8 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.RouteStop;
-import fi.ahto.example.traffic.data.contracts.internal.RouteStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
@@ -208,15 +208,15 @@ public class SiriDataPoller {
         JsonNode onwardcalls = jrn.path("onwardCalls");
 
         if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
-            RouteStopSet set = vaf.getOnwardCalls();
+            ServiceStopSet set = vaf.getOnwardCalls();
             
             for (JsonNode call : onwardcalls) {
-                RouteStop stop = new RouteStop();
+                ServiceStop stop = new ServiceStop();
                 String stopid = call.path("stopPointRef").asText();
                 int index = stopid.lastIndexOf('/');
                 stop.stopid = PREFIX + stopid.substring(index + 1);
                 stop.seq = call.path("order").asInt();
-                stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toInstant();
+                // stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toInstant();
                 set.add(stop);
             }
         }
