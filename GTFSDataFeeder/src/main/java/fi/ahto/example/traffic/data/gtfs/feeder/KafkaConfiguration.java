@@ -20,9 +20,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +41,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
 /**
@@ -49,27 +57,33 @@ public class KafkaConfiguration {
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
     private String bootstrapServers;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Bean
     public Map<String, Object> producerConfigs() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test-connector");
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-gtfs-feeder");
         LOG.debug("ProducerConfigs");
         return props;
     }
-
+    
     @Bean
-    public KafkaTemplate<?, ?> kafkaTemplate() {
+    public KafkaTemplate<String, Object> kafkaTemplate() {
         LOG.debug("KafkaTempate");
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
-    public ProducerFactory<?, ?> producerFactory() {
+    public ProducerFactory<String, Object> producerFactory() {
         LOG.debug("ProducerFactory");
-        DefaultKafkaProducerFactory<?, ?> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
+        DefaultKafkaProducerFactory<String, Object> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
+        final JsonSerde<Object> serde = new JsonSerde<>(objectMapper);
+        Serializer<Object> ser =  serde.serializer();
+        factory.setValueSerializer(ser);
         return factory;
     }
 

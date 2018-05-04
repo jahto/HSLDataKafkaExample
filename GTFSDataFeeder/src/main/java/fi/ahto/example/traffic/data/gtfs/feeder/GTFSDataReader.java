@@ -15,22 +15,17 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
-import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import org.apache.kafka.common.PartitionInfo;
 import org.onebusaway.csv_entities.EntityHandler;
-import org.onebusaway.gtfs.model.StopTime;
+import org.onebusaway.gtfs.model.ServiceCalendar;
+import org.onebusaway.gtfs.model.ServiceCalendarDate;
 import org.onebusaway.gtfs.model.ShapePoint;
-import org.onebusaway.gtfs.model.Trip;
+import org.onebusaway.gtfs.model.StopTime;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,29 +43,18 @@ import org.springframework.stereotype.Component;
  */
 @SpringBootApplication
 public class GTFSDataReader implements ApplicationRunner {
+
     private static final Logger LOG = LoggerFactory.getLogger(GTFSDataReader.class);
 
     private static String prefix = null;
-    private static RoutesAndStopsMapper mapper = null;
+    private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
 
     @Autowired
     private GtfsEntityHandler entityHandler;
 
     @Autowired
-    private KafkaTemplate<String, StopData> stopTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, RouteData> routeTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, ShapeSet> shapeTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, TripStopSet> tripTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, HashSet<String>> guessTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
@@ -129,7 +113,7 @@ public class GTFSDataReader implements ApplicationRunner {
         reader.addEntityHandler(entityHandler);
         File input = dir.getAbsoluteFile();
         try {
-            mapper = new RoutesAndStopsMapper();
+            mapper = new DataMapper();
             collector = new ShapeCollector();
             reader.setInputLocation(input);
             reader.run();
@@ -140,27 +124,37 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     private void triggerChanges() {
-        List<PartitionInfo> parts = routeTemplate.partitionsFor("routes");
+        LOG.debug("Sending services");
+        mapper.services.forEach((k, v) -> {
+            kafkaTemplate.send("services", k, v);
+        });
+
+        LOG.debug("Sending stops");
         mapper.stops.forEach((k, v) -> {
-            stopTemplate.send("stops", k, v);
+            kafkaTemplate.send("stops", k, v);
         });
+
+        LOG.debug("Sending routes");
         mapper.routes.forEach((k, v) -> {
-            routeTemplate.send("routes", k, v);
+            kafkaTemplate.send("routes", k, v);
         });
-        
+
+        LOG.debug("Sending trips");
         mapper.trips.forEach((k, v) -> {
             // Try to find out how to get the right partition for k.routeid,
             // so we don't have to use a global table, there's quite lof of
             // data in trips...
-            tripTemplate.send("trips", k.tripid, v);
+            kafkaTemplate.send("trips", k.tripid, v);
         });
-        
+
+        /*
         mapper.guesses.forEach((k, v) -> {
             guessTemplate.send("guesses", k, v);
         });
-        
+         */
+        LOG.debug("Sending shapes");
         collector.shapes.forEach((k, v) -> {
-            shapeTemplate.send("shapes", k, v);
+            kafkaTemplate.send("shapes", k, v);
         });
     }
 
@@ -169,36 +163,26 @@ public class GTFSDataReader implements ApplicationRunner {
 
         @Override
         public void handleEntity(Object bean) {
-            /* We can get all the data by handling StopTimes
-            // TODO: Combine this data with routes served by
-            if (bean instanceof Stop) {
-                Stop stop = (Stop) bean;
-                // System.out.println("stop: " + prefix + stop.getId().getId() + " " + stop.getName());
-                // kafkaTemplate.send("stops", prefix + stop.getId().getId(), stop.getName());
-            }
-
-            // TODO: Combine this data with stops served by
-            if (bean instanceof Route) {
-                Route route = (Route) bean;
-                // System.out.println("route: " + prefix + route.getId().getId() + " " + route.getLongName());
-                // kafkaTemplate.send("routes", prefix + route.getId().getId(), route.getLongName());
-            }
-            */
             if (bean instanceof StopTime) {
                 StopTime stoptime = (StopTime) bean;
+
                 try {
-                mapper.add(prefix, stoptime);
-                }
-                catch (Exception e) {
+                    mapper.add(prefix, stoptime);
+                } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
+
             }
-            /*
-            if (bean instanceof Trip) {
-                Trip trip = (Trip) bean;
-                int i = 0;
+            
+            if (bean instanceof ServiceCalendar) {
+                ServiceCalendar sc = (ServiceCalendar) bean;
+                mapper.add(prefix, sc);
             }
-            */
+            if (bean instanceof ServiceCalendarDate) {
+                ServiceCalendarDate scd = (ServiceCalendarDate) bean;
+                mapper.add(prefix, scd);
+            }
+
             if (bean instanceof ShapePoint) {
                 ShapePoint shape = (ShapePoint) bean;
                 collector.add(prefix, shape);
