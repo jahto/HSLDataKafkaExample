@@ -56,18 +56,10 @@ public class SimpleTests {
         int i = 0;
     }
 
-    // @Test
+    @Test
     /* Uncomment when needed */
     public void feedExampleDataToQueues() {
-        String filename = "mqtt.snapshot.json";
-        /*
-            File file = new File("../testdata/" + filename);
-            try (InputStream stream = new FileInputStream(file)) {
-                listener.feedTestData(stream);
-            } catch (IOException ex) {
-                LOG.debug("Problem with file", ex);
-            }
-         */
+        String filename = "mqtt.hsl.json";
         filename = "../testdata/" + filename;
         try (Stream<String> stream = Files.lines(Paths.get(filename))) {
             stream.forEach(data -> {

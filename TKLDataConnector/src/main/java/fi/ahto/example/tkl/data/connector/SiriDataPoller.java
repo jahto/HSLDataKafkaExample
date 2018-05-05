@@ -182,6 +182,8 @@ public class SiriDataPoller {
         Integer minute = Integer.parseInt(timestr.substring(2));
         LocalTime time = LocalTime.of(hour, minute);
         vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
+        vaf.setOperatingDate(date);
+        vaf.setStartTime(time);
         
         // In the hope that the first stop in onwardCalls is the next stop.
         JsonNode stops = jrn.path("onwardCalls");

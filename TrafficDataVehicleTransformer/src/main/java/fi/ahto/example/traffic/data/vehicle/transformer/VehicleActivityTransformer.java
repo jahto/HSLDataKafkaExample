@@ -23,6 +23,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -102,54 +103,30 @@ public class VehicleActivityTransformer {
         final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
-
+        /*
         GlobalKTable<String, StopData> stops
                 = builder.globalTable("stops",
                         Consumed.with(Serdes.String(), stopserde),
                         Materialized.<String, StopData, KeyValueStore<Bytes, byte[]>>as("stops"));
-
+        */
         GlobalKTable<String, RouteData> routes
                 = builder.globalTable("routes",
                         Consumed.with(Serdes.String(), routeserde),
                         Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routes"));
-
+        /*
         GlobalKTable<String, ServiceData> services
                 = builder.globalTable("services",
                         Consumed.with(Serdes.String(), serviceserde),
                         Materialized.<String, ServiceData, KeyValueStore<Bytes, byte[]>>as("services"));
-
+        */
         // We do currently not use this stream for anything other than its side effects.
-        // I.e. adding all the remaining stops to onwardcalls.
+        // I.e. mapping correct service and trip ids.
         KStream<String, VehicleActivity> foostream = streamin.leftJoin(routes,
                 (String key, VehicleActivity value) -> {
                     return value.getInternalLineId();
                 },
                 (VehicleActivity left, RouteData right) -> {
                     return mapServiceid(left, right);
-                });
-
-        KStream<String, VehicleActivity> barstream = streamin.leftJoin(routes,
-                (String key, VehicleActivity value) -> {
-                    return value.getInternalLineId();
-                },
-                (VehicleActivity left, RouteData right) -> {
-                    return mapNextStops(left, right);
-                });
-
-        // We do currently not use this stream for anything other than its side effects.
-        KStream<String, VehicleActivity> bazstream = streamin.leftJoin(stops,
-                (String key, VehicleActivity value) -> {
-                    if (value.getNextStopId() == null) {
-                        return "FOOBARBAZ"; // Will most probably not match...
-                    }
-                    return value.getNextStopId();
-                },
-                (VehicleActivity left, StopData right) -> {
-                    if (right == null || left.getNextStopName() != null) {
-                        return left;
-                    }
-                    left.setNextStopName(right.stopname);
-                    return left;
                 });
 
         final JsonSerde<VehicleSet> treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
@@ -164,8 +141,6 @@ public class VehicleActivityTransformer {
             @Override
             public VehicleDataList apply() {
                 VehicleDataList valist = new VehicleDataList();
-                // List<VehicleActivity> list = new ArrayList<>();
-                // valist.setVehicleActivities(list);
                 return valist;
             }
         };
@@ -238,9 +213,39 @@ public class VehicleActivityTransformer {
         LocalDate date = left.getTripStart().toLocalDate();
         List<ServiceData> possibilities = new ArrayList<>();
         Map<String, ServiceData> services = right.services;
+        String tripId = null;
 
         for (ServiceData sd : services.values()) {
-            int wd = date.getDayOfWeek().getValue();
+            DayOfWeek dow = date.getDayOfWeek();
+
+            byte result = 0x0;
+            switch(dow) {
+                case MONDAY:
+                    result = (byte) (sd.weekdays & 0x1);
+                    break;
+                case TUESDAY:
+                    result = (byte) (sd.weekdays & 0x2);
+                    break;
+                case WEDNESDAY:
+                    result = (byte) (sd.weekdays & 0x4);
+                    break;
+                case THURSDAY:
+                    result = (byte) (sd.weekdays & 0x8);
+                    break;
+                case FRIDAY:
+                    result = (byte) (sd.weekdays & 0x10);
+                    break;
+                case SATURDAY:
+                    result = (byte) (sd.weekdays & 0x20);
+                    break;
+                case SUNDAY:
+                    result = (byte) (sd.weekdays & 0x40);
+                    break;
+            }
+            
+            if (result == 0x0) {
+                continue;
+            }
 
             if (sd.validfrom.isAfter(date)) {
                 continue;
@@ -252,26 +257,42 @@ public class VehicleActivityTransformer {
                 continue;
             }
             
+            if (left.getDirection().equals("1")) {
+                tripId = sd.timesforward.get(left.getStartTime());
+                if (tripId == null) {
+                    continue;
+                }
+            }
             
+            if (left.getDirection().equals("2")) {
+                tripId = sd.timesbackward.get(left.getStartTime());
+                if (tripId == null) {
+                    continue;
+                }
+            }
+            
+            possibilities.add(sd);
         }
         
+        if (possibilities.size() == 0) {
+            LOG.warn("Could not find service.");
+        }
+        else if (possibilities.size() > 1) {
+            LOG.warn("Found too many possible services.");
+        }
+        else {
+            LOG.debug("Found the right service.");
+            left.setServiceID(possibilities.get(0).serviceId);
+        }
         return left;
     }
-
+    /* Will be rewritten and moved TrafficDataLineTransformer.
     private VehicleActivity mapNextStops(VehicleActivity left, RouteData right) {
         if (right == null) {
             return left;
         }
 
         ServiceStopSet set = null;
-        /*
-        if (left.getDirection().equals("1")) {
-            set = right.stopsforward;
-        }
-        if (left.getDirection().equals("2")) {
-            set = right.stopsbackward;
-        }
-        */
         if (set == null) {
             return left;
         }
@@ -356,7 +377,8 @@ public class VehicleActivityTransformer {
 
         return left;
     }
-
+    */
+    
     class VehicleTransformer
             implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
@@ -451,6 +473,13 @@ public class VehicleActivityTransformer {
                     return previous;
                 }
 
+                // Vehicle is at the of line, remove it immediately. It will come back
+                // later, but maybe not on the same line;
+                if (current.getEol().isPresent() && current.getEol().get() == true) {
+                    current.setAddToHistory(true);
+                    previous.setLineHasChanged(true);
+                    context.forward(previous.getVehicleId(), previous);
+                }
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {

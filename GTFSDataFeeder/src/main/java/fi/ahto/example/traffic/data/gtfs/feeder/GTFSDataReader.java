@@ -15,11 +15,14 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.List;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.ServiceCalendar;
@@ -124,6 +127,20 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     private void triggerChanges() {
+        mapper.trips.forEach((k, v) -> {
+            TripStop stop = v.first();
+            String serviceid = v.service;
+            ServiceData service = mapper.services.get(serviceid);
+            if (service != null) {
+                if (v.direction.equals("0")) {
+                    service.timesforward.put(stop.arrivalTime, k.tripid);
+                }
+                if (v.direction.equals("1")) {
+                    service.timesbackward.put(stop.arrivalTime, k.tripid);
+                }
+            }
+        });
+
         LOG.debug("Sending services");
         mapper.services.forEach((k, v) -> {
             kafkaTemplate.send("services", k, v);
@@ -173,7 +190,7 @@ public class GTFSDataReader implements ApplicationRunner {
                 }
 
             }
-            
+
             if (bean instanceof ServiceCalendar) {
                 ServiceCalendar sc = (ServiceCalendar) bean;
                 mapper.add(prefix, sc);

@@ -213,7 +213,10 @@ public class SiriDataPoller {
         vaf.setLongitude(mvh.getVehicleLocation().getLongitude().doubleValue());
         if (mvh.getOriginAimedDepartureTime() != null) {
             vaf.setTripStart(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo")));
+            vaf.setOperatingDate(mvh.getOriginAimedDepartureTime().toLocalDate());
+            vaf.setStartTime(mvh.getOriginAimedDepartureTime().toLocalTime());
         }
+        
         // What does this field refer to?
         /*
         if (va.getMonitoredVehicleJourney().getMonitoredCall() != null) {
@@ -262,7 +265,8 @@ public class SiriDataPoller {
                 ServiceStop stop = new ServiceStop();
                 stop.stopid = PREFIX + ocs.getStopPointRef().getValue();
                 stop.seq = ocs.getVisitNumber().intValue();
-                stop.arrivalTime = ocs.getAimedArrivalTime().toInstant();
+                // ocs.getAimedArrivalTime().toLocalTime();
+                // stop.arrivalTime = ocs.getAimedArrivalTime().toLocalTime();
                 set.add(stop);
             }
         }

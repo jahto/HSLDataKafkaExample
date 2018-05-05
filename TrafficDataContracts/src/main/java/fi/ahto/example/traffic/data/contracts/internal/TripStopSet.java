@@ -26,6 +26,7 @@ public class TripStopSet extends TreeSet<TripStop> {
 
     public String service;
     public String route;
+    public String direction;
     
 	public TripStopSet() {
         super((TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));

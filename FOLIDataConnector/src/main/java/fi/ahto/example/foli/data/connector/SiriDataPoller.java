@@ -159,6 +159,8 @@ public class SiriDataPoller {
         ZonedDateTime zdt = ZonedDateTime.ofInstant(start, ZoneId.of("Europe/Helsinki"));
         
         vaf.setTripStart(zdt);
+        vaf.setOperatingDate(zdt.toLocalDate());
+        vaf.setStartTime(zdt.toLocalTime());
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());
@@ -174,7 +176,7 @@ public class SiriDataPoller {
                 stop.stopid = PREFIX + call.path("stoppointref").asText();
                 stop.seq = call.path("visitnumber").asInt();
                 stop.name = call.path("stoppointname").asText();
-                stop.arrivalTime = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
+                // stop.arrivalTime = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
                 set.add(stop);
             }
         }

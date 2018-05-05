@@ -17,13 +17,40 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 
 /**
  *
  * @author Jouni Ahto
  */
 public class VehicleActivity {
+
+    public LocalDate getOperatingDate() {
+        return operatingDate;
+    }
+
+    public void setOperatingDate(LocalDate operatingDate) {
+        this.operatingDate = operatingDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getServiceID() {
+        return serviceID;
+    }
+
+    public void setServiceID(String serviceID) {
+        this.serviceID = serviceID;
+    }
 
     public boolean isAtRouteStart() {
         return atRouteStart;
@@ -246,7 +273,7 @@ public class VehicleActivity {
     @JsonProperty("NextStopName")
     private String nextStopName;
     @JsonProperty("OnwardCalls")
-    private ServiceStopSet onwardCalls;
+    private final ServiceStopSet onwardCalls;
     @JsonProperty("AtRouteStart")
     private boolean atRouteStart;
     @JsonProperty("AtRouteEnd")
@@ -255,6 +282,12 @@ public class VehicleActivity {
     private String serviceID;
     @JsonProperty("TripID")
     private String tripID;
+    @JsonProperty("OperatingDate")
+    private LocalDate operatingDate;
+    @JsonProperty("StartTime")
+    private LocalTime startTime;
+    @JsonProperty("EOL")
+    private Optional<Boolean> eol = Optional.empty();
 
     public ServiceStopSet getOnwardCalls() {
         return onwardCalls;
@@ -271,5 +304,13 @@ public class VehicleActivity {
 
     public void setTripID(String tripID) {
         this.tripID = tripID;
+    }
+
+    public Optional<Boolean> getEol() {
+        return eol;
+    }
+
+    public void setEol(Optional<Boolean> eol) {
+        this.eol = eol;
     }
 }

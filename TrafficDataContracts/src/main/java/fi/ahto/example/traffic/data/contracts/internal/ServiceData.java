@@ -7,8 +7,11 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -29,4 +32,9 @@ public class ServiceData {
     public String shapesforward;
     @JsonProperty("ShapesBackward")
     public String shapesbackward;
+    
+    @JsonProperty("TimesForward")
+    public Map<LocalTime, String> timesforward = new HashMap<>();
+    @JsonProperty("TimesBackward")
+    public Map<LocalTime, String> timesbackward = new HashMap<>();
 }

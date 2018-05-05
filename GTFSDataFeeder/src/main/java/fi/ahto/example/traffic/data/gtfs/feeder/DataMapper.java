@@ -24,6 +24,7 @@ import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import org.onebusaway.gtfs.model.Route;
@@ -192,13 +193,14 @@ public class DataMapper {
             tr = new TripStopSet();
             tr.route = routeid;
             tr.service = serviceid;
+            tr.direction = st.getTrip().getDirectionId();
             trips.put(trkey, tr);
             LOG.debug("Added trip " + tripid);
         }
         
         TripStop ts = new TripStop();
         ts.seq = st.getStopSequence();
-        ts.arrivalTime = st.getArrivalTime();
+        ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }

@@ -20,13 +20,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,10 +145,15 @@ public class HSLDataMQTTListener {
         vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop
         vaf.setNextStopId(PREFIX + nextstop);
+        if ("EOL".equals(nextstop)) {
+            vaf.setEol(Optional.of(true));
+        }
         
         // New data available.
         vaf.setBearing(vp.path("hdg").asDouble());
         vaf.setSpeed(vp.path("spd").asDouble());
+        vaf.setOperatingDate(operday);
+        vaf.setStartTime(start);
         return vaf;
     }
 
