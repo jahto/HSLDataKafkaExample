@@ -20,9 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,22 +85,17 @@ public class HSLDataMQTTListener {
         };
     }
 
+    public void feedTestData(String data) throws IOException {
+        String[] splitted = data.split(" ", 2);
+        VehicleActivity dataFlattened = readDataAsJsonNodes(splitted[0], splitted[1]);
+        if (dataFlattened != null) {
+            putDataToQueues(dataFlattened);
+        }
+    }
+
     public void putDataToQueues(VehicleActivity data) {
         KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
-        /*
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter("onevehicle-" + vaf.getVehicleId() + ".json", true));
-            String val = objectMapper.writeValueAsString(data);
-            writer.append(val);
-            writer.append("\n");
-            writer.close();
-        } catch (JsonProcessingException ex) {
-            java.util.logging.Logger.getLogger(HSLDataMQTTListener.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            java.util.logging.Logger.getLogger(HSLDataMQTTListener.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        */
     }
 
     public VehicleActivity readDataAsJsonNodes(String queue, String msg) throws IOException {
@@ -110,15 +109,20 @@ public class HSLDataMQTTListener {
 
     public VehicleActivity flattenVehicleActivity(String queue, JsonNode node) {
         String[] splitted = queue.split("/");
-        String vehicle = splitted[4];
-        String line = splitted[5];
-        String direction = splitted[6];
-        String starttime = splitted[8];
-        String nextstop = splitted[9];
+        String ongoing = splitted[4];
+        String opeator = splitted[6];
+        // String vehicle = splitted[7];
+        String line = splitted[8];
+        String direction = splitted[9];
+        String headsign = splitted[10];
+        String starttime = splitted[11];
+        String nextstop = splitted[12];
 
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
+        String vehicle = vp.path("dir").asText() + "/" + vp.path("dir").asText();
+        
         VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
         vaf.setInternalLineId(PREFIX + line);
@@ -132,13 +136,20 @@ public class HSLDataMQTTListener {
         vaf.setDirection(vp.path("dir").asText());
         vaf.setRecordTime(Instant.ofEpochSecond(vp.path("tsi").asLong()));
 
-        Instant tripstart = Instant.parse(vp.path("tst").asText());
-        ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
-        vaf.setTripStart(zdt);
+        // Instant tripstart = Instant.parse(vp.path("tst").asText());
+        // ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
+        // vaf.setTripStart(zdt);
 
+        LocalDate operday = LocalDate.parse(vp.path("oday").asText());
+        LocalTime start = LocalTime.parse(vp.path("start").asText());
+        ZonedDateTime zdt = ZonedDateTime.of(operday, start, ZoneId.of("Europe/Helsinki"));
+        vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop
         vaf.setNextStopId(PREFIX + nextstop);
         
+        // New data available.
+        vaf.setBearing(vp.path("hdg").asDouble());
+        vaf.setSpeed(vp.path("spd").asDouble());
         return vaf;
     }
 

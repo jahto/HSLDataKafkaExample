@@ -7,10 +7,14 @@ package fi.ahto.example.hsl.data.mqtt.connector.tests;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import fi.ahto.example.hsl.data.mqtt.connector.KafkaConfiguration;
 import fi.ahto.example.hsl.data.mqtt.connector.HSLDataMQTTListener;
+import fi.ahto.example.hsl.data.mqtt.connector.KafkaConfiguration;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -52,6 +56,29 @@ public class SimpleTests {
         int i = 0;
     }
 
+    // @Test
+    /* Uncomment when needed */
+    public void feedExampleDataToQueues() {
+        String filename = "mqtt.snapshot.json";
+        /*
+            File file = new File("../testdata/" + filename);
+            try (InputStream stream = new FileInputStream(file)) {
+                listener.feedTestData(stream);
+            } catch (IOException ex) {
+                LOG.debug("Problem with file", ex);
+            }
+         */
+        filename = "../testdata/" + filename;
+        try (Stream<String> stream = Files.lines(Paths.get(filename))) {
+            stream.forEach(data -> {
+                try {
+                    dataPoller.feedTestData(data);
+                } catch (IOException ex) {
+                }
+            });
+        } catch (IOException ex) {
+        }
+    }
     private final String testdata
-            = "/hfp/journey/bus/05148673/2158/2/XXX/1952/2432227/60;24/16/68/50 {\"VP\":{\"desi\":\"158\",\"dir\":\"2\",\"oper\":\"XXX\",\"veh\":\"05148673\",\"tst\":\"2018-03-31T17:01:49.503Z\",\"tsi\":1522515709,\"spd\":null,\"lat\":60.16594,\"long\":24.6803,\"dl\":49,\"jrn\":\"XXX\",\"line\":\"XXX\",\"start\":\"1952\",\"source\":\"hsl roisto\"}}";
+            = "/hfp/v1/journey/ongoing/bus/0047/00239/1035/2/Munkkivuori/16:40/1304103/4/60;24/28/07/57 {\"VP\":{\"desi\":\"35\",\"dir\":\"2\",\"oper\":47,\"veh\":239,\"tst\":\"2018-05-03T13:40:01Z\",\"tsi\":1525354801,\"spd\":5.19,\"hdg\":92,\"lat\":60.205438,\"long\":24.877832,\"acc\":2.12,\"dl\":0,\"odo\":87,\"drst\":0,\"oday\":\"2018-05-03\",\"jrn\":24,\"line\":512,\"start\":\"16:40\"}}";
 }
