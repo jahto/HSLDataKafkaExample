@@ -94,12 +94,10 @@ public class SiriDataPoller {
 
     public void feedTestData(InputStream data) throws IOException {
         List<VehicleActivity> dataFlattened = readDataAsJsonNodes(data);
-        /*
         if (dataFlattened != null) {
             LOG.debug("Putting data to queues");
             putDataToQueues(dataFlattened);
         }
-         */
     }
 
     public InputStream fetchData(URI uri) throws IOException {
@@ -118,6 +116,7 @@ public class SiriDataPoller {
     }
 
     public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
+        List<VehicleActivity> vehicleActivities = new ArrayList<>();
         objectMapper.setSerializationInclusion(Include.NON_EMPTY);
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         int i = 0;
@@ -126,7 +125,6 @@ public class SiriDataPoller {
             List<VehicleMonitoringDeliveryStructure> vms = s.getServiceDelivery().getVehicleMonitoringDeliveries();
             List<VehicleActivityStructure> vas = vms.get(0).getVehicleActivities();
 
-            List<VehicleActivity> vehicleActivities = new ArrayList<>();
             for (VehicleActivityStructure va : vas) {
                 try {
                     VehicleActivity vaf = flattenVehicleActivity(va);
@@ -149,7 +147,7 @@ public class SiriDataPoller {
         } catch (JAXBException ex) {
         } catch (XMLStreamException ex) {
         }
-        return null;
+        return vehicleActivities;
     }
 
     public VehicleActivity flattenVehicleActivity(VehicleActivityStructure va) {

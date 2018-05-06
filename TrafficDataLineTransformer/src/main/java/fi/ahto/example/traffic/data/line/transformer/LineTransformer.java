@@ -16,19 +16,22 @@
 package fi.ahto.example.traffic.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
-import java.util.ArrayList;
-import java.util.HashSet;
+import fi.ahto.kafka.streams.state.utils.SimpleTransformerSupplierWithStore;
+import java.time.LocalTime;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.TreeSet;
+import java.util.NavigableSet;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.GlobalKTable;
@@ -62,18 +65,19 @@ public class LineTransformer {
         LOG.debug("VehicleActivityTransformers created");
     }
 
+    /*
     // Must be static when declared here as inner class, otherwise you run into
     // problems with Jackson objectmapper and databinder.
     static class GuessesMap extends HashSet<String> {
     }
-
+     */
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
-        final JsonSerde<GuessesMap> guessesserde = new JsonSerde<>(GuessesMap.class, objectMapper);
+        // final JsonSerde<GuessesMap> guessesserde = new JsonSerde<>(GuessesMap.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -81,20 +85,15 @@ public class LineTransformer {
                 = builder.globalTable("trips",
                         Consumed.with(Serdes.String(), tripsserde),
                         Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("trips"));
-
+        /*
         GlobalKTable<String, GuessesMap> guesses
                 = builder.globalTable("guesses",
                         Consumed.with(Serdes.String(), guessesserde),
                         Materialized.<String, GuessesMap, KeyValueStore<Bytes, byte[]>>as("guesses"));
-
-        Initializer<VehicleDataList> lineinitializer = new Initializer<VehicleDataList>() {
-            @Override
-            public VehicleDataList apply() {
-                VehicleDataList valist = new VehicleDataList();
-                // List<VehicleActivity> list = new ArrayList<>();
-                // valist.setVehicleActivities(list);
-                return valist;
-            }
+         */
+        Initializer<VehicleDataList> lineinitializer = () -> {
+            VehicleDataList valist = new VehicleDataList();
+            return valist;
         };
 
         // Get a table of all vehicles currently operating on the line.
@@ -134,34 +133,19 @@ public class LineTransformer {
             }
         };
 
-        KStream<String, VehicleActivity> useguesses = streamin
-                .filter((String key, VehicleActivity va) -> {
-                    return va.getSource().equals("FI:HSL");
-                });
-
-        KStream<String, VehicleActivity> bar = useguesses
-                .leftJoin(guesses,
-                        (String key, VehicleActivity value) -> {
-                            LOG.info("Mapping " + value.getTripID());
-                            return value.getTripID();
-                        },
-                        (VehicleActivity left, GuessesMap right) -> {
-                            // Try to guess the right Trip based on available information.
-                            LOG.info("Mapping " + left.getTripID() + " succeeded, onwardcalls:" + Integer.toString(left.getOnwardCalls().size()));
-                            return left;
-                        }
-                );
-        
         KStream<String, VehicleActivity> foo = streamin.leftJoin(trips,
                 (String key, VehicleActivity value) -> {
                     return value.getTripID();
                 },
                 (VehicleActivity left, TripStopSet right) -> {
-                    // Compare here left.onwardcalls ro right, adjust and/or
-                    // add missing values.
-                    return left;
+                    return addMissingStopTimes(left, right);
                 }
         );
+
+        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
+        KStream<String, VehicleActivity> transformed = streamin
+                .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
+                .transform(transformer, "stop-times");
 
         KTable<String, VehicleDataList> lines = streamin
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
@@ -173,5 +157,95 @@ public class LineTransformer {
 
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         return streamin;
+    }
+
+    VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
+        if (right == null) {
+            return left;
+        }
+
+        NavigableSet<TripStop> missing = null;
+
+        if (left.getOnwardCalls().isEmpty()) {
+            TripStop stop = findStopByName(left.getNextStopId(), right);
+            if (stop != null) {
+                missing = right.tailSet(stop, true);
+            }
+        } else {
+            TripStop stop = findStopByName(left.getOnwardCalls().last().stopid, right);
+            if (stop != null) {
+                missing = right.tailSet(stop, true);
+            }
+        }
+
+        if (missing != null && missing.size() > 0) {
+            for (TripStop miss : missing) {
+                LocalTime newtime = miss.arrivalTime.plusSeconds(left.getDelay());
+                ServiceStop toadd = new ServiceStop();
+                toadd.seq = miss.seq;
+                toadd.stopid = miss.stopid;
+                toadd.arrivalTime = newtime;
+                left.getOnwardCalls().add(toadd);
+            }
+        }
+
+        return left;
+    }
+
+    TripStop findStopByName(String name, TripStopSet set) {
+        for (TripStop stop : set) {
+            if (stop.stopid.equals(name)) {
+                return stop;
+            }
+        }
+        return null;
+    }
+
+    static class TimeTableComparerSupplier extends SimpleTransformerSupplierWithStore<String, VehicleActivity> {
+
+        public TimeTableComparerSupplier(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
+            super(builder, keyserde, valserde, storeName);
+        }
+
+        @Override
+        protected TransformerImpl createTransformer() {
+            return new TransformerImpl() {
+                @Override
+                protected VehicleActivity transformValue(VehicleActivity previous, VehicleActivity current) {
+                    return compareTimeTables(previous, current);
+                }
+            };
+        }
+
+        VehicleActivity compareTimeTables(VehicleActivity previous, VehicleActivity current) {
+            LOG.debug("Comparing timetables.");
+            if (previous == null) {
+                return current;
+            } else {
+                Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
+                ServiceStop curstop = null;
+                while (iter.hasNext()) {
+                    curstop = iter.next();
+                    ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
+                    if (prevstop != null) {
+                        if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
+                            // Vehicles estimated arriving time to these stops has changed.
+                            // Push the information to some queue.
+                            int i = 0;
+                        }
+                    }
+                }
+                if (curstop != null) {
+                    NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
+                    if (remove != null && remove.size() > 0) {
+                        // Vehicle has gone past these stops, so will not be arriving
+                        // to them anymore. Push the information to some queue.
+                        LOG.debug("Removing stops.");
+                        int i = 0;
+                    }
+                }
+            }
+            return current;
+        }
     }
 }

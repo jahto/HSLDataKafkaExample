@@ -65,9 +65,11 @@ public class KafkaConfiguration {
     public MessageChannel mqttInputChannel() {
         return new DirectChannel();
     }
-
+    /*
     @Bean
     public MessageProducer inbound() {
+        MqttPahoMessageDrivenChannelAdapter adapter
+                = new MqttPahoMessageDrivenChannelAdapter("tcp://213.138.147.225:1883", "testClient", "/hfp/journey/#");
         MqttPahoMessageDrivenChannelAdapter adapter
                 = new MqttPahoMessageDrivenChannelAdapter("tcp://213.138.147.225:1883", "testClient", "/hfp/journey/#");
         adapter.setCompletionTimeout(5000);
@@ -76,7 +78,7 @@ public class KafkaConfiguration {
         adapter.setOutputChannel(mqttInputChannel());
         return adapter;
     }
-
+    */
     // Using tradional method, Kafka Streams does not support yet anything more than Kafka topics as sources and sinks.
     @Bean
     public Map<String, Object> producerConfigs() {

@@ -218,7 +218,7 @@ public class SiriDataPoller {
                 int index = stopid.lastIndexOf('/');
                 stop.stopid = PREFIX + stopid.substring(index + 1);
                 stop.seq = call.path("order").asInt();
-                // stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toInstant();
+                stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
                 set.add(stop);
             }
         }

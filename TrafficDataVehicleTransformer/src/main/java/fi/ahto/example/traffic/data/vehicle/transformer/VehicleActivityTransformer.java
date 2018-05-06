@@ -16,26 +16,19 @@
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
 import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -98,9 +91,9 @@ public class VehicleActivityTransformer {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
+        // final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
         final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
-        final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
+        // final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
         /*
@@ -168,6 +161,7 @@ public class VehicleActivityTransformer {
                 };
 
         KTable<String, VehicleDataList> vehiclehistory = tohistory
+                .filter((String key, VehicleActivity value) -> value.getTripStart() != null)
                 .map((String key, VehicleActivity value) -> {
                     String postfix = value.getTripStart().format(DateTimeFormatter.ISO_LOCAL_DATE);
                     String newkey = value.getVehicleId() + "-" + postfix;
@@ -206,15 +200,29 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
+    // This must be rewritten. It takes too long to find the right service.
+    // Can't keep up at least with HSL realtime feed. Also adding a few more
+    // threads to handle the could help.
+    // Consider mapping by lineid, direction, start time, should leave less possibilities
+    // to test against.
     private VehicleActivity mapServiceid(VehicleActivity left, RouteData right) {
         if (right == null) {
             return left;
         }
+        
         LocalDate date = left.getTripStart().toLocalDate();
         List<ServiceData> possibilities = new ArrayList<>();
         Map<String, ServiceData> services = right.services;
         String tripId = null;
 
+        // FOLI GTFS data does not contain any valid dates, but we
+        // get the right (?) trip id already from realtime feed.
+        // Chek if it matches, an if so, return immediately.
+        if (left.getTripID() != null) {
+            // Didn't actually check...
+            return left;
+        }
+        
         for (ServiceData sd : services.values()) {
             DayOfWeek dow = date.getDayOfWeek();
 
@@ -282,102 +290,11 @@ public class VehicleActivityTransformer {
         }
         else {
             LOG.debug("Found the right service.");
+            left.setTripID(tripId);
             left.setServiceID(possibilities.get(0).serviceId);
         }
         return left;
     }
-    /* Will be rewritten and moved TrafficDataLineTransformer.
-    private VehicleActivity mapNextStops(VehicleActivity left, RouteData right) {
-        if (right == null) {
-            return left;
-        }
-
-        ServiceStopSet set = null;
-        if (set == null) {
-            return left;
-        }
-
-        if (left.getNextStopId() == null && left.getStopPoint() != null) {
-            LOG.warn("Should't be here anymore?... (mapNextStops)");
-            Iterator<ServiceStop> iter = set.iterator();
-            while (iter.hasNext()) {
-                ServiceStop stop = iter.next();
-                if (left.getStopPoint().equals(stop.stopid)) {
-                    if (iter.hasNext()) {
-                        ServiceStop next = iter.next();
-                        left.setNextStopId(next.stopid);
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Moved here to help with debugging.
-        ServiceStop last = null;
-        NavigableSet<ServiceStop> missing = null;
-        
-        ServiceStopSet calls = left.getOnwardCalls();
-        if (calls.isEmpty()) {
-            String next = left.getNextStopId();
-            if (next != null) {
-                for (ServiceStop stop : set) {
-                    if (stop.stopid.equals(next)) {
-                        last = stop;
-                        missing = set.tailSet(stop, false);
-                        if (missing != null && missing.size() > 0) {
-                            calls.addAll(missing);
-                        }
-                        break;
-                    }
-                }
-            }
-        } else {
-            last = calls.last();
-            missing = set.tailSet(last, false);
-            if (missing != null && missing.size() > 0) {
-                calls.addAll(missing);
-            }
-        }
-
-        if (left.getNextStopId() != null) {
-            // Check also that speed is 0.0, if available (change to Optional)
-            // and location is close enough, whatever that means (10-30 meters?
-            // We don't know the exact location of GPS-transmitter on the vehicle.)
-            if (left.getNextStopId().equals(set.first().stopid)) {
-                left.setAtRouteStart(true);
-            }
-            if (left.getNextStopId().equals(set.last().stopid)) {
-                left.setAtRouteEnd(true);
-            }
-        } else {
-            LOG.warn("For some reason, we still haven't found next stop (mapNextStops)");
-        }
-
-        if (left.isAtRouteStart() && left.isAtRouteEnd()) {
-            LOG.warn("Something is clearly very wrong with the logic in method mapNextStops()!");
-        }
-        
-        if (left.isAtRouteStart() && left.getOnwardCalls().size() == 0) {
-            LOG.warn("There should be onwardcalls!");
-        }
-        
-        if (left.isAtRouteEnd() && left.getOnwardCalls().size() != 0) {
-            LOG.warn("There should not be onwardcalls! Size = " + Integer.toString(left.getOnwardCalls().size()));
-        }
-        
-        if ("FI:HSL".equals(left.getSource())) {
-            String routeid = left.getInternalLineId();
-            String stopid = set.first().stopid;
-            String dir = left.getDirection();
-            LocalTime lt = left.getTripStart().toLocalTime();
-            String namefinal = routeid + "_" + stopid + "_" + dir + "_" + lt.toString().replace(":", "");
-            left.setTripID(namefinal);
-
-        }
-
-        return left;
-    }
-    */
     
     class VehicleTransformer
             implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {

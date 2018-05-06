@@ -161,12 +161,16 @@ public class DataMapper {
             route.services.put(serviceid, service);
         }
         if (st.getTrip().getDirectionId().equals("0")) {
-            service.shapesforward = prefix + st.getTrip().getShapeId().getId();
+            if (st.getTrip().getShapeId() != null) {
+                service.shapesforward = prefix + st.getTrip().getShapeId().getId();
+            }
             set = service.stopsforward;
         }
 
         if (st.getTrip().getDirectionId().equals("1")) {
-            service.shapesbackward = prefix + st.getTrip().getShapeId().getId();
+            if (st.getTrip().getShapeId() != null) {
+                service.shapesbackward = prefix + st.getTrip().getShapeId().getId();
+            }
             set = service.stopsbackward;
         }
 
@@ -199,6 +203,7 @@ public class DataMapper {
         }
         
         TripStop ts = new TripStop();
+        ts.stopid = stopid;
         ts.seq = st.getStopSequence();
         ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
         if (tr.contains(ts) == false) {
