@@ -17,6 +17,7 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -62,8 +63,13 @@ public class DataMapper {
     public void add(String prefix, ServiceCalendar sc) {
         ServiceData sd = services.get(prefix + sc.getServiceId().getId());
         if (sd == null) {
-            LOG.warn("Service not found");
+            LOG.warn("Service not found " + sc.getServiceId().getId());
             return;
+        }
+        if (sc.getServiceId().getId().startsWith("4433K_")) {
+            LOG.debug("Handling service " + sc.getServiceId().getId());
+            LOG.debug("Valid until " + sc.getEndDate().toString());
+            int i = 0;
         }
         sd.serviceId = sc.getServiceId().getId();
         ServiceDate start = sc.getStartDate();
@@ -93,7 +99,7 @@ public class DataMapper {
         if (sc.getSunday() == 1) {
             sd.weekdays |= 0x40;
         }
-        services.put(sc.getServiceId().getId(), sd);
+        // services.put(sc.getServiceId().getId(), sd);
     }
 
     public void add(String prefix, ServiceCalendarDate sct) {
@@ -149,31 +155,39 @@ public class DataMapper {
             service = new ServiceData();
             service.serviceId = serviceid;
             service.routeId = routeid;
+            /* Must be mapped only to a string
             service.stopsforward.route = routeid;
             service.stopsforward.service = serviceid;
             service.stopsbackward.route = routeid;
             service.stopsbackward.service = serviceid;
+            */
             services.put(serviceid, service);
             LOG.debug("Added service " + serviceid + " to route " + routeid);
         }
 
+        /*
         if (route.services.containsKey(serviceid) == false) {
             route.services.put(serviceid, service);
         }
+        */
         if (st.getTrip().getDirectionId().equals("0")) {
             if (st.getTrip().getShapeId() != null) {
-                service.shapesforward = prefix + st.getTrip().getShapeId().getId();
+                // Must be mapped only to a string
+                // service.shapesforward = prefix + st.getTrip().getShapeId().getId();
             }
-            set = service.stopsforward;
+            // 
+            // set = service.stopsforward;
         }
 
         if (st.getTrip().getDirectionId().equals("1")) {
             if (st.getTrip().getShapeId() != null) {
-                service.shapesbackward = prefix + st.getTrip().getShapeId().getId();
+                // Must be mapped only to a string
+                // service.shapesbackward = prefix + st.getTrip().getShapeId().getId();
             }
-            set = service.stopsbackward;
+            // Must be mapped only to a string
+            // set = service.stopsbackward;
         }
-
+        /* Find another way handle these ones...
         if (set != null && set.service.equals(serviceid)) {
             ServiceStop ss = new ServiceStop();
             ss.stopid = stopid;
@@ -188,7 +202,7 @@ public class DataMapper {
         } else {
             LOG.warn("Unknown direction " + st.getTrip().getDirectionId());
         }
-
+        */
         // Have to think how to handle these ones.
         String tripid = st.getTrip().getId().getId();
         TripKey trkey = new TripKey(tripid, routeid);

@@ -109,7 +109,7 @@ public class HSLDataMQTTListener {
     public VehicleActivity flattenVehicleActivity(String queue, JsonNode node) {
         String[] splitted = queue.split("/");
         String ongoing = splitted[4];
-        String opeator = splitted[6];
+        String operator = splitted[6];
         // String vehicle = splitted[7];
         String line = splitted[8];
         String direction = splitted[9];
@@ -120,7 +120,7 @@ public class HSLDataMQTTListener {
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
-        String vehicle = vp.path("dir").asText() + "/" + vp.path("dir").asText();
+        String vehicle = vp.path("oper").asText() + "/" + vp.path("veh").asText();
         
         VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);

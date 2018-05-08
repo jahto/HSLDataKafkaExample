@@ -20,6 +20,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -260,6 +262,8 @@ public class VehicleActivity {
     private Integer measurementLength;
     @JsonProperty("AddToHistory")
     private boolean addToHistory;
+    @JsonProperty("LastAddToHistory")
+    private Instant lastAddToHistory;
     @JsonProperty("LineHasChanged")
     private boolean lineHasChanged;
     @JsonProperty("Bearing")
@@ -288,6 +292,7 @@ public class VehicleActivity {
     private LocalTime startTime;
     @JsonProperty("EOL")
     private Optional<Boolean> eol = Optional.empty();
+    private List<String> possibleServices = new ArrayList<>();
 
     public ServiceStopSet getOnwardCalls() {
         return onwardCalls;
@@ -312,5 +317,21 @@ public class VehicleActivity {
 
     public void setEol(Optional<Boolean> eol) {
         this.eol = eol;
+    }
+
+    public Instant getLastAddToHistory() {
+        return lastAddToHistory;
+    }
+
+    public void setLastAddToHistory(Instant lastAddToHistory) {
+        this.lastAddToHistory = lastAddToHistory;
+    }
+
+    public List<String> getPossibleServices() {
+        return possibleServices;
+    }
+
+    public void setPossibleServices(List<String> possibleServices) {
+        this.possibleServices = possibleServices;
     }
 }

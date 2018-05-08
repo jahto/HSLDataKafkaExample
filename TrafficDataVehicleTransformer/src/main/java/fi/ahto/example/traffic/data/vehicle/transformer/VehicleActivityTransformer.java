@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.vehicle.transformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
@@ -86,6 +87,9 @@ public class VehicleActivityTransformer {
         }
     }
 
+    static class ServiceList extends ArrayList<String> {
+    }
+
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
@@ -93,6 +97,7 @@ public class VehicleActivityTransformer {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         // final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
         final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
+        final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
         // final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
@@ -101,19 +106,61 @@ public class VehicleActivityTransformer {
                 = builder.globalTable("stops",
                         Consumed.with(Serdes.String(), stopserde),
                         Materialized.<String, StopData, KeyValueStore<Bytes, byte[]>>as("stops"));
-        */
+         */
         GlobalKTable<String, RouteData> routes
                 = builder.globalTable("routes",
                         Consumed.with(Serdes.String(), routeserde),
                         Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routes"));
+
+        GlobalKTable<String, ServiceList> servicesbase
+                = builder.globalTable("trips-to-services",
+                        Consumed.with(Serdes.String(), sdbserde),
+                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("trips-to-services"));
+
+        GlobalKTable<String, String> serviceids
+                = builder.globalTable("serviceids",
+                        Consumed.with(Serdes.String(), Serdes.String()),
+                        Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("serviceids"));
+
         /*
         GlobalKTable<String, ServiceData> services
                 = builder.globalTable("services",
                         Consumed.with(Serdes.String(), serviceserde),
                         Materialized.<String, ServiceData, KeyValueStore<Bytes, byte[]>>as("services"));
-        */
+         */
         // We do currently not use this stream for anything other than its side effects.
         // I.e. mapping correct service and trip ids.
+        KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicesbase,
+                (String key, VehicleActivity value) -> {
+                    String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
+                    return newkey;
+                    // return value.getInternalLineId();
+                },
+                (VehicleActivity value, ServiceList right) -> {
+                    if (right == null) {
+                        String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
+                        LOG.debug("Didn't find correct servicelist " + newkey);
+                    }
+                    /*
+                    else {
+                        LOG.debug("Found correct servicelist");
+                    }
+                     */
+                    value.setPossibleServices(right);
+                    return value;
+                });
+        /*
+        KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicesbase,
+                (String key, VehicleActivity value) -> {
+                    String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
+                    return newkey;
+                    // return value.getInternalLineId();
+                },
+                (VehicleActivity left, ServiceList right) -> {
+                    return mapServiceidNew(left, right);
+                });
+         */
+ /*
         KStream<String, VehicleActivity> foostream = streamin.leftJoin(routes,
                 (String key, VehicleActivity value) -> {
                     return value.getInternalLineId();
@@ -121,9 +168,9 @@ public class VehicleActivityTransformer {
                 (VehicleActivity left, RouteData right) -> {
                     return mapServiceid(left, right);
                 });
-
-        final JsonSerde<VehicleSet> treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
-        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), treeserde, "vehicle-transformer-extended");
+         */
+        // final JsonSerde<VehicleSet> treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
+        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer-extended");
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
@@ -209,7 +256,7 @@ public class VehicleActivityTransformer {
         if (right == null) {
             return left;
         }
-        
+
         LocalDate date = left.getTripStart().toLocalDate();
         List<ServiceData> possibilities = new ArrayList<>();
         Map<String, ServiceData> services = right.services;
@@ -222,8 +269,107 @@ public class VehicleActivityTransformer {
             // Didn't actually check...
             return left;
         }
-        
+
+        int loops = 0;
+
         for (ServiceData sd : services.values()) {
+            loops++;
+            DayOfWeek dow = date.getDayOfWeek();
+
+            byte result = 0x0;
+            switch (dow) {
+                case MONDAY:
+                    result = (byte) (sd.weekdays & 0x1);
+                    break;
+                case TUESDAY:
+                    result = (byte) (sd.weekdays & 0x2);
+                    break;
+                case WEDNESDAY:
+                    result = (byte) (sd.weekdays & 0x4);
+                    break;
+                case THURSDAY:
+                    result = (byte) (sd.weekdays & 0x8);
+                    break;
+                case FRIDAY:
+                    result = (byte) (sd.weekdays & 0x10);
+                    break;
+                case SATURDAY:
+                    result = (byte) (sd.weekdays & 0x20);
+                    break;
+                case SUNDAY:
+                    result = (byte) (sd.weekdays & 0x40);
+                    break;
+            }
+
+            if (result == 0x0) {
+                continue;
+            }
+
+            if (sd.validfrom.isAfter(date)) {
+                continue;
+            }
+            if (sd.validuntil.isBefore(date)) {
+                continue;
+            }
+            if (sd.notinuse.contains(date)) {
+                continue;
+            }
+
+            if (left.getDirection().equals("1")) {
+                tripId = sd.timesforward.get(left.getStartTime());
+                if (tripId == null) {
+                    continue;
+                }
+            }
+
+            if (left.getDirection().equals("2")) {
+                tripId = sd.timesbackward.get(left.getStartTime());
+                if (tripId == null) {
+                    continue;
+                }
+            }
+
+            possibilities.add(sd);
+        }
+
+        if (possibilities.size() == 0) {
+            LOG.warn("Could not find service.");
+        } else if (possibilities.size() > 1) {
+            LOG.warn("Found too many possible services.");
+        } else {
+            LOG.debug("Found the right service, looped " + Integer.toString(loops) + " times.");
+            left.setTripID(tripId);
+            left.setServiceID(possibilities.get(0).serviceId);
+        }
+        return left;
+    }
+
+    private VehicleActivity mapServiceidPossibilities(VehicleActivity left, ServiceList right) {
+        return left;
+    }
+
+    /*
+    private VehicleActivity mapServiceidNew(VehicleActivity left, ServiceList right) {
+        if (right == null) {
+            return left;
+        }
+        
+        LocalDate date = left.getTripStart().toLocalDate();
+        List<ServiceDataBase> possibilities = new ArrayList<>();
+
+        // FOLI GTFS data does not contain any valid dates, but we
+        // get the right (?) trip id already from realtime feed.
+        // Chek if it matches, an if so, return immediately.
+        if (left.getTripID() != null) {
+            // Didn't actually check...
+            return left;
+        }
+
+        int loops = 0;
+        Iterator<ServiceDataBase> iter = right.iterator();
+        while (iter.hasNext()) {
+            ServiceDataBase sd = iter.next();
+            loops++;
             DayOfWeek dow = date.getDayOfWeek();
 
             byte result = 0x0;
@@ -265,21 +411,10 @@ public class VehicleActivityTransformer {
                 continue;
             }
             
-            if (left.getDirection().equals("1")) {
-                tripId = sd.timesforward.get(left.getStartTime());
-                if (tripId == null) {
-                    continue;
-                }
-            }
-            
-            if (left.getDirection().equals("2")) {
-                tripId = sd.timesbackward.get(left.getStartTime());
-                if (tripId == null) {
-                    continue;
-                }
-            }
-            
             possibilities.add(sd);
+            
+            // Not safe when testing...
+            break;
         }
         
         if (possibilities.size() == 0) {
@@ -289,20 +424,19 @@ public class VehicleActivityTransformer {
             LOG.warn("Found too many possible services.");
         }
         else {
-            LOG.debug("Found the right service.");
-            left.setTripID(tripId);
+            LOG.debug("Found the right service, looped " + Integer.toString(loops) + " times.");
             left.setServiceID(possibilities.get(0).serviceId);
         }
         return left;
     }
-    
+     */
     class VehicleTransformer
             implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
         final protected String storeName;
 
-        public VehicleTransformer(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleSet> valserde, String storeName) {
-            StoreBuilder<KeyValueStore<String, VehicleSet>> store
+        public VehicleTransformer(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
+            StoreBuilder<KeyValueStore<String, VehicleActivity>> store
                     = Stores.keyValueStoreBuilder(Stores.persistentKeyValueStore(storeName),
                             keyserde,
                             valserde)
@@ -319,7 +453,7 @@ public class VehicleActivityTransformer {
 
         class TransformerImpl implements Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
-            protected KeyValueStore<String, VehicleSet> store;
+            protected KeyValueStore<String, VehicleActivity> store;
             protected ProcessorContext context;
 
             // See next method init. Almost impossible to debug
@@ -329,11 +463,12 @@ public class VehicleActivityTransformer {
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
-                this.store = (KeyValueStore<String, VehicleSet>) context.getStateStore(storeName);
+                this.store = (KeyValueStore<String, VehicleActivity>) context.getStateStore(storeName);
 
                 // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
+                /*
                 this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
                     KeyValueIterator<String, VehicleSet> iter = this.store.all();
                     while (iter.hasNext()) {
@@ -355,29 +490,47 @@ public class VehicleActivityTransformer {
                     // commit the current processing progress
                     context.commit();
                 });
+                 */
             }
 
+            /*
             @Override
             public KeyValue<String, VehicleActivity> transform(String key, VehicleActivity value) {
-                VehicleSet data = store.get(key);
-                if (data == null) {
-                    data = new VehicleSet();
+                VehicleSet previous = store.get(key);
+                if (previous == null) {
+                    previous = new VehicleSet();
                 }
-                VehicleActivity transformed = transform(value, data);
-                store.put(key, data);
+                VehicleActivity transformed = transform(value, previous);
+                store.put(key, previous);
                 return KeyValue.pair(key, transformed);
             }
+             */
+ /*
+            @Override
+            public VehicleActivity transform(String k, VehicleActivity v) {
+                VehicleActivity previous = store.get(k);
+                VehicleActivity transformed = transform(v, previous);
+                store.put(k, previous);
+                return transformed;
+            }
+             */
+            @Override
+            public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
+                // VehicleActivity previous = store.get(k);
+                // VehicleActivity transformed = transform(v, previous);
+                // store.put(k, previous);
+                // return KeyValue.pair(k, transformed);
+                return KeyValue.pair(k, v);
+            }
 
-            VehicleActivity transform(VehicleActivity current, VehicleSet data) {
-                if (data.isEmpty()) {
+            VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
+                if (previous == null) {
                     current.setAddToHistory(true);
-                    data.add(current);
+                    current.setLastAddToHistory(current.getRecordTime());
                     return current;
                 }
 
                 boolean calculate = true;
-
-                VehicleActivity previous = data.last();
 
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
@@ -385,15 +538,16 @@ public class VehicleActivityTransformer {
                 }
 
                 // We get duplicates quite often, with the later ones missing
-                // some data.
+                // some previous.
                 if (current.getRecordTime().equals(previous.getRecordTime())) {
                     return previous;
                 }
 
-                // Vehicle is at the of line, remove it immediately. It will come back
+                // Vehicle is at end the of line, remove it immediately. It will come back
                 // later, but maybe not on the same line;
                 if (current.getEol().isPresent() && current.getEol().get() == true) {
                     current.setAddToHistory(true);
+                    current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
                 }
@@ -401,6 +555,7 @@ public class VehicleActivityTransformer {
                 // But we want a new history record now.
                 if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {
                     current.setAddToHistory(true);
+                    current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
                     calculate = false;
@@ -410,13 +565,23 @@ public class VehicleActivityTransformer {
                 // But we want a new history record now.
                 if (current.getDirection().equals(previous.getDirection()) == false) {
                     current.setAddToHistory(true);
+                    current.setLastAddToHistory(current.getRecordTime());
                     calculate = false;
                 }
 
                 // Not yet added to history? Find out when we added last time.
                 // If more than 60 seconds, then add.
                 if (current.AddToHistory() == false) {
-                    Iterator<VehicleActivity> iter = data.descendingIterator();
+                    Instant compareto = current.getRecordTime().minusSeconds(60);
+                    if (previous.getLastAddToHistory().isBefore(compareto)) {
+                        current.setAddToHistory(true);
+                        current.setLastAddToHistory(current.getRecordTime());
+
+                    }
+                }
+                /*
+                if (current.AddToHistory() == false) {
+                    Iterator<VehicleActivity> iter = previous.descendingIterator();
                     Instant compareto = current.getRecordTime().minusSeconds(60);
 
                     while (iter.hasNext()) {
@@ -430,10 +595,11 @@ public class VehicleActivityTransformer {
                         }
                     }
                 }
-
+                 */
                 if (calculate) {
                     VehicleActivity reference = null;
-                    Iterator<VehicleActivity> iter = data.descendingIterator();
+                    /*
+                    Iterator<VehicleActivity> iter = previous.descendingIterator();
 
                     while (iter.hasNext()) {
                         reference = iter.next();
@@ -442,7 +608,7 @@ public class VehicleActivityTransformer {
                             break;
                         }
                     }
-
+                     */
                     // Calculate approximate bearing if missing. Must check later
                     // if I got the direction right or 180 degrees wrong, and that
                     // both samples actually have the needed coordinates.
@@ -472,23 +638,6 @@ public class VehicleActivityTransformer {
                     }
                 }
 
-                // Clean up any data older than 600 seconds.
-                Instant compareto = current.getRecordTime().minusSeconds(600);
-                Iterator<VehicleActivity> iter = data.iterator();
-
-                while (iter.hasNext()) {
-                    VehicleActivity next = iter.next();
-
-                    if (next.getRecordTime().isBefore(compareto)) {
-                        iter.remove();
-                        continue;
-                    }
-                    // Safe to break from the loop now;
-                    break;
-                }
-
-                data.add(current);
-
                 return current;
             }
 
@@ -503,6 +652,7 @@ public class VehicleActivityTransformer {
                 // Note: The store should NOT be closed manually here via `stateStore.close()`!
                 // The Kafka Streams API will automatically close stores when necessary.
             }
+
         }
     }
 }

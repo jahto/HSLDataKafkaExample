@@ -6,28 +6,29 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  *
  * @author jah
  */
-public class ServiceData {
+public class ServiceData extends ServiceDataBase {
+    /*
     public String serviceId;
     public String routeId;
     public LocalDate validfrom;
     public LocalDate validuntil;
     public List<LocalDate> notinuse = new ArrayList<>();
     public byte weekdays = 0;
+    */
     @JsonProperty("StopsForward")
-    public ServiceStopSet stopsforward = new ServiceStopSet();
+    // public ServiceStopSet stopsforward = new ServiceStopSet();
+    public String stopsforward;
     @JsonProperty("StopsBackward")
-    public ServiceStopSet stopsbackward  = new ServiceStopSet();
+    // public ServiceStopSet stopsbackward  = new ServiceStopSet();
+    public String stopsbackward;
     @JsonProperty("ShapesForward")
     public String shapesforward;
     @JsonProperty("ShapesBackward")

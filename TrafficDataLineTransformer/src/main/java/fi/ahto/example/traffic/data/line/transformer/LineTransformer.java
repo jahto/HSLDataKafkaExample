@@ -65,19 +65,12 @@ public class LineTransformer {
         LOG.debug("VehicleActivityTransformers created");
     }
 
-    /*
-    // Must be static when declared here as inner class, otherwise you run into
-    // problems with Jackson objectmapper and databinder.
-    static class GuessesMap extends HashSet<String> {
-    }
-     */
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
-        // final JsonSerde<GuessesMap> guessesserde = new JsonSerde<>(GuessesMap.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -85,12 +78,7 @@ public class LineTransformer {
                 = builder.globalTable("trips",
                         Consumed.with(Serdes.String(), tripsserde),
                         Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("trips"));
-        /*
-        GlobalKTable<String, GuessesMap> guesses
-                = builder.globalTable("guesses",
-                        Consumed.with(Serdes.String(), guessesserde),
-                        Materialized.<String, GuessesMap, KeyValueStore<Bytes, byte[]>>as("guesses"));
-         */
+
         Initializer<VehicleDataList> lineinitializer = () -> {
             VehicleDataList valist = new VehicleDataList();
             return valist;
@@ -98,39 +86,8 @@ public class LineTransformer {
 
         // Get a table of all vehicles currently operating on the line.
         Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator
-                = new Aggregator<String, VehicleActivity, VehicleDataList>() {
-            @Override
-            public VehicleDataList apply(String key, VehicleActivity value, VehicleDataList aggregate) {
-                // LOG.debug("Aggregating line " + key);
-                boolean remove = false;
-                List<VehicleActivity> list = aggregate.getVehicleActivities();
-
-                ListIterator<VehicleActivity> iter = list.listIterator();
-                long time1 = value.getRecordTime().getEpochSecond();
-
-                // Remove entries older than 90 seconds or value itself. Not a safe
-                // way to detect when a vehicle has changed line or gone out of traffic.
-                while (iter.hasNext()) {
-                    VehicleActivity vaf = iter.next();
-                    long time2 = vaf.getRecordTime().getEpochSecond();
-                    if (vaf.getVehicleId().equals(value.getVehicleId())) {
-                        remove = true;
-                    }
-                    if (time1 - time2 > 90) {
-                        remove = true;
-                    }
-                    if (remove) {
-                        iter.remove();
-                    }
-                }
-
-                if (value.LineHasChanged() == false) {
-                    list.add(value);
-                } else {
-                    LOG.debug("Removed vehicle " + value.getVehicleId() + " from line " + key);
-                }
-                return aggregate;
-            }
+                = (String key, VehicleActivity value, VehicleDataList aggregate) -> {
+                    return aggregateLine(aggregate, value, key);
         };
 
         KStream<String, VehicleActivity> foo = streamin.leftJoin(trips,
@@ -157,6 +114,38 @@ public class LineTransformer {
 
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         return streamin;
+    }
+
+    private VehicleDataList aggregateLine(VehicleDataList aggregate, VehicleActivity value, String key) {
+        // LOG.debug("Aggregating line " + key);
+        boolean remove = false;
+        List<VehicleActivity> list = aggregate.getVehicleActivities();
+        
+        ListIterator<VehicleActivity> iter = list.listIterator();
+        long time1 = value.getRecordTime().getEpochSecond();
+        
+        // Remove entries older than 90 seconds or value itself. Not a safe
+        // way to detect when a vehicle has changed line or gone out of traffic.
+        while (iter.hasNext()) {
+            VehicleActivity vaf = iter.next();
+            long time2 = vaf.getRecordTime().getEpochSecond();
+            if (vaf.getVehicleId().equals(value.getVehicleId())) {
+                remove = true;
+            }
+            if (time1 - time2 > 90) {
+                remove = true;
+            }
+            if (remove) {
+                iter.remove();
+            }
+        }
+        
+        if (value.LineHasChanged() == false) {
+            list.add(value);
+        } else {
+            LOG.debug("Removed vehicle " + value.getVehicleId() + " from line " + key);
+        }
+        return aggregate;
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
@@ -221,30 +210,30 @@ public class LineTransformer {
             LOG.debug("Comparing timetables.");
             if (previous == null) {
                 return current;
-            } else {
-                Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
-                ServiceStop curstop = null;
-                while (iter.hasNext()) {
-                    curstop = iter.next();
-                    ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
-                    if (prevstop != null) {
-                        if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
-                            // Vehicles estimated arriving time to these stops has changed.
-                            // Push the information to some queue.
-                            int i = 0;
-                        }
-                    }
-                }
-                if (curstop != null) {
-                    NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
-                    if (remove != null && remove.size() > 0) {
-                        // Vehicle has gone past these stops, so will not be arriving
-                        // to them anymore. Push the information to some queue.
-                        LOG.debug("Removing stops.");
-                        int i = 0;
+            }
+            
+            Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
+            ServiceStop curstop = null;
+            while (iter.hasNext()) {
+                curstop = iter.next();
+                ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
+                if (prevstop != null) {
+                    if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
+                        // Vehicles estimated arriving time to these stops has changed.
+                        // Push the information to some queue.
+                        LOG.debug("Fixing estimated arrival times.");
                     }
                 }
             }
+            if (curstop != null) {
+                NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
+                if (remove != null && remove.size() > 0) {
+                    // Vehicle has gone past these stops, so will not be arriving
+                    // to them anymore. Push the information to some queue.
+                    LOG.debug("Removing stops.");
+                }
+            }
+
             return current;
         }
     }

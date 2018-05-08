@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,7 +24,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -52,6 +57,8 @@ public class GTFSDataReader implements ApplicationRunner {
     private static String prefix = null;
     private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
+    // private Map<String, List<ServiceDataBase>> baseservices = new HashMap<>();
+    private Map<String, List<String>> baseservices = new HashMap<>();
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -139,6 +146,70 @@ public class GTFSDataReader implements ApplicationRunner {
                     service.timesbackward.put(stop.arrivalTime, k.tripid);
                 }
             }
+        });
+
+        mapper.services.forEach((k, v) -> {
+            ServiceDataBase sb = new ServiceDataBase();
+            sb.serviceId = v.serviceId;
+            sb.routeId = v.routeId;
+            sb.weekdays = v.weekdays;
+            sb.notinuse = v.notinuse;
+            sb.validfrom = v.validfrom;
+            // kafkaTemplate.send("services-base", k, sb);
+            /*
+            if (v.routeId.equals("FI:HSL:4433K")) {
+                LOG.debug("Handling service " + v.serviceId);
+            }
+            */
+            v.timesforward.forEach((t, s) -> {
+                if (v.routeId.equals("FI:HSL:4433K")) {
+                    LOG.debug("Handling service " + v.serviceId);
+                }
+                String check = k;
+                String key = prefix + t.toString() + "/1/" + v.routeId;
+                /*
+                if (key.equals("FI:HSL:09:42/1/FI:HSL:4433K")) {
+                    LOG.debug(check);
+                    int i = 0;
+                }
+                 */
+                List<String> list = baseservices.get(key);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    baseservices.put(key, list);
+                }
+                if (list.size() > 0) {
+                    int i = 0;
+                }
+                // sb.tripId = s;
+                sb.trips.put(t, s);
+                list.add(v.serviceId);
+            });
+            v.timesbackward.forEach((t, s) -> {
+                String key = prefix + t.toString() + "/2/" + v.routeId;
+                List<String> list = baseservices.get(key);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    baseservices.put(key, list);
+                }
+                if (list.size() > 0) {
+                    int i = 0;
+                }
+                // sb.tripId = s;
+                sb.trips.put(t, s);
+                list.add(v.serviceId);
+            });
+        });
+
+        LOG.debug("Sending trips-to-service maps");
+        baseservices.forEach((k, v) -> {
+            /*
+            if (k.indexOf("FI:HSL:4433K") != -1) {
+                int i = 0;
+            }
+            */
+            kafkaTemplate.send("trips-to-services", k, v);
+            // kafkaTemplate.send("trips-to-servicesids", k, v);
         });
 
         LOG.debug("Sending services");
