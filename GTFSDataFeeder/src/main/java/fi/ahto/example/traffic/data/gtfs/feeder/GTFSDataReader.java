@@ -57,8 +57,8 @@ public class GTFSDataReader implements ApplicationRunner {
     private static String prefix = null;
     private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
-    // private Map<String, List<ServiceDataBase>> baseservices = new HashMap<>();
-    private Map<String, List<String>> baseservices = new HashMap<>();
+    private final Map<String, List<ServiceDataBase>> baseservices = new HashMap<>();
+    private final Map<String, List<String>> servicesmap = new HashMap<>();
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -155,54 +155,44 @@ public class GTFSDataReader implements ApplicationRunner {
             sb.weekdays = v.weekdays;
             sb.notinuse = v.notinuse;
             sb.validfrom = v.validfrom;
-            // kafkaTemplate.send("services-base", k, sb);
-            /*
-            if (v.routeId.equals("FI:HSL:4433K")) {
-                LOG.debug("Handling service " + v.serviceId);
-            }
-            */
+
             v.timesforward.forEach((t, s) -> {
                 if (v.routeId.equals("FI:HSL:4433K")) {
                     LOG.debug("Handling service " + v.serviceId);
                 }
                 String check = k;
                 String key = prefix + t.toString() + "/1/" + v.routeId;
-                /*
-                if (key.equals("FI:HSL:09:42/1/FI:HSL:4433K")) {
-                    LOG.debug(check);
-                    int i = 0;
-                }
-                 */
-                List<String> list = baseservices.get(key);
+
+                List<String> list = servicesmap.get(key);
                 if (list == null) {
                     list = new ArrayList<>();
-                    baseservices.put(key, list);
+                    servicesmap.put(key, list);
                 }
                 if (list.size() > 0) {
                     int i = 0;
                 }
                 // sb.tripId = s;
                 sb.trips.put(t, s);
-                list.add(v.serviceId);
+                list.add(k);
             });
             v.timesbackward.forEach((t, s) -> {
                 String key = prefix + t.toString() + "/2/" + v.routeId;
-                List<String> list = baseservices.get(key);
+                List<String> list = servicesmap.get(key);
                 if (list == null) {
                     list = new ArrayList<>();
-                    baseservices.put(key, list);
+                    servicesmap.put(key, list);
                 }
                 if (list.size() > 0) {
                     int i = 0;
                 }
                 // sb.tripId = s;
                 sb.trips.put(t, s);
-                list.add(v.serviceId);
+                list.add(k);
             });
         });
 
         LOG.debug("Sending trips-to-service maps");
-        baseservices.forEach((k, v) -> {
+        servicesmap.forEach((k, v) -> {
             /*
             if (k.indexOf("FI:HSL:4433K") != -1) {
                 int i = 0;

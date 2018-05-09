@@ -47,6 +47,8 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
+import org.apache.kafka.streams.kstream.ValueTransformer;
+import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueIterator;
@@ -95,83 +97,11 @@ public class VehicleActivityTransformer {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        // final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
-        final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, objectMapper);
-        final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
-        // final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
-        /*
-        GlobalKTable<String, StopData> stops
-                = builder.globalTable("stops",
-                        Consumed.with(Serdes.String(), stopserde),
-                        Materialized.<String, StopData, KeyValueStore<Bytes, byte[]>>as("stops"));
-         */
-        GlobalKTable<String, RouteData> routes
-                = builder.globalTable("routes",
-                        Consumed.with(Serdes.String(), routeserde),
-                        Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as("routes"));
 
-        GlobalKTable<String, ServiceList> servicesbase
-                = builder.globalTable("trips-to-services",
-                        Consumed.with(Serdes.String(), sdbserde),
-                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("trips-to-services"));
-
-        GlobalKTable<String, String> serviceids
-                = builder.globalTable("serviceids",
-                        Consumed.with(Serdes.String(), Serdes.String()),
-                        Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("serviceids"));
-
-        /*
-        GlobalKTable<String, ServiceData> services
-                = builder.globalTable("services",
-                        Consumed.with(Serdes.String(), serviceserde),
-                        Materialized.<String, ServiceData, KeyValueStore<Bytes, byte[]>>as("services"));
-         */
-        // We do currently not use this stream for anything other than its side effects.
-        // I.e. mapping correct service and trip ids.
-        KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicesbase,
-                (String key, VehicleActivity value) -> {
-                    String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
-                    return newkey;
-                    // return value.getInternalLineId();
-                },
-                (VehicleActivity value, ServiceList right) -> {
-                    if (right == null) {
-                        String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
-                        LOG.debug("Didn't find correct servicelist " + newkey);
-                    }
-                    /*
-                    else {
-                        LOG.debug("Found correct servicelist");
-                    }
-                     */
-                    value.setPossibleServices(right);
-                    return value;
-                });
-        /*
-        KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicesbase,
-                (String key, VehicleActivity value) -> {
-                    String newkey = value.getSource() + ":" + value.getStartTime().toString() + "/" + value.getDirection() + "/" + value.getInternalLineId();
-                    return newkey;
-                    // return value.getInternalLineId();
-                },
-                (VehicleActivity left, ServiceList right) -> {
-                    return mapServiceidNew(left, right);
-                });
-         */
- /*
-        KStream<String, VehicleActivity> foostream = streamin.leftJoin(routes,
-                (String key, VehicleActivity value) -> {
-                    return value.getInternalLineId();
-                },
-                (VehicleActivity left, RouteData right) -> {
-                    return mapServiceid(left, right);
-                });
-         */
-        // final JsonSerde<VehicleSet> treeserde = new JsonSerde<>(VehicleSet.class, objectMapper);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer-extended");
-        KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
+        KStream<String, VehicleActivity> transformed = streamin.transformValues(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
         KStream<String, VehicleActivity> tohistory
@@ -247,191 +177,9 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
-    // This must be rewritten. It takes too long to find the right service.
-    // Can't keep up at least with HSL realtime feed. Also adding a few more
-    // threads to handle the could help.
-    // Consider mapping by lineid, direction, start time, should leave less possibilities
-    // to test against.
-    private VehicleActivity mapServiceid(VehicleActivity left, RouteData right) {
-        if (right == null) {
-            return left;
-        }
-
-        LocalDate date = left.getTripStart().toLocalDate();
-        List<ServiceData> possibilities = new ArrayList<>();
-        Map<String, ServiceData> services = right.services;
-        String tripId = null;
-
-        // FOLI GTFS data does not contain any valid dates, but we
-        // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, an if so, return immediately.
-        if (left.getTripID() != null) {
-            // Didn't actually check...
-            return left;
-        }
-
-        int loops = 0;
-
-        for (ServiceData sd : services.values()) {
-            loops++;
-            DayOfWeek dow = date.getDayOfWeek();
-
-            byte result = 0x0;
-            switch (dow) {
-                case MONDAY:
-                    result = (byte) (sd.weekdays & 0x1);
-                    break;
-                case TUESDAY:
-                    result = (byte) (sd.weekdays & 0x2);
-                    break;
-                case WEDNESDAY:
-                    result = (byte) (sd.weekdays & 0x4);
-                    break;
-                case THURSDAY:
-                    result = (byte) (sd.weekdays & 0x8);
-                    break;
-                case FRIDAY:
-                    result = (byte) (sd.weekdays & 0x10);
-                    break;
-                case SATURDAY:
-                    result = (byte) (sd.weekdays & 0x20);
-                    break;
-                case SUNDAY:
-                    result = (byte) (sd.weekdays & 0x40);
-                    break;
-            }
-
-            if (result == 0x0) {
-                continue;
-            }
-
-            if (sd.validfrom.isAfter(date)) {
-                continue;
-            }
-            if (sd.validuntil.isBefore(date)) {
-                continue;
-            }
-            if (sd.notinuse.contains(date)) {
-                continue;
-            }
-
-            if (left.getDirection().equals("1")) {
-                tripId = sd.timesforward.get(left.getStartTime());
-                if (tripId == null) {
-                    continue;
-                }
-            }
-
-            if (left.getDirection().equals("2")) {
-                tripId = sd.timesbackward.get(left.getStartTime());
-                if (tripId == null) {
-                    continue;
-                }
-            }
-
-            possibilities.add(sd);
-        }
-
-        if (possibilities.size() == 0) {
-            LOG.warn("Could not find service.");
-        } else if (possibilities.size() > 1) {
-            LOG.warn("Found too many possible services.");
-        } else {
-            LOG.debug("Found the right service, looped " + Integer.toString(loops) + " times.");
-            left.setTripID(tripId);
-            left.setServiceID(possibilities.get(0).serviceId);
-        }
-        return left;
-    }
-
-    private VehicleActivity mapServiceidPossibilities(VehicleActivity left, ServiceList right) {
-        return left;
-    }
-
-    /*
-    private VehicleActivity mapServiceidNew(VehicleActivity left, ServiceList right) {
-        if (right == null) {
-            return left;
-        }
-        
-        LocalDate date = left.getTripStart().toLocalDate();
-        List<ServiceDataBase> possibilities = new ArrayList<>();
-
-        // FOLI GTFS data does not contain any valid dates, but we
-        // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, an if so, return immediately.
-        if (left.getTripID() != null) {
-            // Didn't actually check...
-            return left;
-        }
-
-        int loops = 0;
-        Iterator<ServiceDataBase> iter = right.iterator();
-        while (iter.hasNext()) {
-            ServiceDataBase sd = iter.next();
-            loops++;
-            DayOfWeek dow = date.getDayOfWeek();
-
-            byte result = 0x0;
-            switch(dow) {
-                case MONDAY:
-                    result = (byte) (sd.weekdays & 0x1);
-                    break;
-                case TUESDAY:
-                    result = (byte) (sd.weekdays & 0x2);
-                    break;
-                case WEDNESDAY:
-                    result = (byte) (sd.weekdays & 0x4);
-                    break;
-                case THURSDAY:
-                    result = (byte) (sd.weekdays & 0x8);
-                    break;
-                case FRIDAY:
-                    result = (byte) (sd.weekdays & 0x10);
-                    break;
-                case SATURDAY:
-                    result = (byte) (sd.weekdays & 0x20);
-                    break;
-                case SUNDAY:
-                    result = (byte) (sd.weekdays & 0x40);
-                    break;
-            }
-            
-            if (result == 0x0) {
-                continue;
-            }
-
-            if (sd.validfrom.isAfter(date)) {
-                continue;
-            }
-            if (sd.validuntil.isBefore(date)) {
-                continue;
-            }
-            if (sd.notinuse.contains(date)) {
-                continue;
-            }
-            
-            possibilities.add(sd);
-            
-            // Not safe when testing...
-            break;
-        }
-        
-        if (possibilities.size() == 0) {
-            LOG.warn("Could not find service.");
-        }
-        else if (possibilities.size() > 1) {
-            LOG.warn("Found too many possible services.");
-        }
-        else {
-            LOG.debug("Found the right service, looped " + Integer.toString(loops) + " times.");
-            left.setServiceID(possibilities.get(0).serviceId);
-        }
-        return left;
-    }
-     */
+    // It still seems to take too long to transform...
     class VehicleTransformer
-            implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
+            implements ValueTransformerSupplier<VehicleActivity, VehicleActivity> {
 
         final protected String storeName;
 
@@ -447,11 +195,11 @@ public class VehicleActivityTransformer {
         }
 
         @Override
-        public Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> get() {
+        public ValueTransformer<VehicleActivity, VehicleActivity> get() {
             return new TransformerImpl();
         }
 
-        class TransformerImpl implements Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
+        class TransformerImpl implements ValueTransformer<VehicleActivity, VehicleActivity> {
 
             protected KeyValueStore<String, VehicleActivity> store;
             protected ProcessorContext context;
@@ -505,7 +253,7 @@ public class VehicleActivityTransformer {
                 return KeyValue.pair(key, transformed);
             }
              */
- /*
+            /*
             @Override
             public VehicleActivity transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
@@ -515,15 +263,16 @@ public class VehicleActivityTransformer {
             }
              */
             @Override
-            public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
-                // VehicleActivity previous = store.get(k);
-                // VehicleActivity transformed = transform(v, previous);
-                // store.put(k, previous);
-                // return KeyValue.pair(k, transformed);
-                return KeyValue.pair(k, v);
+            public VehicleActivity transform(VehicleActivity v) {
+                VehicleActivity previous = store.get(v.getVehicleId());
+                VehicleActivity transformed = transform(v, previous);
+                store.put(v.getVehicleId(), previous);
+                return transformed;
             }
-
+            
             VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
+                LOG.debug("Transforming vehicle " + current.getVehicleId());
+                
                 if (previous == null) {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
@@ -549,7 +298,7 @@ public class VehicleActivityTransformer {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
-                    context.forward(previous.getVehicleId(), previous);
+                    // context.forward(previous.getVehicleId(), previous);
                 }
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
@@ -557,7 +306,7 @@ public class VehicleActivityTransformer {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
-                    context.forward(previous.getVehicleId(), previous);
+                    // context.forward(previous.getVehicleId(), previous);
                     calculate = false;
                 }
 
@@ -642,7 +391,7 @@ public class VehicleActivityTransformer {
             }
 
             @Override
-            public KeyValue<String, VehicleActivity> punctuate(long timestamp) {
+            public VehicleActivity punctuate(long timestamp) {
                 // Not needed and also deprecated.
                 return null;
             }
@@ -652,7 +401,6 @@ public class VehicleActivityTransformer {
                 // Note: The store should NOT be closed manually here via `stateStore.close()`!
                 // The Kafka Streams API will automatically close stores when necessary.
             }
-
         }
     }
 }
