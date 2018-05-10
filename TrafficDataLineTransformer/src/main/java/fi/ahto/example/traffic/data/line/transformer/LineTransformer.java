@@ -46,8 +46,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
-import org.apache.kafka.streams.kstream.ValueMapper;
-import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,8 +121,8 @@ public class LineTransformer {
                 );
 
         // Map to correct trip id in several steps
-        // We do currently not use this stream for anything other than its side effects.
-        // I.e. mapping to possible services.
+        // We do currently not use these streams for anything other than theie side effects.
+        // I.e. mapping to possible services. Check if peek() coukd work in some cases.
 
         KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicesbase,
                 (String key, VehicleActivity value) -> {
@@ -143,6 +141,11 @@ public class LineTransformer {
         KStream<String, VehicleActivity> checkservice = streamin
                 .flatMapValues((VehicleActivity v) -> {
                     List<VehicleActivity> list = new ArrayList<>();
+                    if (v.getPossibleServices() == null) {
+                        // LOG.debug("Serious problem with " + v.getInternalLineId());
+                        list.add(v);
+                        return list;
+                    }
                     for (String serviceid : v.getPossibleServices()) {
                         VehicleActivity add = new VehicleActivity(v);
                         add.setServiceID(serviceid);
@@ -350,6 +353,7 @@ public class LineTransformer {
         }
 
         VehicleActivity compareTimeTables(VehicleActivity previous, VehicleActivity current) {
+            boolean fixed = false;
             LOG.debug("Comparing timetables.");
             if (previous == null) {
                 return current;
@@ -364,9 +368,12 @@ public class LineTransformer {
                     if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
                         // Vehicles estimated arriving time to these stops has changed.
                         // Push the information to some queue.
-                        LOG.debug("Fixing estimated arrival times.");
+                        fixed = true;
                     }
                 }
+            }
+            if (fixed) {
+                LOG.debug("Fixed estimated arrival times.");
             }
             if (curstop != null) {
                 NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);

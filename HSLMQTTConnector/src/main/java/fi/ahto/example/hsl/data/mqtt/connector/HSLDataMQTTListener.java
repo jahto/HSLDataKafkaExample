@@ -120,7 +120,7 @@ public class HSLDataMQTTListener {
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
-        String vehicle = vp.path("oper").asText() + "/" + vp.path("veh").asText();
+        String vehicle = vp.path("oper").asText() + ":" + vp.path("veh").asText();
         
         VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);

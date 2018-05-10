@@ -21,6 +21,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
@@ -84,13 +85,13 @@ public class TrafficDataStreamsListener {
     }
 
     @Bean
-    public GlobalKTable<String, VehicleDataList> constructVehicleHistoryDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
+    public GlobalKTable<String, VehicleHistorySet> constructVehicleHistoryDataTable(StreamsBuilder streamBuilder) {
+        final JsonSerde<VehicleHistorySet> vaflistserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
         LOG.debug("Constructing " + StaticData.VEHICLE_HISTORY_STORE + " with StreamsBuilder");
-        GlobalKTable<String, VehicleDataList> table
+        GlobalKTable<String, VehicleHistorySet> table
                 = streamBuilder.globalTable(StaticData.VEHICLE_HISTORY_STREAM,
                         Consumed.with(Serdes.String(), vaflistserde),
-                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(StaticData.VEHICLE_HISTORY_STORE));
+                        Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as(StaticData.VEHICLE_HISTORY_STORE));
         return table;
     }
 

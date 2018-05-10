@@ -20,6 +20,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.streams.KeyValue;
@@ -48,7 +49,7 @@ public class StreamWebServer {
     
     @Autowired
     @Lazy(true)
-    private ReadOnlyKeyValueStore<String, VehicleDataList> vehicleHistoryDataStore;
+    private ReadOnlyKeyValueStore<String, VehicleHistorySet> vehicleHistoryDataStore;
     
     @Autowired
     @Lazy(true)
@@ -73,7 +74,7 @@ public class StreamWebServer {
     }
 
     @RequestMapping(value = "/history/vehicle/{id}", method = RequestMethod.GET)
-    public VehicleDataList findVehicleHistory(@PathVariable String id) {
+    public VehicleHistorySet findVehicleHistory(@PathVariable String id) {
         return vehicleHistoryDataStore.get(id);
     }
 
@@ -115,11 +116,11 @@ public class StreamWebServer {
     }
 
     @RequestMapping(value = "/history/vehicles", method = RequestMethod.GET)
-    public Map<String, VehicleDataList> findVehicleHistoryAll() {
-        Map<String, VehicleDataList> map = new HashMap<>();
-        KeyValueIterator<String, VehicleDataList> iter = vehicleHistoryDataStore.all();
+    public Map<String, VehicleHistorySet> findVehicleHistoryAll() {
+        Map<String, VehicleHistorySet> map = new HashMap<>();
+        KeyValueIterator<String, VehicleHistorySet> iter = vehicleHistoryDataStore.all();
         while (iter.hasNext()) {
-            KeyValue<String, VehicleDataList> next = iter.next();
+            KeyValue<String, VehicleHistorySet> next = iter.next();
             map.put(next.key, next.value);
         }
         return map;

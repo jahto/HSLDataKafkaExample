@@ -20,6 +20,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
@@ -106,7 +107,7 @@ public class TrafficDataStores {
     @Bean
     @Lazy(true)
     //@DependsOn("constructVehicleDataTable")
-    public ReadOnlyKeyValueStore<String, VehicleDataList> vehicleHistoryDataStore() {
+    public ReadOnlyKeyValueStore<String, VehicleHistorySet> vehicleHistoryDataStore() {
         LOG.debug("Constructing vehicleHistoryDataStore");
 
         while (true) {
@@ -118,7 +119,7 @@ public class TrafficDataStores {
                         Thread.sleep(100);
                         continue;
                     }
-                    ReadOnlyKeyValueStore<String, VehicleDataList> store = streams.store(StaticData.VEHICLE_HISTORY_STORE, QueryableStoreTypes.keyValueStore());
+                    ReadOnlyKeyValueStore<String, VehicleHistorySet> store = streams.store(StaticData.VEHICLE_HISTORY_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying

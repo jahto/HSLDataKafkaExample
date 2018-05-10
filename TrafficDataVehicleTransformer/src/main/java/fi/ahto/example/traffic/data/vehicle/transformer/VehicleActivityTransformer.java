@@ -16,21 +16,11 @@
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
-import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
-import java.time.DayOfWeek;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistoryRecord;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -38,7 +28,6 @@ import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
-import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -47,11 +36,7 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
-import org.apache.kafka.streams.kstream.ValueTransformer;
-import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.PunctuationType;
-import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -78,66 +63,40 @@ public class VehicleActivityTransformer {
         LOG.debug("VehicleActivityTransformers created");
     }
 
-    // Must be static when declared here as inner class, otherwise you run into
-    // problems with Jackson objectmapper and databinder.
-    static class VehicleSet extends TreeSet<VehicleActivity> {
-
-        private static final long serialVersionUID = -5926884652895033023L;
-
-        public VehicleSet() {
-            super((VehicleActivity o1, VehicleActivity o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
-        }
-    }
-
-    static class ServiceList extends ArrayList<String> {
-    }
-
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
-        final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
+        final JsonSerde<VehicleHistorySet> vsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
 
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer-extended");
-        KStream<String, VehicleActivity> transformed = streamin.transformValues(transformer, "vehicle-transformer-extended");
+        KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
         KStream<String, VehicleActivity> tohistory
                 = transformed.filter((key, value) -> value.AddToHistory());
 
-        Initializer<VehicleDataList> vehicleinitializer = new Initializer<VehicleDataList>() {
+        Initializer<VehicleHistorySet> vehicleinitializer = new Initializer<VehicleHistorySet>() {
             @Override
-            public VehicleDataList apply() {
-                VehicleDataList valist = new VehicleDataList();
+            public VehicleHistorySet apply() {
+                VehicleHistorySet valist = new VehicleHistorySet();
                 return valist;
             }
         };
 
-        Aggregator<String, VehicleActivity, VehicleDataList> vehicleaggregator
-                = (String key, VehicleActivity value, VehicleDataList aggregate) -> {
-                    List<VehicleActivity> list = aggregate.getVehicleActivities();
-                    if (list == null) {
-                        LOG.warn("Should't be here anymore... (vehicleaggregator)");
-                        list = new ArrayList<>();
-                        aggregate.setVehicleActivities(list);
-                    }
-
-                    // Just in case, guard once again against duplicates
-                    Iterator<VehicleActivity> iter = list.iterator();
-                    while (iter.hasNext()) {
-                        VehicleActivity next = iter.next();
-                        if (value.getRecordTime().equals(next.getRecordTime())) {
-                            return aggregate;
-                        }
-                    }
-
-                    list.add(value);
+        Aggregator<String, VehicleActivity, VehicleHistorySet> vehicleaggregator
+                = (String key, VehicleActivity value, VehicleHistorySet aggregate) -> {
+                    VehicleHistoryRecord vhr = new VehicleHistoryRecord(value);
+                    LOG.debug("Aggregating vehicle " + key);
+                    aggregate.add(vhr);
                     return aggregate;
                 };
 
-        KTable<String, VehicleDataList> vehiclehistory = tohistory
+        // Suspectible...
+        
+        KTable<String, VehicleHistorySet> vehiclehistory = tohistory
                 .filter((String key, VehicleActivity value) -> value.getTripStart() != null)
                 .map((String key, VehicleActivity value) -> {
                     String postfix = value.getTripStart().format(DateTimeFormatter.ISO_LOCAL_DATE);
@@ -146,14 +105,16 @@ public class VehicleActivityTransformer {
                 })
                 .groupByKey(Serialized.with(Serdes.String(), vafserde))
                 .aggregate(vehicleinitializer, vehicleaggregator,
-                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
+                        Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(vaflistserde)
+                                .withValueSerde(vsetserde)
                 );
 
-        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vaflistserde));
+        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vsetserde));
+        
         transformed.to("vehicles", Produced.with(Serdes.String(), vafserde));
 
+        // Suspectible...
         KStream<String, VehicleActivity> tolines
                 = transformed
                         .map((key, value)
@@ -179,7 +140,7 @@ public class VehicleActivityTransformer {
 
     // It still seems to take too long to transform...
     class VehicleTransformer
-            implements ValueTransformerSupplier<VehicleActivity, VehicleActivity> {
+            implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
         final protected String storeName;
 
@@ -195,11 +156,11 @@ public class VehicleActivityTransformer {
         }
 
         @Override
-        public ValueTransformer<VehicleActivity, VehicleActivity> get() {
+        public Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> get() {
             return new TransformerImpl();
         }
 
-        class TransformerImpl implements ValueTransformer<VehicleActivity, VehicleActivity> {
+        class TransformerImpl implements Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
             protected KeyValueStore<String, VehicleActivity> store;
             protected ProcessorContext context;
@@ -253,21 +214,13 @@ public class VehicleActivityTransformer {
                 return KeyValue.pair(key, transformed);
             }
              */
-            /*
+            
             @Override
-            public VehicleActivity transform(String k, VehicleActivity v) {
+            public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
                 VehicleActivity transformed = transform(v, previous);
-                store.put(k, previous);
-                return transformed;
-            }
-             */
-            @Override
-            public VehicleActivity transform(VehicleActivity v) {
-                VehicleActivity previous = store.get(v.getVehicleId());
-                VehicleActivity transformed = transform(v, previous);
-                store.put(v.getVehicleId(), previous);
-                return transformed;
+                store.put(k, transformed);
+                return KeyValue.pair(k, transformed);
             }
             
             VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
@@ -298,7 +251,8 @@ public class VehicleActivityTransformer {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
-                    // context.forward(previous.getVehicleId(), previous);
+                    context.forward(previous.getVehicleId(), previous);
+                    LOG.debug("Vehicle is at line end " + current.getVehicleId());
                 }
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
@@ -306,7 +260,8 @@ public class VehicleActivityTransformer {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
-                    // context.forward(previous.getVehicleId(), previous);
+                    context.forward(previous.getVehicleId(), previous);
+                    LOG.debug("Vehicle has changed line " + current.getVehicleId());
                     calculate = false;
                 }
 
@@ -315,17 +270,20 @@ public class VehicleActivityTransformer {
                 if (current.getDirection().equals(previous.getDirection()) == false) {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
+                    LOG.debug("Vehicle has changed direction " + current.getVehicleId());
                     calculate = false;
                 }
 
                 // Not yet added to history? Find out when we added last time.
-                // If more than 60 seconds, then add.
+                // If more than 59 seconds, then add.
                 if (current.AddToHistory() == false) {
-                    Instant compareto = current.getRecordTime().minusSeconds(60);
+                    Instant compareto = current.getRecordTime().minusSeconds(59);
                     if (previous.getLastAddToHistory().isBefore(compareto)) {
                         current.setAddToHistory(true);
                         current.setLastAddToHistory(current.getRecordTime());
-
+                    }
+                    else {
+                        current.setLastAddToHistory(previous.getLastAddToHistory());
                     }
                 }
                 /*
@@ -375,7 +333,7 @@ public class VehicleActivityTransformer {
                         }
                         current.setBearing(bearingdegrees);
                     }
-
+                    /* There is no reference anymore...
                     if (current.getDelay() != null && reference.getDelay() != null) {
                         Integer delaychange = current.getDelay() - reference.getDelay();
                         current.setDelayChange(delaychange);
@@ -385,13 +343,19 @@ public class VehicleActivityTransformer {
                         Integer measurementlength = (int) (current.getRecordTime().getEpochSecond() - reference.getRecordTime().getEpochSecond());
                         current.setMeasurementLength(measurementlength);
                     }
+                    */
                 }
-
+                /*
+                if (current.AddToHistory()) {
+                    LOG.debug("Vehicle has been added to history " + current.getVehicleId() + " at " +
+                            current.getRecordTime().atZone(ZoneId.of("Europe/Helsinki")).toString());
+                }
+                */
                 return current;
             }
 
             @Override
-            public VehicleActivity punctuate(long timestamp) {
+            public KeyValue<String, VehicleActivity> punctuate(long timestamp) {
                 // Not needed and also deprecated.
                 return null;
             }
