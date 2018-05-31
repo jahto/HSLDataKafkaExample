@@ -61,8 +61,8 @@ public class HSLDataMQTTListener {
     @Autowired
     ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
 
-    // @Bean
-    // @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
+    @Bean
+    @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
     public MessageHandler handler() {
         return new MessageHandler() {
 
