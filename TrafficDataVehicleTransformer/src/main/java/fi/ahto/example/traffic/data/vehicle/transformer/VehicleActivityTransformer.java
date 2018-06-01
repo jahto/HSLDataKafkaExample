@@ -37,6 +37,8 @@ import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.kstream.TransformerSupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.PunctuationType;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -94,8 +96,6 @@ public class VehicleActivityTransformer {
                     return aggregate;
                 };
 
-        // Suspectible...
-        
         KTable<String, VehicleHistorySet> vehiclehistory = tohistory
                 .filter((String key, VehicleActivity value) -> value.getTripStart() != null)
                 .map((String key, VehicleActivity value) -> {
@@ -114,7 +114,6 @@ public class VehicleActivityTransformer {
         
         transformed.to("vehicles", Produced.with(Serdes.String(), vafserde));
 
-        // Suspectible...
         KStream<String, VehicleActivity> tolines
                 = transformed
                         .map((key, value)
@@ -138,7 +137,6 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
-    // It still seems to take too long to transform...
     class VehicleTransformer
             implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
@@ -177,19 +175,19 @@ public class VehicleActivityTransformer {
                 // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
-                /*
+
                 this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
-                    KeyValueIterator<String, VehicleSet> iter = this.store.all();
+                    KeyValueIterator<String, VehicleActivity> iter = this.store.all();
                     while (iter.hasNext()) {
-                        KeyValue<String, VehicleSet> entry = iter.next();
-                        if (entry.value.isEmpty() == false) {
-                            VehicleActivity vaf = entry.value.last();
+                        KeyValue<String, VehicleActivity> entry = iter.next();
+                        if (entry.value != null) {
+                            VehicleActivity vaf = entry.value;
                             Instant now = Instant.ofEpochMilli(timestamp);
 
                             if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
+                                vaf.setLineHasChanged(true);
                                 context.forward(vaf.getVehicleId(), vaf);
-                                entry.value.clear();
-                                this.store.put(entry.key, entry.value);
+                                this.store.delete(entry.key);
                                 LOG.debug("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
                             }
                         }
@@ -199,22 +197,8 @@ public class VehicleActivityTransformer {
                     // commit the current processing progress
                     context.commit();
                 });
-                 */
             }
 
-            /*
-            @Override
-            public KeyValue<String, VehicleActivity> transform(String key, VehicleActivity value) {
-                VehicleSet previous = store.get(key);
-                if (previous == null) {
-                    previous = new VehicleSet();
-                }
-                VehicleActivity transformed = transform(value, previous);
-                store.put(key, previous);
-                return KeyValue.pair(key, transformed);
-            }
-             */
-            
             @Override
             public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
@@ -254,6 +238,7 @@ public class VehicleActivityTransformer {
                     context.forward(previous.getVehicleId(), previous);
                     LOG.debug("Vehicle is at line end " + current.getVehicleId());
                 }
+                
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {
@@ -286,36 +271,8 @@ public class VehicleActivityTransformer {
                         current.setLastAddToHistory(previous.getLastAddToHistory());
                     }
                 }
-                /*
-                if (current.AddToHistory() == false) {
-                    Iterator<VehicleActivity> iter = previous.descendingIterator();
-                    Instant compareto = current.getRecordTime().minusSeconds(60);
 
-                    while (iter.hasNext()) {
-                        VehicleActivity next = iter.next();
-
-                        if (next.AddToHistory()) {
-                            if (next.getRecordTime().isBefore(compareto)) {
-                                current.setAddToHistory(true);
-                            }
-                            break;
-                        }
-                    }
-                }
-                 */
                 if (calculate) {
-                    VehicleActivity reference = null;
-                    /*
-                    Iterator<VehicleActivity> iter = previous.descendingIterator();
-
-                    while (iter.hasNext()) {
-                        reference = iter.next();
-
-                        if (reference.AddToHistory()) {
-                            break;
-                        }
-                    }
-                     */
                     // Calculate approximate bearing if missing. Must check later
                     // if I got the direction right or 180 degrees wrong, and that
                     // both samples actually have the needed coordinates.
@@ -333,24 +290,8 @@ public class VehicleActivityTransformer {
                         }
                         current.setBearing(bearingdegrees);
                     }
-                    /* There is no reference anymore...
-                    if (current.getDelay() != null && reference.getDelay() != null) {
-                        Integer delaychange = current.getDelay() - reference.getDelay();
-                        current.setDelayChange(delaychange);
-                    }
+                }
 
-                    if (current.getRecordTime() != null && reference.getRecordTime() != null) {
-                        Integer measurementlength = (int) (current.getRecordTime().getEpochSecond() - reference.getRecordTime().getEpochSecond());
-                        current.setMeasurementLength(measurementlength);
-                    }
-                    */
-                }
-                /*
-                if (current.AddToHistory()) {
-                    LOG.debug("Vehicle has been added to history " + current.getVehicleId() + " at " +
-                            current.getRecordTime().atZone(ZoneId.of("Europe/Helsinki")).toString());
-                }
-                */
                 return current;
             }
 
