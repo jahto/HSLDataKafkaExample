@@ -17,8 +17,7 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
@@ -47,9 +46,8 @@ public class DataMapper {
     public Map<String, RouteData> routes = new HashMap<>();
     public Map<String, StopData> stops = new HashMap<>();
     public Map<TripKey, TripStopSet> trips = new HashMap<>();
-    // public Map<String, HashSet<String>> guesses = new HashMap<>();
-
     public Map<String, ServiceData> services = new HashMap<>();
+    public Map<String, ServiceTrips> servicetrips = new HashMap<>();
 
     private static final Map<Integer, Integer> routeFixes = new HashMap<>();
 
@@ -66,12 +64,8 @@ public class DataMapper {
             LOG.warn("Service not found " + sc.getServiceId().getId());
             return;
         }
-        if (sc.getServiceId().getId().startsWith("4433K_")) {
-            LOG.debug("Handling service " + sc.getServiceId().getId());
-            LOG.debug("Valid until " + sc.getEndDate().toString());
-            int i = 0;
-        }
-        sd.serviceId = sc.getServiceId().getId();
+
+        // sd.serviceId = sc.getServiceId().getId();
         ServiceDate start = sc.getStartDate();
         ServiceDate end = sc.getEndDate();
         LocalDate validfrom = LocalDate.of(start.getYear(), start.getMonth(), start.getDay());
@@ -99,12 +93,11 @@ public class DataMapper {
         if (sc.getSunday() == 1) {
             sd.weekdays |= 0x40;
         }
-        // services.put(sc.getServiceId().getId(), sd);
     }
 
     public void add(String prefix, ServiceCalendarDate sct) {
         if (sct.getExceptionType() == 1) {
-            ServiceData sd = services.get(sct.getServiceId().getId());
+            ServiceData sd = services.get(prefix + sct.getServiceId().getId());
             if (sd != null) {
                 ServiceDate dt = sct.getDate();
                 LocalDate notinuse = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDay());
@@ -118,7 +111,6 @@ public class DataMapper {
         String stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
         String serviceid = prefix + st.getTrip().getServiceId().getId();
-        ServiceStopSet set = null;
 
         StopData stop = stops.get(stopid);
         if (stop == null) {
@@ -137,7 +129,6 @@ public class DataMapper {
             stop.routesserved.add(routeid);
         }
 
-
         RouteData route = routes.get(routeid);
         if (route == null) {
             Route rt = st.getTrip().getRoute();
@@ -150,59 +141,22 @@ public class DataMapper {
             LOG.debug("Added route " + routeid);
         }
 
+        ServiceTrips servicetripmap = servicetrips.get(serviceid);
+        if (servicetripmap == null) {
+            servicetripmap = new ServiceTrips();
+            servicetrips.put(serviceid, servicetripmap);
+            LOG.debug("Added service " + serviceid + " to route " + routeid);
+        }
+
         ServiceData service = services.get(serviceid);
         if (service == null) {
             service = new ServiceData();
             service.serviceId = serviceid;
             service.routeId = routeid;
-            /* Must be mapped only to a string
-            service.stopsforward.route = routeid;
-            service.stopsforward.service = serviceid;
-            service.stopsbackward.route = routeid;
-            service.stopsbackward.service = serviceid;
-            */
             services.put(serviceid, service);
             LOG.debug("Added service " + serviceid + " to route " + routeid);
         }
 
-        /*
-        if (route.services.containsKey(serviceid) == false) {
-            route.services.put(serviceid, service);
-        }
-        */
-        if (st.getTrip().getDirectionId().equals("0")) {
-            if (st.getTrip().getShapeId() != null) {
-                // Must be mapped only to a string
-                // service.shapesforward = prefix + st.getTrip().getShapeId().getId();
-            }
-            // 
-            // set = service.stopsforward;
-        }
-
-        if (st.getTrip().getDirectionId().equals("1")) {
-            if (st.getTrip().getShapeId() != null) {
-                // Must be mapped only to a string
-                // service.shapesbackward = prefix + st.getTrip().getShapeId().getId();
-            }
-            // Must be mapped only to a string
-            // set = service.stopsbackward;
-        }
-        /* Find another way handle these ones...
-        if (set != null && set.service.equals(serviceid)) {
-            ServiceStop ss = new ServiceStop();
-            ss.stopid = stopid;
-            ss.seq = st.getStopSequence();
-            ss.name = st.getStop().getName();
-            if (set.contains(ss) == false) {
-                set.add(ss);
-                LOG.debug("Added stop " + ss.name + " to service " + serviceid + " on route " + routeid);
-            } else {
-                // System.out.println("Skipping...");
-            }
-        } else {
-            LOG.warn("Unknown direction " + st.getTrip().getDirectionId());
-        }
-        */
         // Have to think how to handle these ones.
         String tripid = st.getTrip().getId().getId();
         TripKey trkey = new TripKey(tripid, routeid);
@@ -242,43 +196,6 @@ public class DataMapper {
         if ("FI:FOLI:".equals(prefix)) {
             route.getId().setId(route.getShortName());
         }
-        // HSL real time feed does currently not contain trip information.
-        // Make a map of possible alternatives and try to guess the right one...
-        /*
-        if ("FI:HSL:".equals(prefix)) {
-            try {
-                if (st.getStopSequence() == 1 && st.getTimepoint() == 1) {
-                    String dir = st.getTrip().getDirectionId();
-                    if ("1".equals(dir)) {
-                        dir = "2";
-                    }
-                    if ("0".equals(dir)) {
-                        dir = "1";
-                    }
-                    String routeid = route.getId().getId();
-                    String stopid = st.getStop().getId().getId();
-
-                    LocalTime lt = LocalTime.ofSecondOfDay(st.getArrivalTime());
-
-                    String namefinal = prefix + routeid + "_" + prefix + stopid + "_" + dir + "_" + lt.toString().replace(":", "");
-
-                    HashSet<String> set = guesses.get(namefinal);
-                    if (set == null) {
-                        set = new HashSet<>();
-                        guesses.put(namefinal, set);
-                    }
-
-                    String tripid = st.getTrip().getId().getId();
-
-                    if (set.contains(tripid) == false) {
-                        set.add(tripid);
-                    }
-                }
-            } catch (Exception e) {
-                LOG.error(prefix, e);
-            }
-        }
-        */
         if ("FI:TKL:".equals(prefix)) {
             // TODO: TKL maybe needs special handling also.
         }

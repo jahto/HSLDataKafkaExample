@@ -32,5 +32,5 @@ public class RouteData {
     public String longname;
     @JsonProperty("TransitType")
     public TransitType type;
-    public Map<String, ServiceData> services = new HashMap<>();
+    public Map<String, ServiceTrips> services = new HashMap<>();
 }

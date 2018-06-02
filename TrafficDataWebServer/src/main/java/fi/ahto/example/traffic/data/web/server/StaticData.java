@@ -23,7 +23,7 @@ public class StaticData {
 
     static final String ROUTE_STORE = "routes-store";
     static final String STOP_STORE = "stops-store";
-    static final String LINE_STORE = "data-by-lineid-enhanced-store";
+    static final String LINE_STORE = "data-by-lineid-enhanced";
     static final String SHAPE_STREAM = "shapes";
     static final String ROUTE_STREAM = "routes";
     static final String VEHICLE_STORE = "vehicles";

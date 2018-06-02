@@ -23,5 +23,5 @@ import java.util.List;
  * @author Jouni Ahto
  */
 public class TripList {
-    public List<ServiceDataBase> services = new ArrayList<>();
+    public List<ServiceData> services = new ArrayList<>();
 }

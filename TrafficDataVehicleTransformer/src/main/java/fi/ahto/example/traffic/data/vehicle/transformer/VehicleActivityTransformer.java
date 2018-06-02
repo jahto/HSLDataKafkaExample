@@ -208,7 +208,7 @@ public class VehicleActivityTransformer {
             }
             
             VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
-                LOG.debug("Transforming vehicle " + current.getVehicleId());
+                LOG.info("Transforming vehicle " + current.getVehicleId());
                 
                 if (previous == null) {
                     current.setAddToHistory(true);

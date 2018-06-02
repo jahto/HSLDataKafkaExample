@@ -15,8 +15,8 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceDataBase;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.io.BufferedReader;
 import java.io.File;
@@ -57,8 +57,7 @@ public class GTFSDataReader implements ApplicationRunner {
     private static String prefix = null;
     private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
-    private final Map<String, List<ServiceDataBase>> baseservices = new HashMap<>();
-    private final Map<String, List<String>> servicesmap = new HashMap<>();
+    private final Map<String, List<ServiceData>> routeservices = new HashMap<>();
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -137,7 +136,7 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.trips.forEach((k, v) -> {
             TripStop stop = v.first();
             String serviceid = v.service;
-            ServiceData service = mapper.services.get(serviceid);
+            ServiceTrips service = mapper.servicetrips.get(serviceid);
             if (service != null) {
                 if (v.direction.equals("0")) {
                     service.timesforward.put(stop.arrivalTime, k.tripid);
@@ -149,62 +148,22 @@ public class GTFSDataReader implements ApplicationRunner {
         });
 
         mapper.services.forEach((k, v) -> {
-            ServiceDataBase sb = new ServiceDataBase();
-            sb.serviceId = v.serviceId;
-            sb.routeId = v.routeId;
-            sb.weekdays = v.weekdays;
-            sb.notinuse = v.notinuse;
-            sb.validfrom = v.validfrom;
-
-            v.timesforward.forEach((t, s) -> {
-                if (v.routeId.equals("FI:HSL:4433K")) {
-                    LOG.debug("Handling service " + v.serviceId);
-                }
-                String check = k;
-                String key = prefix + t.toString() + "/1/" + v.routeId;
-
-                List<String> list = servicesmap.get(key);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    servicesmap.put(key, list);
-                }
-                if (list.size() > 0) {
-                    int i = 0;
-                }
-                // sb.tripId = s;
-                sb.trips.put(t, s);
-                list.add(k);
-            });
-            v.timesbackward.forEach((t, s) -> {
-                String key = prefix + t.toString() + "/2/" + v.routeId;
-                List<String> list = servicesmap.get(key);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    servicesmap.put(key, list);
-                }
-                if (list.size() > 0) {
-                    int i = 0;
-                }
-                // sb.tripId = s;
-                sb.trips.put(t, s);
-                list.add(k);
-            });
-        });
-
-        LOG.debug("Sending trips-to-service maps");
-        servicesmap.forEach((k, v) -> {
-            /*
-            if (k.indexOf("FI:HSL:4433K") != -1) {
-                int i = 0;
+            List<ServiceData> list = routeservices.get(v.routeId);
+            if (list == null) {
+                list = new ArrayList<>();
+                routeservices.put(v.routeId, list);
             }
-            */
-            kafkaTemplate.send("trips-to-services", k, v);
-            // kafkaTemplate.send("trips-to-servicesids", k, v);
+            list.add(v);
+        });
+        
+        LOG.debug("Sending routes-to-services maps");
+        routeservices.forEach((k, v) -> {
+            kafkaTemplate.send("routes-to-services", k, v);
         });
 
-        LOG.debug("Sending services");
-        mapper.services.forEach((k, v) -> {
-            kafkaTemplate.send("services", k, v);
+        LOG.debug("Sending services-to-trips maps");
+        mapper.servicetrips.forEach((k, v) -> {
+            kafkaTemplate.send("services-to-trips", k, v);
         });
 
         LOG.debug("Sending stops");
@@ -225,11 +184,6 @@ public class GTFSDataReader implements ApplicationRunner {
             kafkaTemplate.send("trips", k.tripid, v);
         });
 
-        /*
-        mapper.guesses.forEach((k, v) -> {
-            guessTemplate.send("guesses", k, v);
-        });
-         */
         LOG.debug("Sending shapes");
         collector.shapes.forEach((k, v) -> {
             kafkaTemplate.send("shapes", k, v);
