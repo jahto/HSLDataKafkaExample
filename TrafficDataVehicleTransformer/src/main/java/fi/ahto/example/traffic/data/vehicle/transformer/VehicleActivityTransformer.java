@@ -171,7 +171,7 @@ public class VehicleActivityTransformer {
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleActivity>) context.getStateStore(storeName);
-
+                
                 // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
@@ -208,7 +208,7 @@ public class VehicleActivityTransformer {
             }
             
             VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
-                LOG.info("Transforming vehicle " + current.getVehicleId());
+                LOG.debug("Transforming vehicle " + current.getVehicleId());
                 
                 if (previous == null) {
                     current.setAddToHistory(true);
@@ -220,6 +220,11 @@ public class VehicleActivityTransformer {
 
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
+                    if (TESTING) {
+                        current.setAddToHistory(true);
+                        current.setLastAddToHistory(current.getRecordTime());
+                        return current;
+                    }
                     return previous;
                 }
 
@@ -236,7 +241,7 @@ public class VehicleActivityTransformer {
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
-                    LOG.debug("Vehicle is at line end " + current.getVehicleId());
+                    LOG.info("Vehicle is at line end " + current.getVehicleId());
                 }
                 
                 // Vehicle has changed line, useless to calculate the change of delay.
@@ -246,8 +251,9 @@ public class VehicleActivityTransformer {
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
-                    LOG.debug("Vehicle has changed line " + current.getVehicleId());
-                    calculate = false;
+                    LOG.info("Vehicle " + current.getVehicleId() + " has changed line from "
+                            +  previous.getInternalLineId() + " to " +current.getInternalLineId());
+                    return current;
                 }
 
                 // Change of direction, useless to calculate the change of delay.
@@ -255,8 +261,13 @@ public class VehicleActivityTransformer {
                 if (current.getDirection().equals(previous.getDirection()) == false) {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
-                    LOG.debug("Vehicle has changed direction " + current.getVehicleId());
-                    calculate = false;
+                    // It actually hasn't, but this will remove it from the line, and it will be
+                    // re-added again, now with a different direction. Also possible left-over
+                    // remaining stops will be cleared.
+                    previous.setLineHasChanged(true);
+                    context.forward(previous.getVehicleId(), previous);
+                    LOG.info("Vehicle has changed direction " + current.getVehicleId());
+                    return current;
                 }
 
                 // Not yet added to history? Find out when we added last time.

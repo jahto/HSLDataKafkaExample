@@ -76,7 +76,7 @@ public class StopTransformer {
 
         Aggregator<String, VehicleAtStop, Arrivals> arrivalsaggregator
                 = (String key, VehicleAtStop value, Arrivals aggregate) -> {
-                    LOG.info("Aggregating stop " + key);
+                    // LOG.info("Aggregating stop " + key);
                     return adjustStopTimes(key, value, aggregate);
                 };
 
@@ -105,6 +105,7 @@ public class StopTransformer {
     
     Arrivals adjustStopTimes(String key, VehicleAtStop vas, Arrivals agg) {
         if (vas.remove) {
+            LOG.info("Removing vehicle from stop " + key);
             agg.remove(vas.vehicleId);
         }
         else {

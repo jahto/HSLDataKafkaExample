@@ -138,13 +138,14 @@ public class LineTransformer {
                 (VehicleActivity value, ServiceList right) -> {
                     if (right == null) {
                         String newkey = value.getInternalLineId();
-                        LOG.info("Didn't find correct servicelist for route " + newkey);
+                        // LOG.info("Didn't find correct servicelist for route " + newkey);
                     }
                     value = findService(value, right);
                     return value;
                 });
 
-        KStream<String, VehicleActivity> tripstream = servicestream.leftJoin(servicetrips,
+        KStream<String, VehicleActivity> tripstream = streamin.leftJoin(servicetrips,
+                // KStream<String, VehicleActivity> tripstream = servicestream.leftJoin(servicetrips,
                 (String key, VehicleActivity value) -> {
                     String newkey = value.getServiceID();
                     return newkey;
@@ -152,14 +153,15 @@ public class LineTransformer {
                 (VehicleActivity value, ServiceTrips right) -> {
                     if (right == null) {
                         String newkey = value.getServiceID();
-                        LOG.info("Didn't find correct service " + newkey);
+                        // LOG.info("Didn't find correct service " + newkey);
                     }
                     value = findTrip(value, right);
                     return value;
                 });
 
         // Add possibly missing remaining stops 
-        KStream<String, VehicleActivity> foo = tripstream
+        KStream<String, VehicleActivity> tripstopstream = streamin
+                // KStream<String, VehicleActivity> tripstopstream = tripstream
                 .leftJoin(trips,
                         (String key, VehicleActivity value) -> {
                             return value.getTripID();
@@ -171,7 +173,8 @@ public class LineTransformer {
 
         // Compare current and previous estimated stop times, react (how?) if they differ
         TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
-        KStream<String, VehicleAtStop> stopchanges = tripstream
+        KStream<String, VehicleAtStop> stopchanges = streamin
+                // KStream<String, VehicleAtStop> stopchanges = tripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
 
@@ -304,7 +307,10 @@ public class LineTransformer {
         if (value.LineHasChanged() == false) {
             list.add(value);
         } else {
-            LOG.debug("Removed vehicle " + value.getVehicleId() + " from line " + key);
+            LOG.info("Removed vehicle " + value.getVehicleId() + " from line " + key);
+            if (value.getOnwardCalls().size() > 0) {
+                LOG.info("Stops should be removed!");
+            }
         }
         return aggregate;
     }
@@ -337,6 +343,7 @@ public class LineTransformer {
                 toadd.arrivalTime = newtime;
                 left.getOnwardCalls().add(toadd);
             }
+            // LOG.info("Added missing stops.");
         }
 
         return left;
@@ -378,8 +385,9 @@ public class LineTransformer {
 
             KeyValue<String, VehicleAtStop> compareTimeTables(VehicleActivity previous, VehicleActivity current) {
                 boolean fixed = false;
-                LOG.info("Comparing timetables.");
+                // LOG.info("Comparing timetables.");
                 if (previous == null) {
+                    LOG.debug("Adding stop times first time.");
                     Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
                     while (iter.hasNext()) {
                         ServiceStop curstop = iter.next();
@@ -390,6 +398,13 @@ public class LineTransformer {
                         context.forward(curstop.stopid, vas);
                     }
                     return null;
+                }
+
+                int i = previous.getOnwardCalls().size();
+                int j = current.getOnwardCalls().size();
+
+                if (i != j) {
+                    LOG.debug("Onwardcalls.size differ.");
                 }
 
                 Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
@@ -421,8 +436,8 @@ public class LineTransformer {
                         // Vehicle has gone past these stops, so will not be arriving
                         // to them anymore. Push the information to some queue.
                         LOG.debug("Removing stops.");
-
                         for (ServiceStop ss : remove) {
+                            LOG.info("Removing vehicle "+ current.getVehicleId() + " from stop " + ss.stopid);
                             VehicleAtStop vas = new VehicleAtStop();
                             vas.remove = true;
                             vas.vehicleId = current.getVehicleId();
@@ -432,6 +447,17 @@ public class LineTransformer {
                     }
                 }
 
+                if (current.LineHasChanged()) {
+                    LOG.info("Removing all remaining stops for vehicle " + current.getVehicleId());
+                    for (ServiceStop ss : previous.getOnwardCalls()) {
+                        LOG.info("Removing vehicle "+ current.getVehicleId() + " from stop " + ss.stopid);
+                        VehicleAtStop vas = new VehicleAtStop();
+                        vas.remove = true;
+                        vas.vehicleId = previous.getVehicleId();
+                        vas.lineId = previous.getLineId();
+                        context.forward(ss.stopid, vas);
+                    }
+                }
                 return null;
             }
         }
