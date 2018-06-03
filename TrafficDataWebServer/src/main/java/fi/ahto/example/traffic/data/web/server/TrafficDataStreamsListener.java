@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.web.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -125,6 +126,17 @@ public class TrafficDataStreamsListener {
                 = streamBuilder.globalTable(StaticData.SHAPE_STREAM,
                         Consumed.with(Serdes.String(), shapeserde),
                         Materialized.<String, ShapeSet, KeyValueStore<Bytes, byte[]>>as(StaticData.SHAPE_STORE));
+        return table;
+    }
+
+    @Bean
+    public GlobalKTable<String, Arrivals> constructStopChangesDataTable(StreamsBuilder streamBuilder) {
+        final JsonSerde<Arrivals> shapeserde = new JsonSerde<>(Arrivals.class, objectMapper);
+        LOG.debug("Constructing " + StaticData.STOP_CHANGES_STORE + " with StreamsBuilder");
+        GlobalKTable<String, Arrivals> table
+                = streamBuilder.globalTable(StaticData.STOP_CHANGES_STREAM,
+                        Consumed.with(Serdes.String(), shapeserde),
+                        Materialized.<String, Arrivals, KeyValueStore<Bytes, byte[]>>as(StaticData.STOP_CHANGES_STORE));
         return table;
     }
 }

@@ -11,3 +11,4 @@
 /GTFSDataFeeder/data/**/*.zip
 /TrafficDataWebServer.NET/**/obj
 /TrafficDataWebServer.NET/**/bin
+/testdata/*.mqtt

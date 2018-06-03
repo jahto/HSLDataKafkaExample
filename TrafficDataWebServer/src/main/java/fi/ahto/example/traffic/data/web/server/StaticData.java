@@ -33,4 +33,7 @@ public class StaticData {
     static final String STOP_STREAM = "stops";
     static final String VEHICLE_STREAM = "vehicles";
     static final String VEHICLE_HISTORY_STREAM = "vehicle-history";
+    // vehicles-arriving-to-stop
+    static final String STOP_CHANGES_STORE = "vehicles-arriving-to-stop-store";
+    static final String STOP_CHANGES_STREAM = "vehicles-arriving-to-stop";
 }

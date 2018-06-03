@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -63,6 +64,10 @@ public class StreamWebServer {
     @Lazy(true)
     private ReadOnlyKeyValueStore<String, ShapeSet> shapeDataStore;
     
+    @Autowired
+    @Lazy(true)
+    private ReadOnlyKeyValueStore<String, Arrivals> arrivalsDataStore;
+    
     @RequestMapping(value = "/line/{id}", method = RequestMethod.GET)
     public VehicleDataList findLine(@PathVariable String id) {
         return lineDataStore.get(id);
@@ -91,6 +96,11 @@ public class StreamWebServer {
     @RequestMapping(value = "/shape/{id}", method = RequestMethod.GET)
     public ShapeSet findShape(@PathVariable String id) {
         return shapeDataStore.get(id);
+    }
+
+    @RequestMapping(value = "/arrival/{id}", method = RequestMethod.GET)
+    public Arrivals findArrivals(@PathVariable String id) {
+        return arrivalsDataStore.get(id);
     }
 
     @RequestMapping(value = "/lines", method = RequestMethod.GET)
@@ -149,7 +159,7 @@ public class StreamWebServer {
     }
     
     @RequestMapping(value = "/shapes", method = RequestMethod.GET)
-    public Map<String, ShapeSet> findShapeAll(@PathVariable String id) {
+    public Map<String, ShapeSet> findShapeAll() {
         Map<String, ShapeSet> map = new HashMap<>();
         KeyValueIterator<String, ShapeSet> iter = shapeDataStore.all();
         while (iter.hasNext()) {
@@ -159,4 +169,14 @@ public class StreamWebServer {
         return map;
     }
 
+    @RequestMapping(value = "/arrivals", method = RequestMethod.GET)
+    public Map<String, Arrivals> findArrivalsAll() {
+        Map<String, Arrivals> map = new HashMap<>();
+        KeyValueIterator<String, Arrivals> iter = arrivalsDataStore.all();
+        while (iter.hasNext()) {
+            KeyValue<String, Arrivals> next = iter.next();
+            map.put(next.key, next.value);
+        }
+        return map;
+    }
 }

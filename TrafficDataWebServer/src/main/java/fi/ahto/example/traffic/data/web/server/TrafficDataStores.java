@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -204,6 +205,34 @@ public class TrafficDataStores {
                         continue;
                     }
                     ReadOnlyKeyValueStore<String, ShapeSet> store = streams.store(StaticData.SHAPE_STORE, QueryableStoreTypes.keyValueStore());
+                    LOG.debug("Store is now open for querying");
+                    return store;
+                } catch (InvalidStateStoreException ex) { // store not yet open for querying
+                    LOG.debug("Waiting for store to open... " + ex.getMessage());
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException ex) {
+                continue;
+            }
+        }
+    }
+
+    @Bean
+    @Lazy(true)
+    //@DependsOn("constructShapeDataTable")
+    public ReadOnlyKeyValueStore<String, Arrivals> stopChangesDataStore() {
+        LOG.debug("Constructing stopChangesDataStore");
+
+        while (true) {
+            try {
+                try {
+                    KafkaStreams streams = streamsBuilderFactoryBean.getKafkaStreams();
+                    if (streams == null) {
+                        LOG.debug("Waiting for streams to be constructed and ready");
+                        Thread.sleep(100);
+                        continue;
+                    }
+                    ReadOnlyKeyValueStore<String, Arrivals> store = streams.store(StaticData.STOP_CHANGES_STORE, QueryableStoreTypes.keyValueStore());
                     LOG.debug("Store is now open for querying");
                     return store;
                 } catch (InvalidStateStoreException ex) { // store not yet open for querying

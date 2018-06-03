@@ -16,28 +16,20 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalTime;
+import java.util.Objects;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class StopData {
-    @JsonProperty("StopId")
-    public String stopid;
-    @JsonProperty("StopName")
-    public String stopname;
-    @JsonProperty("Latitude")
-    public double latitude;
-    @JsonProperty("Longitude")
-    public double longitude;
-    @JsonProperty("StopCode")
-    public String stopcode;
-    @JsonProperty("Description")
-    public String desc;
-    @JsonProperty("RoutesServed")
-    public List<String> routesserved = new ArrayList<>();
+public class VehicleAtStop {
+    @JsonProperty("VehicleId")
+    public String vehicleId;
+    @JsonProperty("LineId")
+    public String lineId;
+    @JsonProperty("ArrivalTime")
+    public LocalTime arrivalTime;
+    @JsonProperty("Remove")
+    public boolean remove = false;
 }
