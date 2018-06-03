@@ -22,8 +22,13 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.SimpleTransformerSupplierWithStore;
+import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
+import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
+import fi.ahto.kafka.streams.state.utils.ValueTransformerSupplierWithStore;
+import fi.ahto.kafka.streams.state.utils.ValueTransformerWithStore;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -84,6 +89,7 @@ public class LineTransformer {
         final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
         final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
         final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
+        final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -131,7 +137,7 @@ public class LineTransformer {
                 },
                 (VehicleActivity value, ServiceList right) -> {
                     if (right == null) {
-                    String newkey = value.getInternalLineId();
+                        String newkey = value.getInternalLineId();
                         LOG.info("Didn't find correct servicelist for route " + newkey);
                     }
                     value = findService(value, right);
@@ -152,7 +158,6 @@ public class LineTransformer {
                     return value;
                 });
 
-                
         // Add possibly missing remaining stops 
         KStream<String, VehicleActivity> foo = tripstream
                 .leftJoin(trips,
@@ -166,11 +171,12 @@ public class LineTransformer {
 
         // Compare current and previous estimated stop times, react (how?) if they differ
         TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
-        KStream<String, VehicleActivity> transformed = tripstream
+        KStream<String, VehicleAtStop> stopchanges = tripstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
 
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
+        stopchanges.to("changes-by-stopid", Produced.with(Serdes.String(), vasserde));
         return streamin;
     }
 
@@ -231,10 +237,10 @@ public class LineTransformer {
             if (sdb.notinuse.contains(date)) {
                 continue;
             }
-            
+
             va.setServiceID(sdb.serviceId);
         }
-        
+
         return va;
     }
 
@@ -345,55 +351,89 @@ public class LineTransformer {
         return null;
     }
 
-    static class TimeTableComparerSupplier extends SimpleTransformerSupplierWithStore<String, VehicleActivity> {
+    static class TimeTableComparerSupplier extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>> {
 
         public TimeTableComparerSupplier(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
             super(builder, keyserde, valserde, storeName);
         }
 
         @Override
-        public Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> get() {
+        public Transformer<String, VehicleActivity, KeyValue<String, VehicleAtStop>> get() {
             return new TransformerImpl() {
                 @Override
-                protected VehicleActivity transformValue(VehicleActivity previous, VehicleActivity current) {
+                public KeyValue<String, VehicleAtStop> transform(String key, VehicleActivity previous, VehicleActivity current) {
                     return compareTimeTables(previous, current);
                 }
             };
         }
 
-        VehicleActivity compareTimeTables(VehicleActivity previous, VehicleActivity current) {
-            boolean fixed = false;
-            LOG.info("Comparing timetables.");
-            if (previous == null) {
-                return current;
+        protected class TransformerImpl
+                extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>>.TransformerImpl
+                implements TransformerWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>> {
+
+            @Override
+            public KeyValue<String, VehicleAtStop> transform(String key, VehicleActivity previous, VehicleActivity current) {
+                return compareTimeTables(previous, current);
             }
 
-            Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
-            ServiceStop curstop = null;
-            while (iter.hasNext()) {
-                curstop = iter.next();
-                ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
-                if (prevstop != null) {
-                    if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
-                        // Vehicles estimated arriving time to these stops has changed.
-                        // Push the information to some queue.
-                        fixed = true;
+            KeyValue<String, VehicleAtStop> compareTimeTables(VehicleActivity previous, VehicleActivity current) {
+                boolean fixed = false;
+                LOG.info("Comparing timetables.");
+                if (previous == null) {
+                    Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
+                    while (iter.hasNext()) {
+                        ServiceStop curstop = iter.next();
+                        VehicleAtStop vas = new VehicleAtStop();
+                        vas.vehicleId = current.getVehicleId();
+                        vas.lineId = current.getLineId();
+                        vas.arrivalTime = curstop.arrivalTime;
+                        context.forward(curstop.stopid, vas);
+                    }
+                    return null;
+                }
+
+                Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
+                ServiceStop curstop = null;
+                while (iter.hasNext()) {
+                    curstop = iter.next();
+                    ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
+                    if (prevstop != null) {
+                        if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
+                            // Vehicles estimated arriving time to these stops has changed.
+                            // Push the information to some queue.
+                            VehicleAtStop vas = new VehicleAtStop();
+                            vas.vehicleId = current.getVehicleId();
+                            vas.lineId = current.getLineId();
+                            vas.arrivalTime = curstop.arrivalTime;
+                            context.forward(curstop.stopid, vas);
+                            fixed = true;
+                        }
                     }
                 }
-            }
-            if (fixed) {
-                LOG.debug("Fixed estimated arrival times.");
-            }
-            if (curstop != null) {
-                NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
-                if (remove != null && remove.size() > 0) {
-                    // Vehicle has gone past these stops, so will not be arriving
-                    // to them anymore. Push the information to some queue.
-                    LOG.debug("Removing stops.");
-                }
-            }
 
-            return current;
+                if (fixed) {
+                    LOG.debug("Fixed estimated arrival times.");
+                }
+
+                if (curstop != null) {
+                    NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
+                    if (remove != null && remove.size() > 0) {
+                        // Vehicle has gone past these stops, so will not be arriving
+                        // to them anymore. Push the information to some queue.
+                        LOG.debug("Removing stops.");
+
+                        for (ServiceStop ss : remove) {
+                            VehicleAtStop vas = new VehicleAtStop();
+                            vas.remove = true;
+                            vas.vehicleId = current.getVehicleId();
+                            vas.lineId = current.getLineId();
+                            context.forward(ss.stopid, vas);
+                        }
+                    }
+                }
+
+                return null;
+            }
         }
     }
 }
