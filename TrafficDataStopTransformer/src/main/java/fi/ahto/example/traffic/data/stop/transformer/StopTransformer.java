@@ -18,11 +18,7 @@ package fi.ahto.example.traffic.data.stop.transformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.Consumed;
@@ -105,7 +101,7 @@ public class StopTransformer {
     
     Arrivals adjustStopTimes(String key, VehicleAtStop vas, Arrivals agg) {
         if (vas.remove) {
-            LOG.info("Removing vehicle from stop " + key);
+            LOG.info("Removing vehicle {} from stop {}", vas.vehicleId, key);
             agg.remove(vas.vehicleId);
         }
         else {

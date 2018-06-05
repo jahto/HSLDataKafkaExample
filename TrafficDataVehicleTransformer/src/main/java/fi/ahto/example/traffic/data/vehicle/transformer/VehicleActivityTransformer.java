@@ -78,7 +78,7 @@ public class VehicleActivityTransformer {
 
         // Collect a rough history per vehicle and day.
         KStream<String, VehicleActivity> tohistory
-                = transformed.filter((key, value) -> value.AddToHistory());
+                = transformed.filter((key, value) -> value != null && value.AddToHistory());
 
         Initializer<VehicleHistorySet> vehicleinitializer = new Initializer<VehicleHistorySet>() {
             @Override
@@ -91,7 +91,7 @@ public class VehicleActivityTransformer {
         Aggregator<String, VehicleActivity, VehicleHistorySet> vehicleaggregator
                 = (String key, VehicleActivity value, VehicleHistorySet aggregate) -> {
                     VehicleHistoryRecord vhr = new VehicleHistoryRecord(value);
-                    LOG.debug("Aggregating vehicle " + key);
+                    LOG.debug("Aggregating vehicle {}", key);
                     aggregate.add(vhr);
                     return aggregate;
                 };
@@ -111,11 +111,12 @@ public class VehicleActivityTransformer {
                 );
 
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vsetserde));
-        
+
         transformed.to("vehicles", Produced.with(Serdes.String(), vafserde));
 
         KStream<String, VehicleActivity> tolines
                 = transformed
+                        .filter((key, value) -> value != null)
                         .map((key, value)
                                 -> KeyValue.pair(value.getInternalLineId(), value));
 
@@ -167,28 +168,35 @@ public class VehicleActivityTransformer {
             // with old data if we clean it away every 60 seconds. 
             private static final boolean TESTING = true;
 
+            // Unless, "now" happens to be the time of the last record received...
+            // Won't cover the last minute, but good enough for testing samples 
+            // over one hour.
+            Instant now = null;
+
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleActivity>) context.getStateStore(storeName);
-                
+
                 // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
-
                 this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
                     KeyValueIterator<String, VehicleActivity> iter = this.store.all();
                     while (iter.hasNext()) {
                         KeyValue<String, VehicleActivity> entry = iter.next();
                         if (entry.value != null) {
                             VehicleActivity vaf = entry.value;
-                            Instant now = Instant.ofEpochMilli(timestamp);
 
-                            if (vaf.getRecordTime().plusSeconds(60).isBefore(now) && !TESTING) {
+                            if (!TESTING) {
+                                now = Instant.ofEpochMilli(timestamp);
+                            }
+
+                            if (vaf.getRecordTime().plusSeconds(60).isBefore(now)) {
                                 vaf.setLineHasChanged(true);
                                 context.forward(vaf.getVehicleId(), vaf);
                                 this.store.delete(entry.key);
-                                LOG.debug("Cleared all data for vehicle " + vaf.getVehicleId() + " and removed it from line " + vaf.getInternalLineId());
+                                LOG.info("Cleared all data for vehicle {} and removed it from line {}", vaf.getVehicleId(), vaf.getInternalLineId());
                             }
                         }
                     }
@@ -203,16 +211,23 @@ public class VehicleActivityTransformer {
             public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
                 VehicleActivity transformed = transform(v, previous);
-                store.put(k, transformed);
+                store.put(k, v);
                 return KeyValue.pair(k, transformed);
             }
-            
+
             VehicleActivity transform(VehicleActivity current, VehicleActivity previous) {
-                LOG.debug("Transforming vehicle " + current.getVehicleId());
-                
+                LOG.debug("Transforming vehicle {}", current.getVehicleId());
+
+                if (TESTING) {
+                    now = current.getRecordTime();
+                }
+
                 if (previous == null) {
                     current.setAddToHistory(true);
                     current.setLastAddToHistory(current.getRecordTime());
+                    if (current.getEol()) {
+                        LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
+                    }
                     return current;
                 }
 
@@ -220,30 +235,51 @@ public class VehicleActivityTransformer {
 
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
+                    // unless we are testing...
                     if (TESTING) {
+                        // But, in that case, must guard against some oddities in incoming data.
+                        if (previous.getEol() && !current.getEol()) {
+                            // Prevent the vehicle from flip-flopping between states, because
+                            // data seems to come in out-of-order and multiple times when
+                            // the vehicle is at the end of line. Handle only after a new trip starts.
+                            if (!current.getStartTime().isAfter(previous.getStartTime())) {
+                                LOG.info("Copying vehicle {}", current.getVehicleId());
+                                current.copy(previous);
+                                // Should already have been added to history the first time it was at eol.
+                                current.setAddToHistory(false);
+                                return null;
+                            }
+                            
+                        }
                         current.setAddToHistory(true);
                         current.setLastAddToHistory(current.getRecordTime());
                         return current;
                     }
-                    return previous;
+                    return null;
                 }
 
-                // We get duplicates quite often, with the later ones missing
-                // some previous.
+                // We get duplicates quite often...
                 if (current.getRecordTime().equals(previous.getRecordTime())) {
-                    return previous;
+                    return null;
                 }
 
-                // Vehicle is at end the of line, remove it immediately. It will come back
-                // later, but maybe not on the same line;
-                if (current.getEol().isPresent() && current.getEol().get() == true) {
-                    current.setAddToHistory(true);
-                    current.setLastAddToHistory(current.getRecordTime());
-                    previous.setLineHasChanged(true);
-                    context.forward(previous.getVehicleId(), previous);
-                    LOG.info("Vehicle is at line end " + current.getVehicleId());
+                // Vehicle is at end the of line, remove it immediately. It may come back
+                // later, but not necessarily on the same line;
+                if (current.getEol()) {
+                    if (!previous.getEol()) {
+                        LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), previous.getInternalLineId());
+                        current.setAddToHistory(true);
+                        current.setLastAddToHistory(current.getRecordTime());
+                        current.setLineHasChanged(true);
+                        current.setInternalLineId(previous.getInternalLineId());
+                        return current;
+                    } else {
+                        // Don't bother sending information every second that a vehicle is
+                        // standing at the end of line, once is enough. It will stay there...
+                        return null;
+                    }
                 }
-                
+
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {
@@ -251,34 +287,44 @@ public class VehicleActivityTransformer {
                     current.setLastAddToHistory(current.getRecordTime());
                     previous.setLineHasChanged(true);
                     context.forward(previous.getVehicleId(), previous);
-                    LOG.info("Vehicle " + current.getVehicleId() + " has changed line from "
-                            +  previous.getInternalLineId() + " to " +current.getInternalLineId());
+                    LOG.info("Vehicle {} has changed line from {} to {}", current.getVehicleId(),
+                            previous.getInternalLineId(), current.getInternalLineId());
                     return current;
                 }
 
                 // Change of direction, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getDirection().equals(previous.getDirection()) == false) {
-                    current.setAddToHistory(true);
-                    current.setLastAddToHistory(current.getRecordTime());
-                    // It actually hasn't, but this will remove it from the line, and it will be
-                    // re-added again, now with a different direction. Also possible left-over
-                    // remaining stops will be cleared.
-                    previous.setLineHasChanged(true);
-                    context.forward(previous.getVehicleId(), previous);
-                    LOG.info("Vehicle has changed direction " + current.getVehicleId());
-                    return current;
+                    // This can happen when testing, the sample data seems to contain
+                    // also out-of-date records...
+                    if (current.getStartTime().isBefore(previous.getStartTime()) == false) {
+                        current.setAddToHistory(true);
+                        current.setLastAddToHistory(current.getRecordTime());
+                        // It actually hasn't, but this will remove it from the line, and it will be
+                        // re-added again, now with a different direction. Also possible left-over
+                        // remaining stops will be cleared.
+                        previous.setLineHasChanged(true);
+                        context.forward(previous.getVehicleId(), previous);
+                        LOG.info("Vehicle {} has changed direction ", current.getVehicleId());
+                        return current;
+                    } else {
+                        return previous;
+                    }
                 }
 
                 // Not yet added to history? Find out when we added last time.
                 // If more than 59 seconds, then add.
                 if (current.AddToHistory() == false) {
                     Instant compareto = current.getRecordTime().minusSeconds(59);
-                    if (previous.getLastAddToHistory().isBefore(compareto)) {
+                    // This shouldn't happen but happens anyway... Find out what's going on.
+                    if (previous.getLastAddToHistory() == null) {
+                        LOG.info("Shouldn't happen, vehicle {}", current.getVehicleId());
                         current.setAddToHistory(true);
                         current.setLastAddToHistory(current.getRecordTime());
-                    }
-                    else {
+                    } else if (previous.getLastAddToHistory().isBefore(compareto)) {
+                        current.setAddToHistory(true);
+                        current.setLastAddToHistory(current.getRecordTime());
+                    } else {
                         current.setLastAddToHistory(previous.getLastAddToHistory());
                     }
                 }

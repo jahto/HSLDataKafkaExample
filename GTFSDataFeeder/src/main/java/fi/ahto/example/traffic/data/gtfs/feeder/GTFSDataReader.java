@@ -155,7 +155,7 @@ public class GTFSDataReader implements ApplicationRunner {
             }
             list.add(v);
         });
-        
+
         LOG.debug("Sending routes-to-services maps");
         routeservices.forEach((k, v) -> {
             kafkaTemplate.send("routes-to-services", k, v);

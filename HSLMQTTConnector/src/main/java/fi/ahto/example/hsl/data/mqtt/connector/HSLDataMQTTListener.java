@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +73,7 @@ public class HSLDataMQTTListener {
                 System.out.println(topic);
                 System.out.println(data);
                 System.exit(0);
-                
+
                 try {
                     VehicleActivity vaf = readDataAsJsonNodes(topic, data);
                     putDataToQueues(vaf);
@@ -110,21 +109,32 @@ public class HSLDataMQTTListener {
         String[] splitted = queue.split("/");
         String ongoing = splitted[4];
         String operator = splitted[6];
-        // String vehicle = splitted[7];
+        String vehicle = splitted[7];
         String line = splitted[8];
         String direction = splitted[9];
         String headsign = splitted[10];
         String starttime = splitted[11];
         String nextstop = splitted[12];
+        
+        // According to the docs, not working properly yet.
+        // Not handled properly here either...
+        if (ongoing.equals("upcoming")) {
+            return null;
+        }
 
         LineInfo info = decodeLineNumber(line);
         JsonNode vp = node.path("VP");
 
-        String vehicle = vp.path("oper").asText() + ":" + vp.path("veh").asText();
-        
+        // Not reliable... feed contains errors
+        // String vehicle = vp.path("oper").asText() + ":" + vp.path("veh").asText();
+        // This seems to get correct results.
+        operator = operator.replaceFirst("^0*", "");
+        vehicle = vehicle.replaceFirst("^0*", "");
+        vehicle = operator + ":" + vehicle;
+
         VehicleActivity vaf = new VehicleActivity();
         vaf.setSource(SOURCE);
-        vaf.setInternalLineId(PREFIX + line);
+        vaf.setInternalLineId(PREFIX + info.getInternal());
         vaf.setLineId(info.getLine());
         vaf.setTransitType(info.getType());
         vaf.setVehicleId(PREFIX + vehicle);
@@ -135,20 +145,16 @@ public class HSLDataMQTTListener {
         vaf.setDirection(vp.path("dir").asText());
         vaf.setRecordTime(Instant.ofEpochSecond(vp.path("tsi").asLong()));
 
-        // Instant tripstart = Instant.parse(vp.path("tst").asText());
-        // ZonedDateTime zdt = ZonedDateTime.ofInstant(tripstart, ZoneId.of("Europe/Helsinki"));
-        // vaf.setTripStart(zdt);
-
         LocalDate operday = LocalDate.parse(vp.path("oday").asText());
         LocalTime start = LocalTime.parse(vp.path("start").asText());
         ZonedDateTime zdt = ZonedDateTime.of(operday, start, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop
-        vaf.setNextStopId(PREFIX + nextstop);
-        if ("EOL".equals(nextstop)) {
-            vaf.setEol(Optional.of(true));
+        if ("EOL".equals(nextstop) || nextstop.isEmpty()) {
+            vaf.setEol(true);
+        } else {
+            vaf.setNextStopId(PREFIX + nextstop);
         }
-        
         // New data available.
         vaf.setBearing(vp.path("hdg").asDouble());
         vaf.setSpeed(vp.path("spd").asDouble());
@@ -169,6 +175,8 @@ public class HSLDataMQTTListener {
             return rval;
         }
 
+        rval.setInternal(line);
+        
         // Buses - this is the first test, because it matches too many cases,
         // but possible errors will be corrected in the later tests.
         if (line.matches("^[1245679].*")) {
@@ -211,10 +219,24 @@ public class HSLDataMQTTListener {
             rval.setType(TransitType.BUS);
         }
 
+        // Observed anomalies
+        if (line.equals("3001Z3")) {
+            // Without the ending "3" in GTFS data, seems to be just an extended version
+            // of line "Z" operating further to/from Kouvola instead of Lahti.
+            rval.setInternal("3001Z");
+            rval.setLine("Z");
+        }
         return rval;
     }
 
-    public class LineInfo {
+    private class LineInfo {
+        public String getInternal() {
+            return internal;
+        }
+
+        public void setInternal(String internal) {
+            this.internal = internal;
+        }
 
         public String getLine() {
             return line;
@@ -233,6 +255,7 @@ public class HSLDataMQTTListener {
         }
 
         private String line = null;
+        private String internal = null;
         private TransitType type = TransitType.UNKNOWN;
     }
 }

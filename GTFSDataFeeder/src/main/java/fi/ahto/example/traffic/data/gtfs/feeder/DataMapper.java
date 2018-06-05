@@ -18,7 +18,6 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
