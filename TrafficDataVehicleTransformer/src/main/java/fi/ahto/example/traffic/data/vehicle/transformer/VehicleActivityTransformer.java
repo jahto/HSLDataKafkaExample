@@ -68,12 +68,12 @@ public class VehicleActivityTransformer {
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
-        final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
-        final JsonSerde<VehicleHistorySet> vsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
+        final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
+        final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
 
-        KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vafserde));
+        KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
 
-        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vafserde, "vehicle-transformer-extended");
+        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
         // Collect a rough history per vehicle and day.
@@ -103,16 +103,16 @@ public class VehicleActivityTransformer {
                     String newkey = value.getVehicleId() + "-" + postfix;
                     return KeyValue.pair(newkey, value);
                 })
-                .groupByKey(Serialized.with(Serdes.String(), vafserde))
+                .groupByKey(Serialized.with(Serdes.String(), vaserde))
                 .aggregate(vehicleinitializer, vehicleaggregator,
                         Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(vsetserde)
+                                .withValueSerde(vhsetserde)
                 );
 
-        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vsetserde));
+        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vhsetserde));
 
-        transformed.to("vehicles", Produced.with(Serdes.String(), vafserde));
+        transformed.to("vehicles", Produced.with(Serdes.String(), vaserde));
 
         KStream<String, VehicleActivity> tolines
                 = transformed
@@ -120,7 +120,7 @@ public class VehicleActivityTransformer {
                         .map((key, value)
                                 -> KeyValue.pair(value.getInternalLineId(), value));
 
-        tolines.to("data-by-lineid", Produced.with(Serdes.String(), vafserde));
+        tolines.to("data-by-lineid", Produced.with(Serdes.String(), vaserde));
 
         /* Seems not to be needed, but leaving still here just in case...
         KStream<String, VehicleActivity> tochanges  = 
@@ -178,33 +178,35 @@ public class VehicleActivityTransformer {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleActivity>) context.getStateStore(storeName);
 
-                // Schedule a punctuate() method every 60000 milliseconds based on wall-clock time.
+                // Schedule a punctuator method every 60000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
                 this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
-                    KeyValueIterator<String, VehicleActivity> iter = this.store.all();
-                    while (iter.hasNext()) {
-                        KeyValue<String, VehicleActivity> entry = iter.next();
-                        if (entry.value != null) {
-                            VehicleActivity vaf = entry.value;
+                    cleanUpOutOfDateData(timestamp);
+                });
+            }
 
-                            if (!TESTING) {
-                                now = Instant.ofEpochMilli(timestamp);
-                            }
-
-                            if (vaf.getRecordTime().plusSeconds(60).isBefore(now)) {
-                                vaf.setLineHasChanged(true);
-                                context.forward(vaf.getVehicleId(), vaf);
-                                this.store.delete(entry.key);
-                                LOG.info("Cleared all data for vehicle {} and removed it from line {}", vaf.getVehicleId(), vaf.getInternalLineId());
-                            }
+            private void cleanUpOutOfDateData(long timestamp) {
+                KeyValueIterator<String, VehicleActivity> iter = this.store.all();
+                while (iter.hasNext()) {
+                    KeyValue<String, VehicleActivity> entry = iter.next();
+                    if (entry.value != null) {
+                        VehicleActivity va = entry.value;
+                        
+                        if (!TESTING) {
+                            now = Instant.ofEpochMilli(timestamp);
+                        }
+                        
+                        if (va.getRecordTime().plusSeconds(60).isBefore(now)) {
+                            va.setLineHasChanged(true);
+                            context.forward(va.getVehicleId(), va);
+                            this.store.delete(entry.key);
+                            LOG.info("Cleared all data for vehicle {} and removed it from line {}", va.getVehicleId(), va.getInternalLineId());
                         }
                     }
-                    iter.close();
-
-                    // commit the current processing progress
-                    context.commit();
-                });
+                }
+                iter.close();
+                context.commit();
             }
 
             @Override
@@ -224,7 +226,7 @@ public class VehicleActivityTransformer {
 
                 if (previous == null) {
                     current.setAddToHistory(true);
-                    current.setLastAddToHistory(current.getRecordTime());
+                    current.setLastAddedToHistory(current.getRecordTime());
                     if (current.getEol()) {
                         LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
                     }
@@ -235,27 +237,7 @@ public class VehicleActivityTransformer {
 
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
-                    // unless we are testing...
-                    if (TESTING) {
-                        // But, in that case, must guard against some oddities in incoming data.
-                        if (previous.getEol() && !current.getEol()) {
-                            // Prevent the vehicle from flip-flopping between states, because
-                            // data seems to come in out-of-order and multiple times when
-                            // the vehicle is at the end of line. Handle only after a new trip starts.
-                            if (!current.getStartTime().isAfter(previous.getStartTime())) {
-                                LOG.info("Copying vehicle {}", current.getVehicleId());
-                                current.copy(previous);
-                                // Should already have been added to history the first time it was at eol.
-                                current.setAddToHistory(false);
-                                return null;
-                            }
-                            
-                        }
-                        current.setAddToHistory(true);
-                        current.setLastAddToHistory(current.getRecordTime());
-                        return current;
-                    }
-                    return null;
+                    return recordIsLate(previous, current);
                 }
 
                 // We get duplicates quite often...
@@ -266,67 +248,25 @@ public class VehicleActivityTransformer {
                 // Vehicle is at end the of line, remove it immediately. It may come back
                 // later, but not necessarily on the same line;
                 if (current.getEol()) {
-                    if (!previous.getEol()) {
-                        LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), previous.getInternalLineId());
-                        current.setAddToHistory(true);
-                        current.setLastAddToHistory(current.getRecordTime());
-                        current.setLineHasChanged(true);
-                        current.setInternalLineId(previous.getInternalLineId());
-                        return current;
-                    } else {
-                        // Don't bother sending information every second that a vehicle is
-                        // standing at the end of line, once is enough. It will stay there...
-                        return null;
-                    }
+                    return vehicleIsAtEOL(previous, current);
                 }
 
                 // Vehicle has changed line, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getInternalLineId().equals(previous.getInternalLineId()) == false) {
-                    current.setAddToHistory(true);
-                    current.setLastAddToHistory(current.getRecordTime());
-                    previous.setLineHasChanged(true);
-                    context.forward(previous.getVehicleId(), previous);
-                    LOG.info("Vehicle {} has changed line from {} to {}", current.getVehicleId(),
-                            previous.getInternalLineId(), current.getInternalLineId());
-                    return current;
+                    return vehicleChangedLine(current, previous);
                 }
 
                 // Change of direction, useless to calculate the change of delay.
                 // But we want a new history record now.
                 if (current.getDirection().equals(previous.getDirection()) == false) {
-                    // This can happen when testing, the sample data seems to contain
-                    // also out-of-date records...
-                    if (current.getStartTime().isBefore(previous.getStartTime()) == false) {
-                        current.setAddToHistory(true);
-                        current.setLastAddToHistory(current.getRecordTime());
-                        // It actually hasn't, but this will remove it from the line, and it will be
-                        // re-added again, now with a different direction. Also possible left-over
-                        // remaining stops will be cleared.
-                        previous.setLineHasChanged(true);
-                        context.forward(previous.getVehicleId(), previous);
-                        LOG.info("Vehicle {} has changed direction ", current.getVehicleId());
-                        return current;
-                    } else {
-                        return previous;
-                    }
+                    return vehicleChangedDirection(current, previous);
                 }
 
                 // Not yet added to history? Find out when we added last time.
                 // If more than 59 seconds, then add.
                 if (current.AddToHistory() == false) {
-                    Instant compareto = current.getRecordTime().minusSeconds(59);
-                    // This shouldn't happen but happens anyway... Find out what's going on.
-                    if (previous.getLastAddToHistory() == null) {
-                        LOG.info("Shouldn't happen, vehicle {}", current.getVehicleId());
-                        current.setAddToHistory(true);
-                        current.setLastAddToHistory(current.getRecordTime());
-                    } else if (previous.getLastAddToHistory().isBefore(compareto)) {
-                        current.setAddToHistory(true);
-                        current.setLastAddToHistory(current.getRecordTime());
-                    } else {
-                        current.setLastAddToHistory(previous.getLastAddToHistory());
-                    }
+                    maybeAddToHistory(current, previous);
                 }
 
                 if (calculate) {
@@ -334,22 +274,108 @@ public class VehicleActivityTransformer {
                     // if I got the direction right or 180 degrees wrong, and that
                     // both samples actually have the needed coordinates.
                     if (current.getBearing() == null) {
-                        double lat1 = Math.toRadians(current.getLatitude());
-                        double long1 = Math.toRadians(current.getLongitude());
-                        double lat2 = Math.toRadians(previous.getLatitude());
-                        double long2 = Math.toRadians(previous.getLongitude());
-
-                        double bearingradians = Math.atan2(Math.asin(long2 - long1) * Math.cos(lat2), Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(long2 - long1));
-                        double bearingdegrees = Math.toDegrees(bearingradians);
-
-                        if (bearingdegrees < 0) {
-                            bearingdegrees = 360 + bearingdegrees;
-                        }
-                        current.setBearing(bearingdegrees);
+                        calculateBearing(current, previous);
                     }
                 }
 
                 return current;
+            }
+
+            private void maybeAddToHistory(VehicleActivity current, VehicleActivity previous) {
+                Instant compareto = current.getRecordTime().minusSeconds(59);
+                // This shouldn't happen but happens anyway... Find out what's going on.
+                if (previous.getLastAddToHistory() == null) {
+                    LOG.info("Shouldn't happen, vehicle {}", current.getVehicleId());
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
+                } else if (previous.getLastAddToHistory().isBefore(compareto)) {
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
+                } else {
+                    current.setLastAddedToHistory(previous.getLastAddToHistory());
+                }
+            }
+
+            private VehicleActivity vehicleChangedDirection(VehicleActivity current, VehicleActivity previous) {
+                // This can happen when testing, the sample data seems to contain
+                // also out-of-date records...
+                if (current.getStartTime().isBefore(previous.getStartTime()) == false) {
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
+                    // It actually hasn't, but this will remove it from the line, and it will be
+                    // re-added again, now with a different direction. Also possible left-over
+                    // remaining stops will be cleared.
+                    previous.setLineHasChanged(true);
+                    context.forward(previous.getVehicleId(), previous);
+                    LOG.info("Vehicle {} has changed direction ", current.getVehicleId());
+                    return current;
+                } else {
+                    return previous;
+                }
+            }
+
+            private VehicleActivity vehicleChangedLine(VehicleActivity current, VehicleActivity previous) {
+                current.setAddToHistory(true);
+                current.setLastAddedToHistory(current.getRecordTime());
+                previous.setLineHasChanged(true);
+                context.forward(previous.getVehicleId(), previous);
+                LOG.info("Vehicle {} has changed line from {} to {}", current.getVehicleId(),
+                        previous.getInternalLineId(), current.getInternalLineId());
+                return current;
+            }
+
+            private VehicleActivity vehicleIsAtEOL(VehicleActivity previous, VehicleActivity current) {
+                if (!previous.getEol()) {
+                    LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), previous.getInternalLineId());
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
+                    current.setLineHasChanged(true);
+                    current.setInternalLineId(previous.getInternalLineId());
+                    return current;
+                } else {
+                    // Don't bother sending information every second that a vehicle is
+                    // standing at the end of line, once is enough. It will stay there...
+                    return null;
+                }
+            }
+
+            private VehicleActivity recordIsLate(VehicleActivity previous, VehicleActivity current) {
+                // unless we are testing...
+                if (TESTING) {
+                    // But, in that case, must guard against some oddities in incoming data.
+                    if (previous.getEol() && !current.getEol()) {
+                        // Prevent the vehicle from flip-flopping between states, because
+                        // data seems to come in out-of-order and multiple times when
+                        // the vehicle is at the end of line. Handle only after a new trip starts.
+                        if (!current.getStartTime().isAfter(previous.getStartTime())) {
+                            LOG.info("Copying vehicle {}", current.getVehicleId());
+                            current.copy(previous);
+                            // Should already have been added to history the first time it was at eol.
+                            current.setAddToHistory(false);
+                            return null;
+                        }
+                        
+                    }
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
+                    return current;
+                }
+                return null;
+            }
+
+            private void calculateBearing(VehicleActivity current, VehicleActivity previous) {
+                double lat1 = Math.toRadians(current.getLatitude());
+                double long1 = Math.toRadians(current.getLongitude());
+                double lat2 = Math.toRadians(previous.getLatitude());
+                double long2 = Math.toRadians(previous.getLongitude());
+                
+                double bearingradians = Math.atan2(Math.asin(long2 - long1) * Math.cos(lat2), Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(long2 - long1));
+                double bearingdegrees = Math.toDegrees(bearingradians);
+                
+                if (bearingdegrees < 0) {
+                    bearingdegrees = 360 + bearingdegrees;
+                }
+                current.setBearing(bearingdegrees);
             }
 
             @Override
