@@ -27,6 +27,7 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -128,20 +129,20 @@ public class LineTransformer {
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 .leftJoin(routeservices,
-                (String key, VehicleActivity value) -> {
-                    String newkey = value.getInternalLineId();
-                    return newkey;
-                },
-                (VehicleActivity value, ServiceList right) -> {
-                    if (right == null) {
-                        String newkey = value.getInternalLineId();
-                        LOG.info("Didn't find correct servicelist for route {}", newkey);
-                    }
-                    value = findService(value, right);
-                    return value;
-                });
+                        (String key, VehicleActivity value) -> {
+                            String newkey = value.getInternalLineId();
+                            return newkey;
+                        },
+                        (VehicleActivity value, ServiceList right) -> {
+                            if (right == null) {
+                                String newkey = value.getInternalLineId();
+                                LOG.info("Didn't find correct servicelist for route {}", newkey);
+                            }
+                            value = findService(value, right);
+                            return value;
+                        });
 
-          KStream<String, VehicleActivity> tripstream = servicestream.leftJoin(servicetrips,
+        KStream<String, VehicleActivity> tripstream = servicestream.leftJoin(servicetrips,
                 (String key, VehicleActivity value) -> {
                     String newkey = value.getServiceID();
                     return newkey;
@@ -180,7 +181,7 @@ public class LineTransformer {
     private VehicleActivity findService(VehicleActivity va, ServiceList sd) {
         // FOLI GTFS data does not contain any valid dates, but we
         // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, an if so, return immediately.
+        // Chek if it matches, and if it does, return immediately.
         if (va.getTripID() != null) {
             // Didn't actually check...
             return va;
@@ -244,7 +245,7 @@ public class LineTransformer {
     private VehicleActivity findTrip(VehicleActivity va, ServiceTrips sd) {
         // FOLI GTFS data does not contain any valid dates, but we
         // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, an if so, return immediately.
+        // Chek if it matches, and if it does, return immediately.
         if (va.getTripID() != null) {
             // Didn't actually check...
             return va;
@@ -286,40 +287,6 @@ public class LineTransformer {
             LOG.info("Removed vehicle {} from line {}", value.getVehicleId(), key);
         }
         return aggregate;
-
-        /* Old implementation.
-        boolean remove = false;
-        List<VehicleActivity> list = aggregate.getVehicleActivities();
-
-        ListIterator<VehicleActivity> iter = list.listIterator();
-        long time1 = value.getRecordTime().getEpochSecond();
-
-        // Remove entries older than 90 seconds or value itself. Not a safe
-        // way to detect when a vehicle has changed line or gone out of traffic.
-        while (iter.hasNext()) {
-            VehicleActivity vaf = iter.next();
-            long time2 = vaf.getRecordTime().getEpochSecond();
-            if (vaf.getVehicleId().equals(value.getVehicleId())) {
-                remove = true;
-            }
-            if (time1 - time2 > 90) {
-                remove = true;
-            }
-            if (remove) {
-                iter.remove();
-            }
-        }
-
-        if (value.LineHasChanged() == false) {
-            list.add(value);
-        } else {
-            LOG.info("Removed vehicle " + value.getVehicleId() + " from line " + key);
-            if (value.getOnwardCalls().size() > 0) {
-                LOG.info("Stops should be removed!");
-            }
-        }
-        return aggregate;
-        */
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
@@ -342,10 +309,8 @@ public class LineTransformer {
         }
 
         if (missing != null && missing.size() > 0) {
-            left.getRecordTime().toEpochMilli();
-            // missing.first().arrivalTime;
             for (TripStop miss : missing) {
-                LocalTime newtime = miss.arrivalTime.plusSeconds(left.getDelay());
+                LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
                 ServiceStop toadd = new ServiceStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;
@@ -413,7 +378,7 @@ public class LineTransformer {
                 if (current.LineHasChanged()) {
                     LOG.info("Removing all remaining stops for vehicle " + current.getVehicleId());
                     for (ServiceStop ss : current.getOnwardCalls()) {
-                        LOG.info("Removing vehicle "+ current.getVehicleId() + " from stop " + ss.stopid);
+                        LOG.info("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.remove = true;
                         vas.vehicleId = previous.getVehicleId();
@@ -453,7 +418,7 @@ public class LineTransformer {
                         // to them anymore. Push the information to some queue.
                         LOG.debug("Removing stops.");
                         for (ServiceStop ss : remove) {
-                            LOG.info("Removing vehicle "+ current.getVehicleId() + " from stop " + ss.stopid);
+                            LOG.info("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
                             VehicleAtStop vas = new VehicleAtStop();
                             vas.remove = true;
                             vas.vehicleId = current.getVehicleId();

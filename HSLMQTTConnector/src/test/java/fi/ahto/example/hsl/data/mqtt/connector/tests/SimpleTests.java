@@ -59,8 +59,8 @@ public class SimpleTests {
     @Test
     /* Uncomment when needed */
     public void feedExampleDataToQueues() {
-        String filename = "helsinki.mqtt";
-        // String filename = "mqtt.hsl.json";
+        // String filename = "helsinki.mqtt";
+        String filename = "odd.mqtt";
         filename = "../testdata/" + filename;
         try (Stream<String> stream = Files.lines(Paths.get(filename))) {
             stream.forEach(data -> {

@@ -171,17 +171,17 @@ public class VehicleActivityTransformer {
             // Unless, "now" happens to be the time of the last record received...
             // Won't cover the last minute, but good enough for testing samples 
             // over one hour.
-            Instant now = null;
+            Instant now = Instant.EPOCH; // Must initialise to something...
 
             @Override
             public void init(ProcessorContext context) {
                 this.context = context;
                 this.store = (KeyValueStore<String, VehicleActivity>) context.getStateStore(storeName);
 
-                // Schedule a punctuator method every 60000 milliseconds based on wall-clock time.
+                // Schedule a punctuator method every 20000 milliseconds based on wall-clock time.
                 // The idea is to finally get rid of vehicles we haven't received any data for a while.
                 // Like night-time.
-                this.context.schedule(60000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
+                this.context.schedule(20000, PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
                     cleanUpOutOfDateData(timestamp);
                 });
             }
@@ -197,7 +197,7 @@ public class VehicleActivityTransformer {
                             now = Instant.ofEpochMilli(timestamp);
                         }
                         
-                        if (va.getRecordTime().plusSeconds(60).isBefore(now)) {
+                        if (va.getRecordTime().plusSeconds(20).isBefore(now)) {
                             va.setLineHasChanged(true);
                             context.forward(va.getVehicleId(), va);
                             this.store.delete(entry.key);
@@ -284,6 +284,8 @@ public class VehicleActivityTransformer {
             private void maybeAddToHistory(VehicleActivity current, VehicleActivity previous) {
                 Instant compareto = current.getRecordTime().minusSeconds(59);
                 // This shouldn't happen but happens anyway... Find out what's going on.
+                // Seems to be caused by out-of-order data. Should'nt be a problem when
+                // TESTING = false, but must be tested anyway.
                 if (previous.getLastAddToHistory() == null) {
                     LOG.info("Shouldn't happen, vehicle {}", current.getVehicleId());
                     current.setAddToHistory(true);
