@@ -66,6 +66,7 @@
         <module>EnturDataConnector</module>
         <module>VilkkuDataConnector</module>
         <module>TrafficDataStopTransformer</module>
+        <module>ActiveMQConnector</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -27,7 +27,7 @@ come available on Maven central before the end of April 2018.
 
 Very simple. Just polls the endpoint (http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json)
 and pushes received list of JSON-data from HSL real-time feed to a Kafka stream as separate messages. More connectors
-could be added later. Consider switching to MQTT feed instead.
+could be added later. Consider switching to MQTT feed instead, this feed is not working reliably since April 2018.
 
 ### HSLDataMQTTConnector
 
@@ -45,6 +45,10 @@ For Tampere area feed. (http://data.itsfactory.fi/journeys/api/1/vehicle-activit
 
 For norwegian feed, whole Norway. (http://api.entur.org/anshar/1.0/rest/vm)
 
+### VilkkuDataConnector
+
+For Kuopio are feed, to be written. They use GTFS-RT format fata.
+
 ### GTFSDataFeeder
 
 Command utility for pushing static GTFS data to Kafka queues. Not all the data handled, only
@@ -60,11 +64,21 @@ was calculated in, and vehicles approximaty bearing. Also the next stop, if miss
 
 ### TrafficDataLineTransformer
 
-- Adds vehicles operating on a line as a list to line information and pushes the data downstream.
+- Adds vehicles operating on a line as a list to line information, and adds missing stop data, adjust timetables according to observed delays and pushes the data downstream.
 
-### HSLDataWebServer
+### TrafficDataStopTransformer
 
-Serves JSON-formatted data from the streams constructed in HSLDataStreamTransformer.
+- Aggregates stop data generated in TrafficDataLineTransformer to real-time timetables for individual stops. 
+
+### ActiveMQConnector
+
+- Feeds the transformed and enhanced data to ActiveMQ queues, so the webserver can serve real-time data to clients over
+WebSockets/STOMP. To be written.
+
+
+### TrafficDataWebServer
+
+Serves JSON-formatted data from the streams constructed in different transformers and perhaps later from ActiveMQ.
 
 ### TrafficDataWebServer.NET
 
