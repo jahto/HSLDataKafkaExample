@@ -15,25 +15,32 @@
  */
 package fi.ahto.example.foli.data.connector;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +63,7 @@ public class SiriDataPoller {
     private static final Lock LOCK = new ReentrantLock();
     private static final String SOURCE = "FI:FOLI";
     private static final String PREFIX = SOURCE + ":";
+    private static final ZoneId zone = ZoneId.of("Europe/Helsinki");
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -101,6 +109,24 @@ public class SiriDataPoller {
         KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivity vaf : data) {
             msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            if (vaf.getLineId().equals("12")) {
+                try {
+                    FileOutputStream fos = new FileOutputStream("12.json", true);
+                    ObjectWriter wr = objectMapper.writerWithDefaultPrettyPrinter();
+                    objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+                    // String val = objectMapper.writeValueAsString(vaf);
+                    String val = wr.writeValueAsString(vaf);
+                    fos.write(val.getBytes());
+                    fos.close();
+                } catch (JsonProcessingException ex) {
+                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (FileNotFoundException ex) {
+                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            }
         }
     }
 
@@ -137,7 +163,14 @@ public class SiriDataPoller {
             vaf.setDelay((int) Duration.parse(node.path("delay").asText()).getSeconds());
         }
 
-        vaf.setDirection(node.path("directionref").asText());
+        String dir = node.path("directionref").asText();
+        if (dir.equals("1")) {
+            dir = "2";
+        }
+        else if (dir.equals("2")) {
+            dir = "1";
+        }
+        vaf.setDirection(dir);
         vaf.setInternalLineId(PREFIX + node.path("lineref").asText());
         // Seems to be the same as the previous one, anyway...
         vaf.setLineId(node.path("publishedlinename").asText());
@@ -156,31 +189,33 @@ public class SiriDataPoller {
          */
 
         Instant start = Instant.ofEpochSecond(node.path("originaimeddeparturetime").asLong());
-        ZonedDateTime zdt = ZonedDateTime.ofInstant(start, ZoneId.of("Europe/Helsinki"));
-        
+        ZonedDateTime zdt = ZonedDateTime.ofInstant(start, zone);
+
         vaf.setTripStart(zdt);
         vaf.setOperatingDate(zdt.toLocalDate());
         vaf.setStartTime(zdt.toLocalTime());
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());
-        vaf.setTripID(node.path("blockref").asText());
-        
+        vaf.setBlockId(node.path("blockref").asText());
+
         JsonNode onwardcalls = node.path("onwardcalls");
 
         if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
             ServiceStopSet set = vaf.getOnwardCalls();
-            
+
             for (JsonNode call : onwardcalls) {
                 ServiceStop stop = new ServiceStop();
                 stop.stopid = PREFIX + call.path("stoppointref").asText();
                 stop.seq = call.path("visitnumber").asInt();
                 stop.name = call.path("stoppointname").asText();
-                // stop.arrivalTime = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
+                Instant inst = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
+                LocalTime local = LocalTime.from(inst.atZone(zone));
+                stop.arrivalTime = local;
                 set.add(stop);
             }
         }
-        
+
         return vaf;
     }
 }

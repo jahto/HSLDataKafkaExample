@@ -58,7 +58,7 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
-        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "4");
+        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1");
         return new StreamsConfig(props);
     }
 

@@ -22,14 +22,15 @@ import java.util.TreeSet;
  * @author Jouni Ahto
  */
 public class TripStopSet extends TreeSet<TripStop> {
-	private static final long serialVersionUID = -6790939219985230972L;
+
+    private static final long serialVersionUID = -6790939219985230972L;
 
     public String service;
     public String route;
     public String direction;
-    
-	public TripStopSet() {
+    public String block;
+
+    public TripStopSet() {
         super((TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
     }
-    
 }

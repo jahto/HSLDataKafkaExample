@@ -192,14 +192,18 @@ public class VehicleActivityTransformer {
                     KeyValue<String, VehicleActivity> entry = iter.next();
                     if (entry.value != null) {
                         VehicleActivity va = entry.value;
-                        
+
                         if (!TESTING) {
                             now = Instant.ofEpochMilli(timestamp);
                         }
-                        
+
                         if (va.getRecordTime().plusSeconds(20).isBefore(now)) {
-                            va.setLineHasChanged(true);
-                            context.forward(va.getVehicleId(), va);
+                            String check = va.getSource() + ":";
+                            // Wasn't on any line...
+                            if (!va.getInternalLineId().equals(check)) {
+                                va.setLineHasChanged(true);
+                                context.forward(va.getVehicleId(), va);
+                            }
                             this.store.delete(entry.key);
                             LOG.info("Cleared all data for vehicle {} and removed it from line {}", va.getVehicleId(), va.getInternalLineId());
                         }
@@ -212,8 +216,22 @@ public class VehicleActivityTransformer {
             @Override
             public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
+                /*
+                if (v.getVehicleId().equals("FI:HSL:90:6310")) {
+                    if (v.getRecordTime().equals(Instant.parse("2018-05-17T04:06:22Z"))) {
+                        int i = 0;
+                    }
+                }
+                */
                 VehicleActivity transformed = transform(v, previous);
                 store.put(k, v);
+                if (v.getLastAddedToHistory() == null) {
+                    LOG.info("Did not add history stamp for vehicle {} at {}", k, v.getRecordTime());
+                }
+                if (v.getLineId() == null || v.getLineId().isEmpty()) {
+                    LOG.debug("Didn't bother sending data forward for vehicle {}, it isn't on any line", v.getVehicleId());
+                    return null;
+                }
                 return KeyValue.pair(k, transformed);
             }
 
@@ -235,6 +253,9 @@ public class VehicleActivityTransformer {
 
                 boolean calculate = true;
 
+                // Always copy first last history addition
+                current.setLastAddedToHistory(previous.getLastAddedToHistory());
+                
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
                     return recordIsLate(previous, current);
@@ -284,17 +305,14 @@ public class VehicleActivityTransformer {
             private void maybeAddToHistory(VehicleActivity current, VehicleActivity previous) {
                 Instant compareto = current.getRecordTime().minusSeconds(59);
                 // This shouldn't happen but happens anyway... Find out what's going on.
-                // Seems to be caused by out-of-order data. Should'nt be a problem when
-                // TESTING = false, but must be tested anyway.
-                if (previous.getLastAddToHistory() == null) {
+                // Seems not to happen anymore, probably found the culprit.
+                if (previous.getLastAddedToHistory() == null) {
                     LOG.info("Shouldn't happen, vehicle {}", current.getVehicleId());
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
-                } else if (previous.getLastAddToHistory().isBefore(compareto)) {
+                } else if (previous.getLastAddedToHistory().isBefore(compareto)) {
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
-                } else {
-                    current.setLastAddedToHistory(previous.getLastAddToHistory());
                 }
             }
 
@@ -320,9 +338,17 @@ public class VehicleActivityTransformer {
                 current.setAddToHistory(true);
                 current.setLastAddedToHistory(current.getRecordTime());
                 previous.setLineHasChanged(true);
-                context.forward(previous.getVehicleId(), previous);
+                String check = current.getSource() + ":";
+                // Was on no line...
+                if (!previous.getInternalLineId().equals(check)) {
+                    context.forward(previous.getVehicleId(), previous);
+                }
                 LOG.info("Vehicle {} has changed line from {} to {}", current.getVehicleId(),
                         previous.getInternalLineId(), current.getInternalLineId());
+                // Changing to no line...
+                if (current.getInternalLineId().equals(check)) {
+                    return null;
+                }
                 return current;
             }
 
@@ -356,7 +382,7 @@ public class VehicleActivityTransformer {
                             current.setAddToHistory(false);
                             return null;
                         }
-                        
+
                     }
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
@@ -370,10 +396,10 @@ public class VehicleActivityTransformer {
                 double long1 = Math.toRadians(current.getLongitude());
                 double lat2 = Math.toRadians(previous.getLatitude());
                 double long2 = Math.toRadians(previous.getLongitude());
-                
+
                 double bearingradians = Math.atan2(Math.asin(long2 - long1) * Math.cos(lat2), Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(long2 - long1));
                 double bearingdegrees = Math.toDegrees(bearingradians);
-                
+
                 if (bearingdegrees < 0) {
                     bearingdegrees = 360 + bearingdegrees;
                 }

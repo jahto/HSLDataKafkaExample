@@ -124,10 +124,11 @@ public class LineTransformer {
                                 .withValueSerde(vaflistserde)
                 );
 
-        // Map to correct trip id in several steps
-        KStream<String, VehicleActivity> servicestream = streamin
+        // Map to correct trip id in several steps, another approach
+        KStream<String, VehicleActivity> possibilitiesstream = streamin
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
+                .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
                 .leftJoin(routeservices,
                         (String key, VehicleActivity value) -> {
                             String newkey = value.getInternalLineId();
@@ -136,28 +137,69 @@ public class LineTransformer {
                         (VehicleActivity value, ServiceList right) -> {
                             if (right == null) {
                                 String newkey = value.getInternalLineId();
-                                LOG.info("Didn't find correct servicelist for route {}", newkey);
+                                LOG.info("Didn't find correct servicelist for route {}, line {}", newkey, value.getLineId());
+                            } else {
+                                String newkey = value.getInternalLineId();
+                                LOG.info("Found correct servicelist for route {}, line {}", newkey, value.getLineId());
                             }
-                            value = findService(value, right);
-                            return value;
+                            VehicleActivity rval = findPossibleServices(value, right);
+                            return rval;
                         });
 
-        KStream<String, VehicleActivity> tripstream = servicestream.leftJoin(servicetrips,
+        KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
+                .flatMapValues((k, v) -> {
+                    List<VehicleActivity> rval = new ArrayList<>();
+                    for (String s : v.getPossibilities()) {
+                        VehicleActivity va = new VehicleActivity(v);
+                        va.setServiceID(s);
+                        rval.add(va);
+                    }
+                    return rval;
+                });
+
+        KStream<String, VehicleActivity> hasnotblockid = tripstreamalt.leftJoin(servicetrips,
                 (String key, VehicleActivity value) -> {
-                    String newkey = value.getServiceID();
+                    String newkey = value.getServiceID() + ":" + value.getInternalLineId();
                     return newkey;
                 },
                 (VehicleActivity value, ServiceTrips right) -> {
+                    String newkey = value.getServiceID() + ":" + value.getInternalLineId();
                     if (right == null) {
-                        String newkey = value.getServiceID();
-                        LOG.info("Didn't find correct service {}", newkey);
+                        LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                    } else {
+                        LOG.info("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
                     }
                     value = findTrip(value, right);
+                    if (value.getTripID() == null) {
+                        LOG.info("Didn't find correct trip for service {}, route {}, line {}, time {}",
+                                value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
+                        return null;
+                    }
+
+                    LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
+                            value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                     return value;
-                });
+                }).filter((k, v) -> v != null);
+
+        KStream<String, VehicleActivity> hasblockidstream = streamin
+                .filter((k, v) -> v.getBlockId() != null && !v.getBlockId().isEmpty())
+                .leftJoin(servicetrips,
+                        (String key, VehicleActivity value) -> {
+                            return value.getBlockId();
+                        },
+                        (VehicleActivity value, ServiceTrips right) -> {
+                            if (right == null) {
+                                LOG.info("Didn't find correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
+                            } else {
+                                LOG.info("Found correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
+                            }
+                            value = findTrip(value, right);
+                            return value;
+                        });
 
         // Add possibly missing remaining stops 
-        KStream<String, VehicleActivity> tripstopstream = tripstream
+        KStream<String, VehicleActivity> finaltripstopstream = hasnotblockid.merge(hasblockidstream);
+        KStream<String, VehicleActivity> reallyfinaltripstopstream = finaltripstopstream
                 .leftJoin(trips,
                         (String key, VehicleActivity value) -> {
                             return value.getTripID();
@@ -169,7 +211,7 @@ public class LineTransformer {
 
         // Compare current and previous estimated stop times, react if they differ
         TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
-        KStream<String, VehicleAtStop> stopchanges = tripstopstream
+        KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
 
@@ -178,25 +220,19 @@ public class LineTransformer {
         return streamin;
     }
 
-    private VehicleActivity findService(VehicleActivity va, ServiceList sd) {
-        // FOLI GTFS data does not contain any valid dates, but we
-        // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, and if it does, return immediately.
-        if (va.getTripID() != null) {
-            // Didn't actually check...
-            return va;
-        }
-
-        va.setServiceID(null);
-
+    private VehicleActivity findPossibleServices(VehicleActivity va, ServiceList sd) {
+        List<String> possibilities = new ArrayList<>();
         if (sd == null) {
-            return va;
+            return null;
         }
 
         LocalDate date = va.getOperatingDate();
         DayOfWeek dow = date.getDayOfWeek();
+        int cnt = 0;
 
         for (ServiceData sdb : sd) {
+            LOG.info("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
+
             byte result = 0x0;
             switch (dow) {
                 case MONDAY:
@@ -222,7 +258,7 @@ public class LineTransformer {
                     break;
             }
 
-            if (result == 0x0) {
+            if (result == 0x0 && sdb.weekdays != 0x0) {
                 continue;
             }
 
@@ -236,21 +272,19 @@ public class LineTransformer {
                 continue;
             }
 
-            va.setServiceID(sdb.serviceId);
-        }
+            if (sdb.routeIds.contains(va.getInternalLineId()) == false) {
+                continue;
+            }
 
+            possibilities.add(sdb.serviceId);
+            LOG.info("Service {} matches for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
+            cnt++;
+        }
+        va.setPossibilities(possibilities);
         return va;
     }
 
     private VehicleActivity findTrip(VehicleActivity va, ServiceTrips sd) {
-        // FOLI GTFS data does not contain any valid dates, but we
-        // get the right (?) trip id already from realtime feed.
-        // Chek if it matches, and if it does, return immediately.
-        if (va.getTripID() != null) {
-            // Didn't actually check...
-            return va;
-        }
-
         String tripId = null;
 
         if (sd == null) {
@@ -260,6 +294,8 @@ public class LineTransformer {
         if (va.getDirection().equals("1")) {
             tripId = sd.timesforward.get(va.getStartTime());
             if (tripId == null) {
+                LOG.info("Time {} not found in maps, route {}, line {}, service {}",
+                        va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
                 return va;
             }
         }
@@ -267,9 +303,14 @@ public class LineTransformer {
         if (va.getDirection().equals("2")) {
             tripId = sd.timesbackward.get(va.getStartTime());
             if (tripId == null) {
+                LOG.info("Time {} not found in maps, route {}, line {}, service {}",
+                        va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
                 return va;
             }
         }
+
+        LOG.info("Time {} was found in maps, route {}, line {}, service {}",
+                va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
 
         va.setTripID(tripId);
         return va;
@@ -304,7 +345,7 @@ public class LineTransformer {
         } else {
             TripStop stop = findStopByName(left.getOnwardCalls().last().stopid, right);
             if (stop != null) {
-                missing = right.tailSet(stop, true);
+                missing = right.tailSet(stop, false);
             }
         }
 
@@ -361,6 +402,9 @@ public class LineTransformer {
             KeyValue<String, VehicleAtStop> compareTimeTables(VehicleActivity previous, VehicleActivity current) {
                 boolean fixed = false;
                 LOG.debug("Comparing timetables.");
+                if (current.getOnwardCalls().isEmpty()) {
+                    LOG.info("There should be onwardcalls now");
+                }
                 if (previous == null) {
                     LOG.debug("Adding stop times first time.");
                     Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
@@ -376,9 +420,9 @@ public class LineTransformer {
                 }
 
                 if (current.LineHasChanged()) {
-                    LOG.info("Removing all remaining stops for vehicle " + current.getVehicleId());
+                    LOG.debug("Removing all remaining stops for vehicle " + current.getVehicleId());
                     for (ServiceStop ss : current.getOnwardCalls()) {
-                        LOG.info("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
+                        LOG.debug("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.remove = true;
                         vas.vehicleId = previous.getVehicleId();
@@ -388,12 +432,24 @@ public class LineTransformer {
                     return null;
                 }
 
+                if (current.getDelay() != previous.getDelay()) {
+                    LOG.debug("Delay has changed, stop times should be adjusted!");
+                }
                 Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
                 ServiceStop curstop = null;
                 while (iter.hasNext()) {
                     curstop = iter.next();
                     ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
                     if (prevstop != null) {
+                        // Just skip until the reason has been found...
+                        if (curstop.arrivalTime == null) {
+                            LOG.info("Current arrival time is null for stop {}", curstop.stopid);
+                            continue;
+                        }
+                        if (prevstop.arrivalTime == null) {
+                            LOG.info("Previous arrival time is null for stop {}", curstop.stopid);
+                            continue;
+                        }
                         if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
                             // Vehicles estimated arriving time to these stops has changed.
                             // Push the information to some queue.
@@ -418,7 +474,7 @@ public class LineTransformer {
                         // to them anymore. Push the information to some queue.
                         LOG.debug("Removing stops.");
                         for (ServiceStop ss : remove) {
-                            LOG.info("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
+                            LOG.debug("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
                             VehicleAtStop vas = new VehicleAtStop();
                             vas.remove = true;
                             vas.vehicleId = current.getVehicleId();

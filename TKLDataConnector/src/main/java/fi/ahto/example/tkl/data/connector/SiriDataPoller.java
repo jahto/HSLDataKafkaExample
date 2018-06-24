@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -153,7 +152,8 @@ public class SiriDataPoller {
 
         vaf.setDirection(jrn.path("directionRef").asText());
 
-        vaf.setInternalLineId(PREFIX + jrn.path("lineRef").asText());
+        // vaf.setInternalLineId(PREFIX + jrn.path("lineRef").asText());
+        vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());
         vaf.setLineId(jrn.path("lineRef").asText());
 
         // Good enough for TKL until tram traffic starts there.

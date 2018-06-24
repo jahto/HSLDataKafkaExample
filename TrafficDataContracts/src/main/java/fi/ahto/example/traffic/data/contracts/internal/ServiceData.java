@@ -26,7 +26,8 @@ import java.util.List;
  */
 public class ServiceData {
     public String serviceId;
-    public String routeId;
+    public List<String> blockIds = new ArrayList<>();
+    public List<String> routeIds = new ArrayList<>();
     public LocalDate validfrom;
     public LocalDate validuntil;
     public List<LocalDate> notinuse = new ArrayList<>();

@@ -23,12 +23,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -136,7 +134,9 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.trips.forEach((k, v) -> {
             TripStop stop = v.first();
             String serviceid = v.service;
-            ServiceTrips service = mapper.servicetrips.get(serviceid);
+            String routeid = v.route;
+            String key = serviceid + ":" + routeid;
+            ServiceTrips service = mapper.servicetrips.get(key);
             if (service != null) {
                 if (v.direction.equals("0")) {
                     service.timesforward.put(stop.arrivalTime, k.tripid);
@@ -145,25 +145,40 @@ public class GTFSDataReader implements ApplicationRunner {
                     service.timesbackward.put(stop.arrivalTime, k.tripid);
                 }
             }
+            ServiceTrips block = mapper.servicetrips.get(v.block);
+            if (block != null) {
+                if (v.direction.equals("0")) {
+                    block.timesforward.put(stop.arrivalTime, k.tripid);
+                }
+                if (v.direction.equals("1")) {
+                    block.timesbackward.put(stop.arrivalTime, k.tripid);
+                }
+            }
         });
 
+        mapper.blocks.forEach((k, v) -> {
+        });
         mapper.services.forEach((k, v) -> {
-            List<ServiceData> list = routeservices.get(v.routeId);
-            if (list == null) {
-                list = new ArrayList<>();
-                routeservices.put(v.routeId, list);
+            for (String route : v.routeIds) {
+                List<ServiceData> list = routeservices.get(route);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    routeservices.put(route, list);
+                }
+                list.add(v);
             }
-            list.add(v);
         });
 
         LOG.debug("Sending routes-to-services maps");
         routeservices.forEach((k, v) -> {
             kafkaTemplate.send("routes-to-services", k, v);
+            LOG.info("rts {}", k);
         });
 
         LOG.debug("Sending services-to-trips maps");
         mapper.servicetrips.forEach((k, v) -> {
             kafkaTemplate.send("services-to-trips", k, v);
+            LOG.info("stt {}", k);
         });
 
         LOG.debug("Sending stops");

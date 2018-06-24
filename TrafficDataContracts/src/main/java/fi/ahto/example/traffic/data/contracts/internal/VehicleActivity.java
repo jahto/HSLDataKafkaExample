@@ -20,6 +20,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -27,6 +29,20 @@ import java.util.Objects;
  * @author Jouni Ahto
  */
 public class VehicleActivity {
+
+    /**
+     * @return the blockId
+     */
+    public String getBlockId() {
+        return blockId;
+    }
+
+    /**
+     * @param blockId the blockId to set
+     */
+    public void setBlockId(String blockId) {
+        this.blockId = blockId;
+    }
 
     @Override
     public int hashCode() {
@@ -87,6 +103,7 @@ public class VehicleActivity {
         this.operatingDate = other.operatingDate;
         this.startTime = other.startTime;
         this.eol = other.eol;
+        this.blockId = other.blockId;
     }
 
     public void copy(VehicleActivity other) {
@@ -111,8 +128,7 @@ public class VehicleActivity {
         this.source = other.source;
         this.nextStopId = other.nextStopId;
         this.nextStopName = other.nextStopName;
-        // function copy needed only before onwardcalls are added
-        // this.onwardCalls = other.onwardCalls;
+        this.onwardCalls.addAll(other.onwardCalls);
         this.atRouteStart = other.atRouteStart;
         this.atRouteEnd = other.atRouteEnd;
         this.serviceID = other.serviceID;
@@ -120,6 +136,7 @@ public class VehicleActivity {
         this.operatingDate = other.operatingDate;
         this.startTime = other.startTime;
         this.eol = other.eol;
+        this.blockId = other.blockId;
     }
 
     public LocalDate getOperatingDate() {
@@ -380,6 +397,10 @@ public class VehicleActivity {
     private LocalTime startTime;
     @JsonProperty("EOL")
     private boolean eol;
+    @JsonProperty("BlockId")
+    private String blockId;
+    private List<String> possibilities;
+
 
     public ServiceStopSet getOnwardCalls() {
         return onwardCalls;
@@ -406,11 +427,25 @@ public class VehicleActivity {
         this.eol = eol;
     }
 
-    public Instant getLastAddToHistory() {
+    public Instant getLastAddedToHistory() {
         return lastAddToHistory;
     }
 
     public void setLastAddedToHistory(Instant lastAddToHistory) {
         this.lastAddToHistory = lastAddToHistory;
+    }
+
+    /**
+     * @return the possibilities
+     */
+    public List<String> getPossibilities() {
+        return possibilities;
+    }
+
+    /**
+     * @param possibilities the possibilities to set
+     */
+    public void setPossibilities(List<String> possibilities) {
+        this.possibilities = possibilities;
     }
 }

@@ -123,6 +123,11 @@ public class HSLDataMQTTListener {
         }
 
         LineInfo info = decodeLineNumber(line);
+        // Currently, skip some known problem cases where the GTSS data is missing.
+        if (info == null) {
+            return null;
+        }
+        
         JsonNode vp = node.path("VP");
 
         // Not reliable... feed contains errors
@@ -225,6 +230,24 @@ public class HSLDataMQTTListener {
             // of line "Z" operating further to/from Kouvola instead of Lahti.
             rval.setInternal("3001Z");
             rval.setLine("Z");
+            return null;
+        }
+        if (line.equals("3002U6")) {
+            rval.setInternal("3002U");
+            rval.setLine("U");
+            return null;
+        }
+        if (line.equals("9787A4")) {
+            return null;
+        }
+        if (line.equals("9788K4")) {
+            return null;
+        }
+        if (line.equals("9994K1")) {
+            return null;
+        }
+        if (line.equals("6919")) {
+            return null;
         }
         return rval;
     }
