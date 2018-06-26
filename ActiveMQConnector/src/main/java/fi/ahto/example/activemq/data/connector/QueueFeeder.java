@@ -15,10 +15,17 @@
  */
 package fi.ahto.example.activemq.data.connector;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
+import java.util.logging.Level;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
+import javax.jms.TextMessage;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -29,6 +36,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 
 /**
  *
@@ -41,10 +50,11 @@ public class QueueFeeder {
     @Autowired
     private ObjectMapper objectMapper;
     
+    @Autowired
+    private JmsTemplate jmsTemplate;
+    
     @Bean
     public KStream<String, Arrivals> kStream(StreamsBuilder builder) {
-        final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
-        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
         final JsonSerde<Arrivals> arrserde = new JsonSerde<>(Arrivals.class, objectMapper);
         
         KStream<String, Arrivals> arrivalsstream = builder.stream("vehicles-arriving-to-stop", Consumed.with(Serdes.String(), arrserde));
@@ -53,5 +63,16 @@ public class QueueFeeder {
     }
     
     private void handleArrivals(String key, Arrivals arr) {
+        try {
+            String[] splitted = key.split(":", 3);
+            String topic = "rt.stops." + splitted[0] + "." + splitted[1] + "." + splitted[2];
+            String message = objectMapper.writeValueAsString(arr);
+            
+            jmsTemplate.send(topic, (Session session) -> {
+                TextMessage textMessage = session.createTextMessage(message);
+                return textMessage;
+            });
+        } catch (JsonProcessingException ex) {
+        }
     }
 }

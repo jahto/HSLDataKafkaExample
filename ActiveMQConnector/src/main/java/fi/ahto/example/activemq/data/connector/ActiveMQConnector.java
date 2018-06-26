@@ -17,13 +17,11 @@ package fi.ahto.example.activemq.data.connector;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  *
  * @author Jouni Ahto
  */
 @SpringBootApplication
-@EnableScheduling
 public class ActiveMQConnector {
 
     public static void main(String[] args) {
