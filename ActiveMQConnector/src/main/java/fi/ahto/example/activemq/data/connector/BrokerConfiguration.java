@@ -21,6 +21,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
 /**
@@ -43,9 +44,18 @@ public class BrokerConfiguration {
     }
 
     @Bean
+    public ConnectionFactory cachingConnectionFactory() {
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+        connectionFactory.setTargetConnectionFactory(connectionFactory());
+        connectionFactory.setSessionCacheSize(10);
+        return connectionFactory;
+    }
+
+    @Bean
     public JmsTemplate jmsTemplate() {
         JmsTemplate template = new JmsTemplate();
-        template.setConnectionFactory(connectionFactory());
+        // template.setConnectionFactory(connectionFactory());
+        template.setConnectionFactory(cachingConnectionFactory());
         template.setPubSubDomain(true);
         return template;
     }
