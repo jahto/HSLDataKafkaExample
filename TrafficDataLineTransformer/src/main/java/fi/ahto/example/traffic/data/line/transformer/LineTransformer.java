@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.line.transformer;
 
+import com.github.jahto.utils.JavaSerde;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
@@ -26,6 +27,7 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
+import java.io.Serializable;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -70,7 +72,8 @@ public class LineTransformer {
 
     // Must be static when declared here as inner class, otherwise you run into
     // problems with Jackson objectmapper and databinder.
-    public static class ServiceList extends ArrayList<ServiceData> {
+    public static class ServiceList extends ArrayList<ServiceData> implements Serializable {
+        private static final long serialVersionUID = -8122393047868332629L;
     }
 
     void VehicleActivityTransformers() {
@@ -86,6 +89,9 @@ public class LineTransformer {
         final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
         final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
         final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
+
+        final JavaSerde<VehicleActivity> javavafserde = new JavaSerde<>(VehicleActivity.class);
+        final JavaSerde<VehicleDataList> javavaflistserde = new JavaSerde<>(VehicleDataList.class);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -120,7 +126,7 @@ public class LineTransformer {
                 .aggregate(lineinitializer, lineaggregator,
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(vaflistserde)
+                                .withValueSerde(javavaflistserde)
                 );
 
         // Map to correct trip id in several steps, another approach
@@ -207,7 +213,7 @@ public class LineTransformer {
                 );
 
         // Compare current and previous estimated stop times, react if they differ
-        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
+        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), javavafserde, "stop-times");
         KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");

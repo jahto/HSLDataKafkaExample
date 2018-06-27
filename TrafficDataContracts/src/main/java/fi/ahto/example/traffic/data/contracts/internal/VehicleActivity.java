@@ -16,11 +16,11 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,7 +28,8 @@ import java.util.Objects;
  *
  * @author Jouni Ahto
  */
-public class VehicleActivity {
+public class VehicleActivity implements Serializable {
+    private static final long serialVersionUID = 2224272976594814200L;
 
     /**
      * @return the blockId

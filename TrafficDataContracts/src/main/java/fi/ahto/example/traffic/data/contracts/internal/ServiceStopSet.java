@@ -15,20 +15,31 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
+import java.util.Comparator;
 import java.util.TreeSet;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class ServiceStopSet extends TreeSet<ServiceStop> {
-	private static final long serialVersionUID = -6790939219985230972L;
+public class ServiceStopSet extends TreeSet<ServiceStop> implements Serializable {
+    private static final long serialVersionUID = -6790939219985230972L;
 
     public String service;
     public String route;
 
-	public ServiceStopSet() {
-        super((ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
+    public ServiceStopSet() {
+        super(new ServiceStopSetComparator());
     }
-    
+
+}
+
+class ServiceStopSetComparator implements Comparator<ServiceStop>, Serializable {
+    private static final long serialVersionUID = -7398359359831634571L;
+
+    @Override
+    public int compare(ServiceStop o1, ServiceStop o2) {
+        return Integer.compare(o1.seq, o2.seq);
+    }
 }

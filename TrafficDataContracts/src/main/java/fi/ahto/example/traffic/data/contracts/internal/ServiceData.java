@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,9 @@ import java.util.List;
  *
  * @author Jouni Ahto
  */
-public class ServiceData {
+public class ServiceData implements Serializable {
+    private static final long serialVersionUID = 3738645659204806594L;
+
     public String serviceId;
     public List<String> blockIds = new ArrayList<>();
     public List<String> routeIds = new ArrayList<>();

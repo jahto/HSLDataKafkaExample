@@ -16,7 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.time.Instant;
+import java.io.Serializable;
 import java.time.LocalTime;
 import java.util.Objects;
 
@@ -24,7 +24,8 @@ import java.util.Objects;
  *
  * @author Jouni Ahto
  */
-public class ServiceStop {
+public class ServiceStop implements Serializable {
+    private static final long serialVersionUID = -4066234945648076125L;
     
     @JsonProperty("StopId")
     public String stopid;
