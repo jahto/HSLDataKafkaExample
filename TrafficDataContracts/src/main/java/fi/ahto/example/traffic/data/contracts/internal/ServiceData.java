@@ -15,7 +15,6 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +31,4 @@ public class ServiceData {
     public LocalDate validuntil;
     public List<LocalDate> notinuse = new ArrayList<>();
     public byte weekdays = 0;
-    public String shapesforward;
-    public String stopsforward;
-    public String stopsbackward;
-    public String shapesbackward;
 }

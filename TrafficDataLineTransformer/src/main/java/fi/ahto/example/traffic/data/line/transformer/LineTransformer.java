@@ -27,7 +27,6 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -129,25 +128,23 @@ public class LineTransformer {
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
+                .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routeservices,
                         (String key, VehicleActivity value) -> {
-                            String newkey = value.getInternalLineId();
-                            return newkey;
+                            return value.getInternalLineId();
                         },
                         (VehicleActivity value, ServiceList right) -> {
                             if (right == null) {
-                                String newkey = value.getInternalLineId();
-                                LOG.info("Didn't find correct servicelist for route {}, line {}", newkey, value.getLineId());
+                                LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             } else {
-                                String newkey = value.getInternalLineId();
-                                LOG.info("Found correct servicelist for route {}, line {}", newkey, value.getLineId());
+                                LOG.debug("Found correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             }
                             VehicleActivity rval = findPossibleServices(value, right);
                             return rval;
                         });
 
         KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
-                .flatMapValues((k, v) -> {
+                .flatMapValues(v -> {
                     List<VehicleActivity> rval = new ArrayList<>();
                     for (String s : v.getPossibilities()) {
                         VehicleActivity va = new VehicleActivity(v);
@@ -159,15 +156,14 @@ public class LineTransformer {
 
         KStream<String, VehicleActivity> hasnotblockid = tripstreamalt.leftJoin(servicetrips,
                 (String key, VehicleActivity value) -> {
-                    String newkey = value.getServiceID() + ":" + value.getInternalLineId();
-                    return newkey;
+                    return value.getServiceID() + ":" + value.getInternalLineId();
                 },
                 (VehicleActivity value, ServiceTrips right) -> {
                     String newkey = value.getServiceID() + ":" + value.getInternalLineId();
                     if (right == null) {
                         LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
                     } else {
-                        LOG.info("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                        LOG.debug("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
                     }
                     value = findTrip(value, right);
                     if (value.getTripID() == null) {
@@ -183,6 +179,7 @@ public class LineTransformer {
 
         KStream<String, VehicleActivity> hasblockidstream = streamin
                 .filter((k, v) -> v.getBlockId() != null && !v.getBlockId().isEmpty())
+                .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(servicetrips,
                         (String key, VehicleActivity value) -> {
                             return value.getBlockId();
@@ -231,7 +228,7 @@ public class LineTransformer {
         int cnt = 0;
 
         for (ServiceData sdb : sd) {
-            LOG.info("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
+            LOG.debug("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
 
             byte result = 0x0;
             switch (dow) {
@@ -273,11 +270,14 @@ public class LineTransformer {
             }
 
             if (sdb.routeIds.contains(va.getInternalLineId()) == false) {
+                LOG.info("Should not happen, check mappings, service {}, route {}, line {}",
+                        sdb.serviceId, va.getInternalLineId(), va.getLineId());
                 continue;
             }
 
             possibilities.add(sdb.serviceId);
-            LOG.info("Service {} matches for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
+            LOG.info("Service {} matches for route {}, line {}, time {}",
+                    sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());
             cnt++;
         }
         va.setPossibilities(possibilities);
@@ -309,8 +309,8 @@ public class LineTransformer {
             }
         }
 
-        LOG.info("Time {} was found in maps, route {}, line {}, service {}",
-                va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
+        LOG.info("Time {} was found in maps, route {}, line {}, service {}, trip {}",
+                va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID(), tripId);
 
         va.setTripID(tripId);
         return va;
@@ -464,7 +464,7 @@ public class LineTransformer {
                 }
 
                 if (fixed) {
-                    LOG.debug("Fixed estimated arrival times.");
+                    LOG.info("Fixed estimated arrival times.");
                 }
 
                 if (curstop != null) {
