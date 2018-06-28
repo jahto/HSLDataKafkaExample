@@ -62,12 +62,17 @@ public class FSTSerde<T> implements Serde<T> {
     public FSTSerde(Class<T> targetType, FSTConfiguration conf) {
         if (conf == null) {
             conf = FSTConfiguration.createDefaultConfiguration();
+            if (targetType != null) {
+                conf.registerClass(targetType);
+            }
         }
         if (targetType != null) {
-            conf.registerClass(targetType);
+            this.fstSerializer = new FSTSerializer<>(targetType, conf);
+            this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
+        } else {
+            this.fstSerializer = new FSTSerializer<>(targetType, conf);
+            this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
         }
-        this.fstSerializer = new FSTSerializer<>(conf);
-        this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
     }
 
     public FSTSerde(FSTSerializer<T> fstSerializer, FSTDeserializer<T> fstDeserializer) {

@@ -18,16 +18,10 @@ package com.github.jahto.utils;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.Map;
 
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.FSTObjectOutput;
-
-import org.springframework.util.Assert;
+import org.springframework.core.ResolvableType;
 
 /**
  * Generic {@link Serializer} for sending Java objects to Kafka as JSON.
@@ -40,14 +34,32 @@ public class KryoSerializer<T> implements Serializer<T> {
 
     private final Kryo conf;
 
+    protected Class<T> targetType;
+
     public KryoSerializer() {
-        this(null);
+        this((Class<T>) null, null);
     }
 
-    public KryoSerializer(Kryo conf) {
+    @SuppressWarnings("unchecked")
+    public KryoSerializer(Class<T> targetType) {
+        this(targetType, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public KryoSerializer(Class<T> targetType, Kryo conf) {
         if (conf == null) {
             conf = new Kryo();
+            conf.setRegistrationRequired(false);
+            if (targetType != null) {
+                conf.register(targetType);
+            }
         }
+        /*
+        if (targetType == null) {
+            targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
+        }
+         */
+        this.targetType = targetType;
         this.conf = conf;
     }
 
@@ -63,7 +75,11 @@ public class KryoSerializer<T> implements Serializer<T> {
         }
         ByteArrayOutputStream bstream = new ByteArrayOutputStream();
         Output out = new Output(bstream);
-        conf.writeClassAndObject(out, data);
+        if (targetType != null) {
+            conf.writeObject(out, data);
+        } else {
+            conf.writeClassAndObject(out, data);
+        }
         out.flush();
         // return out.getBuffer();
         return bstream.toByteArray();

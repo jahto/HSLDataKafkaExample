@@ -17,18 +17,8 @@ package com.github.jahto.utils;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.FSTObjectInput;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.util.ClassUtils;
@@ -75,10 +65,16 @@ public class KryoDeserializer<T> implements Deserializer<T> {
     public KryoDeserializer(Class<T> targetType, Kryo conf) {
         if (conf == null) {
             conf = new Kryo();
+            conf.setRegistrationRequired(false);
+            if (targetType != null) {
+                conf.register(targetType);
+            }
         }
+        /*
         if (targetType == null) {
             targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
         }
+        */
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -94,16 +90,6 @@ public class KryoDeserializer<T> implements Deserializer<T> {
                     this.targetType = (Class<T>) ClassUtils.forName((String) configs.get(KEY_DEFAULT_TYPE), null);
                 } else {
                     throw new IllegalStateException(KEY_DEFAULT_TYPE + " must be Class or String");
-                }
-            } // TODO don't forget to remove these code after DEFAULT_VALUE_TYPE being removed.
-            else if (!isKey && configs.containsKey("spring.json.default.value.type")) {
-                if (configs.get("spring.json.default.value.type") instanceof Class) {
-                    this.targetType = (Class<T>) configs.get("spring.json.default.value.type");
-                } else if (configs.get("spring.json.default.value.type") instanceof String) {
-                    this.targetType = (Class<T>) ClassUtils
-                            .forName((String) configs.get("spring.json.default.value.type"), null);
-                } else {
-                    throw new IllegalStateException("spring.json.default.value.type must be Class or String");
                 }
             } else if (!isKey && configs.containsKey(VALUE_DEFAULT_TYPE)) {
                 if (configs.get(VALUE_DEFAULT_TYPE) instanceof Class) {
@@ -124,8 +110,13 @@ public class KryoDeserializer<T> implements Deserializer<T> {
         if (data == null) {
             return null;
         }
+        T result = null; 
         Input input = new Input(data);
-        T result = (T) conf.readClassAndObject(input);
+        if (targetType != null) {
+            result = conf.readObject(input, targetType);
+        } else {
+            result = (T) conf.readClassAndObject(input);
+        }
         return result;
     }
 

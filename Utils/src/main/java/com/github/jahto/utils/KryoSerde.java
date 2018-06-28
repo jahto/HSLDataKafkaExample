@@ -65,14 +65,11 @@ public class KryoSerde<T> implements Serde<T> {
         if (conf == null) {
             conf = new Kryo();
             conf.setRegistrationRequired(false);
+            if (targetType != null) {
+                conf.register(targetType);
+            }
         }
-        /*
-        if (targetType != null) {
-            conf.register(targetType);
-        }
-        */
-        // conf.register(java.time.Instant.class);
-        this.kryoSerializer = new KryoSerializer<>(conf);
+        this.kryoSerializer = new KryoSerializer<>(targetType, conf);
         this.kryoDeserializer = new KryoDeserializer<>(targetType, conf);
     }
 

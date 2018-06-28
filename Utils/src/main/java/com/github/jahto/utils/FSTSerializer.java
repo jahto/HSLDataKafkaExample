@@ -17,15 +17,13 @@ package com.github.jahto.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
-
-import org.springframework.util.Assert;
+import org.springframework.core.ResolvableType;
 
 /**
  * Generic {@link Serializer} for sending Java objects to Kafka as JSON.
@@ -35,16 +33,37 @@ import org.springframework.util.Assert;
  * @author Jouni Ahto
  */
 public class FSTSerializer<T> implements Serializer<T> {
+
     private final FSTConfiguration conf;
-    
+
+    protected Class<T> targetType;
+
     public FSTSerializer() {
-        this(null);
+        this((Class<T>) null, null);
     }
-    
-    public FSTSerializer(FSTConfiguration conf) {
+
+    @SuppressWarnings("unchecked")
+    public FSTSerializer(Class<T> targetType) {
+        this(targetType, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public FSTSerializer(Class<T> targetType, FSTConfiguration conf) {
         if (conf == null) {
             conf = FSTConfiguration.createDefaultConfiguration();
+            if (targetType != null) {
+                conf.registerClass(targetType);
+                if (targetType != null) {
+                    conf.registerClass(targetType);
+                }
+            }
         }
+        /*
+        if (targetType == null) {
+            targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
+        }
+         */
+        this.targetType = targetType;
         this.conf = conf;
     }
 
@@ -61,13 +80,14 @@ public class FSTSerializer<T> implements Serializer<T> {
         try {
             ByteArrayOutputStream bstream = new ByteArrayOutputStream();
             FSTObjectOutput out = conf.getObjectOutput(bstream);
-            out.writeObject(out);
+            if (targetType != null) {
+                out.writeObject(out, targetType);
+            } else {
+                out.writeObject(out);
+            }
             out.flush();
             byte[] result = out.getBuffer();
             return result;
-            // Alternative and simpler method
-            // byte barray[] = conf.asByteArray(data);
-            // return barray;
         } catch (IOException ex) {
             throw new SerializationException("Can't serialize data [" + data + "] for topic [" + topic + "]", ex);
         }

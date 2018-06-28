@@ -17,7 +17,6 @@ package com.github.jahto.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.logging.Level;
@@ -73,10 +72,15 @@ public class FSTDeserializer<T> implements Deserializer<T> {
     public FSTDeserializer(Class<T> targetType, FSTConfiguration conf) {
         if (conf == null) {
             conf = FSTConfiguration.createDefaultConfiguration();
+            if (targetType != null) {
+                conf.registerClass(targetType);
+            }
         }
+        /*
         if (targetType == null) {
             targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
         }
+         */
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -92,16 +96,6 @@ public class FSTDeserializer<T> implements Deserializer<T> {
                     this.targetType = (Class<T>) ClassUtils.forName((String) configs.get(KEY_DEFAULT_TYPE), null);
                 } else {
                     throw new IllegalStateException(KEY_DEFAULT_TYPE + " must be Class or String");
-                }
-            } // TODO don't forget to remove these code after DEFAULT_VALUE_TYPE being removed.
-            else if (!isKey && configs.containsKey("spring.json.default.value.type")) {
-                if (configs.get("spring.json.default.value.type") instanceof Class) {
-                    this.targetType = (Class<T>) configs.get("spring.json.default.value.type");
-                } else if (configs.get("spring.json.default.value.type") instanceof String) {
-                    this.targetType = (Class<T>) ClassUtils
-                            .forName((String) configs.get("spring.json.default.value.type"), null);
-                } else {
-                    throw new IllegalStateException("spring.json.default.value.type must be Class or String");
                 }
             } else if (!isKey && configs.containsKey(VALUE_DEFAULT_TYPE)) {
                 if (configs.get(VALUE_DEFAULT_TYPE) instanceof Class) {
@@ -125,15 +119,18 @@ public class FSTDeserializer<T> implements Deserializer<T> {
         try {
             ByteArrayInputStream bstream = new ByteArrayInputStream(data);
             FSTObjectInput in = conf.getObjectInput(bstream);
-            T result = (T) in.readObject();
+            T result = null;
+            if (targetType != null) {
+                result = (T) in.readObject(targetType);
+            } else {
+                result = (T) in.readObject();
+            }
             return result;
-            // Alternative and simpler method
-            // T result = (T) conf.asObject(data);
-            // return result;
-        } catch (IOException e) {
+
+        } catch (IOException | ClassNotFoundException e) {
             throw new SerializationException("Can't deserialize data [" + Arrays.toString(data)
                     + "] from topic [" + topic + "]", e);
-        } catch (ClassNotFoundException ex) {
+        } catch (Exception ex) {
             throw new SerializationException("Can't deserialize data [" + Arrays.toString(data)
                     + "] from topic [" + topic + "]", ex);
         }
