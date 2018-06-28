@@ -8,4 +8,17 @@
     </parent>
     <artifactId>Utils</artifactId>
     <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>fst</artifactId>
+            <version>2.56</version>
+        </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>5.0.0-RC1</version>
+            <!-- <version>4.0.2</version> -->
+        </dependency>
+    </dependencies>
 </project>

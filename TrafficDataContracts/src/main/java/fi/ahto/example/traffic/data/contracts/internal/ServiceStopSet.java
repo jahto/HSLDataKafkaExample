@@ -30,16 +30,7 @@ public class ServiceStopSet extends TreeSet<ServiceStop> implements Serializable
     public String route;
 
     public ServiceStopSet() {
-        super(new ServiceStopSetComparator());
-    }
-
-}
-
-class ServiceStopSetComparator implements Comparator<ServiceStop>, Serializable {
-    private static final long serialVersionUID = -7398359359831634571L;
-
-    @Override
-    public int compare(ServiceStop o1, ServiceStop o2) {
-        return Integer.compare(o1.seq, o2.seq);
+        super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
+        // super(new ServiceStopSetComparator());
     }
 }

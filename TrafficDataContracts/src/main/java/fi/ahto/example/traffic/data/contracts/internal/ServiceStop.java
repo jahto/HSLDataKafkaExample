@@ -60,5 +60,4 @@ public class ServiceStop implements Serializable {
         }
         return true;
     }
-    
 }

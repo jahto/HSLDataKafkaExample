@@ -90,8 +90,8 @@ public class LineTransformer {
         final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
         final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
 
-        final JavaSerde<VehicleActivity> javavafserde = new JavaSerde<>(VehicleActivity.class);
-        final JavaSerde<VehicleDataList> javavaflistserde = new JavaSerde<>(VehicleDataList.class);
+        // final JavaSerde<VehicleActivity> javavafserde = new JavaSerde<>(VehicleActivity.class);
+        // final JavaSerde<VehicleDataList> javavaflistserde = new JavaSerde<>(VehicleDataList.class);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -126,7 +126,7 @@ public class LineTransformer {
                 .aggregate(lineinitializer, lineaggregator,
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(javavaflistserde)
+                                .withValueSerde(vaflistserde)
                 );
 
         // Map to correct trip id in several steps, another approach
@@ -213,7 +213,7 @@ public class LineTransformer {
                 );
 
         // Compare current and previous estimated stop times, react if they differ
-        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), javavafserde, "stop-times");
+        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
         KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
