@@ -67,8 +67,8 @@ public class KafkaConfiguration {
     @Bean
     public ObjectMapper customizedObjectMapper() {
         // ObjectMapper mapper = new ObjectMapper();
-        ObjectMapper mapper = new ObjectMapper(new MessagePackFactory());
-        // ObjectMapper mapper = new ObjectMapper(new SmileFactory());
+        // ObjectMapper mapper = new ObjectMapper(new MessagePackFactory());
+        ObjectMapper mapper = new ObjectMapper(new SmileFactory());
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
         mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
