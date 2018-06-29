@@ -33,6 +33,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
@@ -48,14 +49,19 @@ public class QueueFeeder {
     private static final Logger LOG = LoggerFactory.getLogger(QueueFeeder.class);
 
     @Autowired
+    @Qualifier( "json")
     private ObjectMapper objectMapper;
     
+    @Autowired
+    @Qualifier( "binary")
+    private ObjectMapper smileMapper;
+
     @Autowired
     private JmsTemplate jmsTemplate;
     
     @Bean
     public KStream<String, Arrivals> kStream(StreamsBuilder builder) {
-        final JsonSerde<Arrivals> arrserde = new JsonSerde<>(Arrivals.class, objectMapper);
+        final JsonSerde<Arrivals> arrserde = new JsonSerde<>(Arrivals.class, smileMapper);
         
         KStream<String, Arrivals> arrivalsstream = builder.stream("vehicles-arriving-to-stop", Consumed.with(Serdes.String(), arrserde));
         arrivalsstream.foreach((key, value) -> handleArrivals(key, value));

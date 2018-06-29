@@ -49,9 +49,6 @@ public class SimpleTests {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTests.class);
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private SiriDataPoller siriDataPoller;
 
     @Test
@@ -66,7 +63,6 @@ public class SimpleTests {
 
     @Test   /* Uncomment when needed */
     public void feedExampleDataToQueues() {
-        objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         for (int i = 0; i < 1000; i++) {
             String postfix = Integer.toString(i);
             String filename = "exampledata-tre-" + postfix + ".json";

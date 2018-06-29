@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
@@ -28,6 +29,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +42,14 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class StreamWebServer {
+    @Autowired
+    @Qualifier( "json")
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    @Qualifier( "binary")
+    private ObjectMapper smileMapper;
+
     @Autowired
     @Lazy(true)
     private ReadOnlyKeyValueStore<String, VehicleDataList> lineDataStore;

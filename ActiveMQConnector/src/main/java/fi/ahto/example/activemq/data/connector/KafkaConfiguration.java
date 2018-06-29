@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,9 +60,6 @@ public class KafkaConfiguration {
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
     private String bootstrapServers;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     // Using Kafka Streams
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
     public StreamsConfig streamsConfig() {
@@ -75,8 +74,23 @@ public class KafkaConfiguration {
     }
 
     @Bean
+    @Qualifier( "json")
     public ObjectMapper customizedObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        LOG.debug("customizedObjectMapper constructed");
+        return mapper;
+    }
+
+    @Bean
+    @Qualifier( "binary")
+    public ObjectMapper customizedSmileMapper() {
+        ObjectMapper mapper = new ObjectMapper(new SmileFactory());
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
         mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);

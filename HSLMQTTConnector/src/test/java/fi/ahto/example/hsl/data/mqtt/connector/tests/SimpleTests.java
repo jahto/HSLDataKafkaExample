@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -36,15 +37,11 @@ public class SimpleTests {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTests.class);
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private HSLDataMQTTListener dataPoller;
 
     @Test
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
-        objectMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         String[] splitted = testdata.split(" ", 2);
 
         VehicleActivity list = dataPoller.readDataAsJsonNodes(splitted[0], splitted[1]);

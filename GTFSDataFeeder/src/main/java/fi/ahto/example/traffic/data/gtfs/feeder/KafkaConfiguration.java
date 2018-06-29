@@ -19,12 +19,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +85,9 @@ public class KafkaConfiguration {
 
     @Bean
     public ObjectMapper customizedObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
+        // ObjectMapper mapper = new ObjectMapper();
+        // ObjectMapper mapper = new ObjectMapper(new MessagePackFactory());
+        ObjectMapper mapper = new ObjectMapper(new SmileFactory());
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
         mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);

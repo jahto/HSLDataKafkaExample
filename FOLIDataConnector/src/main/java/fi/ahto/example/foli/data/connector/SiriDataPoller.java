@@ -44,6 +44,7 @@ import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
@@ -66,10 +67,12 @@ public class SiriDataPoller {
     private static final ZoneId zone = ZoneId.of("Europe/Helsinki");
 
     @Autowired
+    @Qualifier( "json")
     private ObjectMapper objectMapper;
-
+    
     @Autowired
-    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
 
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
@@ -106,9 +109,8 @@ public class SiriDataPoller {
     }
 
     public void putDataToQueues(List<VehicleActivity> data) {
-        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivity vaf : data) {
-            msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            kafkaTemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
             if (vaf.getLineId().equals("12")) {
                 try {
                     FileOutputStream fos = new FileOutputStream("12.json", true);

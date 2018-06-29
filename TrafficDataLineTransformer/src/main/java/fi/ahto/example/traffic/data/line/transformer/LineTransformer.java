@@ -15,7 +15,6 @@
  */
 package fi.ahto.example.traffic.data.line.transformer;
 
-import com.github.jahto.utils.JavaSerde;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
@@ -89,9 +88,6 @@ public class LineTransformer {
         final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
         final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
         final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
-
-        // final JavaSerde<VehicleActivity> javavafserde = new JavaSerde<>(VehicleActivity.class);
-        // final JavaSerde<VehicleDataList> javavaflistserde = new JavaSerde<>(VehicleDataList.class);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -173,7 +169,7 @@ public class LineTransformer {
                     }
                     value = findTrip(value, right);
                     if (value.getTripID() == null) {
-                        LOG.info("Didn't find correct trip for service {}, route {}, line {}, time {}",
+                        LOG.debug("Didn't find correct trip for service {}, route {}, line {}, time {}",
                                 value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                         return null;
                     }
@@ -194,7 +190,7 @@ public class LineTransformer {
                             if (right == null) {
                                 LOG.info("Didn't find correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
                             } else {
-                                LOG.info("Found correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
+                                LOG.debug("Found correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
                             }
                             value = findTrip(value, right);
                             return value;
@@ -282,7 +278,7 @@ public class LineTransformer {
             }
 
             possibilities.add(sdb.serviceId);
-            LOG.info("Service {} matches for route {}, line {}, time {}",
+            LOG.debug("Service {} matches for route {}, line {}, time {}",
                     sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());
             cnt++;
         }
@@ -300,7 +296,7 @@ public class LineTransformer {
         if (va.getDirection().equals("1")) {
             tripId = sd.timesforward.get(va.getStartTime());
             if (tripId == null) {
-                LOG.info("Time {} not found in maps, route {}, line {}, service {}",
+                LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
                         va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
                 return va;
             }
@@ -309,13 +305,13 @@ public class LineTransformer {
         if (va.getDirection().equals("2")) {
             tripId = sd.timesbackward.get(va.getStartTime());
             if (tripId == null) {
-                LOG.info("Time {} not found in maps, route {}, line {}, service {}",
+                LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
                         va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
                 return va;
             }
         }
 
-        LOG.info("Time {} was found in maps, route {}, line {}, service {}, trip {}",
+        LOG.debug("Time {} was found in maps, route {}, line {}, service {}, trip {}",
                 va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID(), tripId);
 
         va.setTripID(tripId);
@@ -438,9 +434,6 @@ public class LineTransformer {
                     return null;
                 }
 
-                if (current.getDelay() != previous.getDelay()) {
-                    LOG.debug("Delay has changed, stop times should be adjusted!");
-                }
                 Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
                 ServiceStop curstop = null;
                 while (iter.hasNext()) {

@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.annotation.ServiceActivator;
@@ -55,10 +56,11 @@ public class HSLDataMQTTListener {
     private static final String PREFIX = SOURCE + ":";
 
     @Autowired
+    @Qualifier( "json")
     private ObjectMapper objectMapper;
-
+    
     @Autowired
-    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
@@ -92,15 +94,16 @@ public class HSLDataMQTTListener {
     }
 
     public void putDataToQueues(VehicleActivity data) {
-        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
-        msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
+        // KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
+        // msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
+        kafkaTemplate.send("data-by-vehicleid", data.getVehicleId(), data);
     }
 
     public VehicleActivity readDataAsJsonNodes(String queue, String msg) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.
 
-        JsonNode data = objectMapper.readTree(msg);
+        JsonNode data = objectMapper.readTree(msg.getBytes());
         VehicleActivity vaf = flattenVehicleActivity(queue, data);
         return vaf;
     }
