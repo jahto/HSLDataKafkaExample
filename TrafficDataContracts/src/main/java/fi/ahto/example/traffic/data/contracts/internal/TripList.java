@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +23,7 @@ import java.util.List;
  *
  * @author Jouni Ahto
  */
-public class TripList {
+public class TripList implements Serializable {
+    private static final long serialVersionUID = 2975505067479678081L;
     public List<ServiceData> services = new ArrayList<>();
 }

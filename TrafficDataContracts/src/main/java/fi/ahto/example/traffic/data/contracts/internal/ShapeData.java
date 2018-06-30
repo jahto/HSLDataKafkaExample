@@ -16,12 +16,14 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class ShapeData {
+public class ShapeData implements Serializable {
+    private static final long serialVersionUID = -8244019406840450499L;
     @JsonProperty("Sequence")
     public int seq;
     @JsonProperty("Latitude")

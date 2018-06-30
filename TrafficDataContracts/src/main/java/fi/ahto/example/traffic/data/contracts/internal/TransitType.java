@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ import java.util.Map;
  *
  * @author Jouni Ahto
  */
-public enum TransitType {
+public enum TransitType implements Serializable {
     UNKNOWN(-1),
     TRAM(0),
     METRO(1),
@@ -40,6 +41,7 @@ public enum TransitType {
     AIR(10)
     ;
     
+    private static final long serialVersionUID = -2254522655930255127L;
     private final int value;
     private static final Map<Integer, TransitType> map = new HashMap<>();
     

@@ -15,19 +15,19 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
+import java.util.Comparator;
 import java.util.TreeSet;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class ShapeSet extends TreeSet<ShapeData>{
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 8700721661729891433L;
+public class ShapeSet extends TreeSet<ShapeData> implements Serializable {
 
-	public ShapeSet() {
-        super((ShapeData o1, ShapeData o2) -> Integer.compare(o1.seq, o2.seq));
+    private static final long serialVersionUID = 8700721661729891433L;
+
+    public ShapeSet() {
+        super((Comparator<ShapeData> & Serializable) (ShapeData o1, ShapeData o2) -> Integer.compare(o1.seq, o2.seq));
     }
 }

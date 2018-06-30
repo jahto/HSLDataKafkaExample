@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +26,8 @@ import java.util.Map;
  *
  * @author Jouni Ahto
  */
-public class StopData {
+public class StopData implements Serializable {
+    private static final long serialVersionUID = 195474500820358925L;
     @JsonProperty("StopId")
     public String stopid;
     @JsonProperty("StopName")

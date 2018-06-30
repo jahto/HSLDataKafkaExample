@@ -17,6 +17,8 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import java.io.Serializable;
+import java.util.Comparator;
 import java.util.TreeSet;
 
 /**
@@ -26,8 +28,7 @@ import java.util.TreeSet;
 // Only for internal use, so we can safely use the most efficient form.
 // @JsonFormat(shape=JsonFormat.Shape.ARRAY)
 // @JsonPropertyOrder({"service", "route", "direction", "block"})
-public class TripStopSet extends TreeSet<TripStop> {
-
+public class TripStopSet extends TreeSet<TripStop> implements Serializable {
     private static final long serialVersionUID = -6790939219985230972L;
 
     public String service;
@@ -36,6 +37,6 @@ public class TripStopSet extends TreeSet<TripStop> {
     public String block;
 
     public TripStopSet() {
-        super((TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
+        super((Comparator<TripStop> & Serializable) (TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
     }
 }

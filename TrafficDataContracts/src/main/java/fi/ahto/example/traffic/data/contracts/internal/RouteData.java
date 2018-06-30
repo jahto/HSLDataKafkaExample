@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +24,8 @@ import java.util.Map;
  *
  * @author Jouni Ahto
  */
-public class RouteData {
+public class RouteData implements Serializable {
+    private static final long serialVersionUID = -1109210000681896888L;
     @JsonProperty("RouteId")
     public String routeid;
     @JsonProperty("ShortName")

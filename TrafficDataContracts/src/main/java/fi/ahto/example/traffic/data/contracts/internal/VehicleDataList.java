@@ -25,6 +25,7 @@ import java.util.List;
  * @author Jouni Ahto
  */
 public class VehicleDataList implements Serializable {
+    private static final long serialVersionUID = -5693004336997523400L;
     @JsonProperty("VehicleActivities")
     private List<VehicleActivity> vehicleActivities = new ArrayList<>();
     

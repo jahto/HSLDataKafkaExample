@@ -15,11 +15,13 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class Arrivals extends HashMap<String, VehicleAtStop> {
+public class Arrivals extends HashMap<String, VehicleAtStop>  implements Serializable {
+    private static final long serialVersionUID = 5458152069187570234L;
 }

@@ -77,20 +77,8 @@ public class FSTSerializer<T> implements Serializer<T> {
         if (data == null) {
             return null;
         }
-        try {
-            ByteArrayOutputStream bstream = new ByteArrayOutputStream();
-            FSTObjectOutput out = conf.getObjectOutput(bstream);
-            if (targetType != null) {
-                out.writeObject(out, targetType);
-            } else {
-                out.writeObject(out);
-            }
-            out.flush();
-            byte[] result = out.getBuffer();
-            return result;
-        } catch (IOException ex) {
-            throw new SerializationException("Can't serialize data [" + data + "] for topic [" + topic + "]", ex);
-        }
+        byte[] result = conf.asByteArray(data);
+        return result;
     }
 
     @Override

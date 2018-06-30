@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.contracts.internal;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import java.io.Serializable;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +30,8 @@ import java.util.Map;
 // Only for internal use, so we can safely use the most efficient form.
 // @JsonFormat(shape=JsonFormat.Shape.ARRAY)
 // @JsonPropertyOrder({"TimesForward", "TimesBackward"})
-public class ServiceTrips {
+public class ServiceTrips implements Serializable {
+    private static final long serialVersionUID = -7159227698102377063L;
     @JsonProperty("TimesForward")
     public Map<LocalTime, String> timesforward = new HashMap<>();
     @JsonProperty("TimesBackward")
