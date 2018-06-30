@@ -15,6 +15,8 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.TreeSet;
@@ -23,6 +25,9 @@ import java.util.TreeSet;
  *
  * @author Jouni Ahto
  */
+// Only for internal use, so we can safely use the most efficient form.
+// @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+// @JsonPropertyOrder({"service", "route"})
 public class ServiceStopSet extends TreeSet<ServiceStop> implements Serializable {
     private static final long serialVersionUID = -6790939219985230972L;
 

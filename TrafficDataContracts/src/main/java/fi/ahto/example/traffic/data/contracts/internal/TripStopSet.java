@@ -15,12 +15,17 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.TreeSet;
 
 /**
  *
  * @author Jouni Ahto
  */
+// Only for internal use, so we can safely use the most efficient form.
+// @JsonFormat(shape=JsonFormat.Shape.ARRAY)
+// @JsonPropertyOrder({"service", "route", "direction", "block"})
 public class TripStopSet extends TreeSet<TripStop> {
 
     private static final long serialVersionUID = -6790939219985230972L;

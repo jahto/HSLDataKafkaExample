@@ -21,13 +21,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
+import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.CompressionType;
+import org.rocksdb.IndexType;
+import org.rocksdb.MemTableConfig;
+import org.rocksdb.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,14 +68,16 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
         props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1");
+        // Try some different tuning parameters
+        props.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
+        props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 100 * 1024 * 1024L);
         return new StreamsConfig(props);
     }
 
     @Bean
     public ObjectMapper customizedObjectMapper() {
-        // ObjectMapper mapper = new ObjectMapper();
-        // ObjectMapper mapper = new ObjectMapper(new MessagePackFactory());
         ObjectMapper mapper = new ObjectMapper(new SmileFactory());
+        mapper.registerModule(new AfterburnerModule());
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
         mapper.disable(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
@@ -78,4 +87,57 @@ public class KafkaConfiguration {
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
     }
+
+    public static class CustomRocksDBConfig implements RocksDBConfigSetter {
+
+        @Override
+        public void setConfig(final String storeName, final Options options, final Map<String, Object> configs) {
+            LOG.info("Configuring state store {}", storeName);
+            BlockBasedTableConfig tableConfig = new org.rocksdb.BlockBasedTableConfig();
+            // Should this one be changed? Try with 10 times the default.
+            tableConfig.setBlockCacheSize(80 * 1024 * 1024L);
+            // Facebook says they mostly use something like 16-32 in production instead
+            // of the default 4, test if it makes any difference for this project.
+            // Yes, the the performance got worse...
+            // tableConfig.setBlockSize(16 * 1024L);
+            // tableConfig.setCacheIndexAndFilterBlocks(true);
+            // No need for backwards compatibility, there's nothing to be compatible with...
+            tableConfig.setFormatVersion(2);
+            // IndexType indexType = tableConfig.indexType();
+            long bcs = tableConfig.blockCacheSize();
+            options.setTableFormatConfig(tableConfig);
+            // int i = options.maxOpenFiles();
+            // int b = options.bloomLocality();
+            // CompressionType comp = options.compressionType();
+            // MemTableConfig mtb = options.memTableConfig();
+            // options.setMaxWriteBufferNumber(2);
+            // The next 2 ones have a very small positive effect.
+            // We do only put's and get's.
+            options.optimizeForPointLookup(bcs);
+            // boolean opt = options.optimizeFiltersForHits();
+            // We definitely have more than 99,5% of hits... or this software doesn't work at all.
+            options.setOptimizeFiltersForHits(true);
+        }
+    }
 }
+    /*
+class CustomRocksDBConfig implements RocksDBConfigSetter {
+
+    @Override
+    public void setConfig(final String storeName, final Options options, final Map<String, Object> configs) {
+        BlockBasedTableConfig tableConfig = new org.rocksdb.BlockBasedTableConfig();
+        // Should this one be changed?
+        // tableConfig.setBlockCacheSize(16 * 1024 * 1024L);
+        // Facebook says they mostly use something like 16-32 in production instead
+        // of the default 4, test if it makes any difference for this project.
+        tableConfig.setBlockSize(16 * 1024L);
+        // tableConfig.setCacheIndexAndFilterBlocks(true);
+        // No need for backwards compatibility, there's nothing to be compatible with...
+        tableConfig.setFormatVersion(2);
+        options.setTableFormatConfig(tableConfig);
+        // options.setMaxWriteBufferNumber(2);
+        // We definitely have more than 99,5% of hits... or this software doesn't work at all.
+        options.setOptimizeFiltersForHits(true);
+    }
+}
+     */
