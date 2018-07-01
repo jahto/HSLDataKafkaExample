@@ -72,15 +72,12 @@ public class FSTDeserializer<T> implements Deserializer<T> {
     public FSTDeserializer(Class<T> targetType, FSTConfiguration conf) {
         if (conf == null) {
             conf = FSTConfiguration.createDefaultConfiguration();
+            /*
             if (targetType != null) {
                 conf.registerClass(targetType);
             }
+            */
         }
-        /*
-        if (targetType == null) {
-            targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
-        }
-         */
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -116,6 +113,9 @@ public class FSTDeserializer<T> implements Deserializer<T> {
         if (data == null) {
             return null;
         }
+        T result = (T) conf.asObject(data);
+        return result;
+        /*
         try {
             ByteArrayInputStream bstream = new ByteArrayInputStream(data);
             FSTObjectInput in = conf.getObjectInput(bstream);
@@ -134,6 +134,7 @@ public class FSTDeserializer<T> implements Deserializer<T> {
             throw new SerializationException("Can't deserialize data [" + Arrays.toString(data)
                     + "] from topic [" + topic + "]", ex);
         }
+        */
     }
 
     @Override

@@ -16,6 +16,8 @@
 package fi.ahto.example.traffic.data.line.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
@@ -50,6 +52,7 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,12 +85,16 @@ public class LineTransformer {
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
+        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
         final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
         final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
         final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
+
+        final FSTSerde<VehicleActivity> fstvafserde = new FSTSerde<>(VehicleActivity.class, conf);
+        final FSTSerde<VehicleDataList> fstvaflistserde = new FSTSerde<>(VehicleDataList.class, conf);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
 
@@ -122,7 +129,8 @@ public class LineTransformer {
                 .aggregate(lineinitializer, lineaggregator,
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(vaflistserde)
+                                // .withValueSerde(vaflistserde)
+                                .withValueSerde(fstvaflistserde)
                 );
 
         // Map to correct trip id in several steps, another approach
@@ -148,6 +156,10 @@ public class LineTransformer {
         KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
                 .flatMapValues(v -> {
                     List<VehicleActivity> rval = new ArrayList<>();
+                    if (v == null) {
+                        // Happens when I forget to feed static GTFS-data, must check later...
+                        return rval;
+                    }
                     for (String s : v.getPossibilities()) {
                         VehicleActivity va = new VehicleActivity(v);
                         va.setServiceID(s);
@@ -209,7 +221,8 @@ public class LineTransformer {
                 );
 
         // Compare current and previous estimated stop times, react if they differ
-        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
+        // TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
+        TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), fstvafserde, "stop-times");
         KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");

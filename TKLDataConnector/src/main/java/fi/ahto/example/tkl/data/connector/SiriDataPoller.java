@@ -18,6 +18,7 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
@@ -36,6 +37,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +71,15 @@ public class SiriDataPoller {
     
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
+    
+    @Autowired
+    private FSTConfiguration conf;
+    
+    private final FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
+
+    @Autowired
+     private ProducerFactory<String, Object> producerFactory;
+
 
 
     // Remove comment below when trying to actually run this...
@@ -106,9 +120,19 @@ public class SiriDataPoller {
         // KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivity vaf : data) {
             kafkaTemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            // ProducerRecord record = createRecord("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            // kafkaTemplate.send(record);
         }
     }
 
+    ProducerRecord createRecord(String topic, String key, VehicleActivity value) {
+        Producer pr = producerFactory.createProducer();
+        Serializer ser = fstserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        return record;
+    }
+    
     public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.

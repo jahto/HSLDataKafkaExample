@@ -18,10 +18,13 @@ package com.github.jahto.utils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 import org.springframework.core.ResolvableType;
 
@@ -51,18 +54,12 @@ public class FSTSerializer<T> implements Serializer<T> {
     public FSTSerializer(Class<T> targetType, FSTConfiguration conf) {
         if (conf == null) {
             conf = FSTConfiguration.createDefaultConfiguration();
+            /*
             if (targetType != null) {
                 conf.registerClass(targetType);
-                if (targetType != null) {
-                    conf.registerClass(targetType);
-                }
             }
+            */
         }
-        /*
-        if (targetType == null) {
-            targetType = (Class<T>) ResolvableType.forClass(getClass()).getSuperType().resolveGeneric(0);
-        }
-         */
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -79,6 +76,24 @@ public class FSTSerializer<T> implements Serializer<T> {
         }
         byte[] result = conf.asByteArray(data);
         return result;
+        /*
+        try {
+            ByteArrayOutputStream bstream = new ByteArrayOutputStream();
+            FSTObjectOutput out = conf.getObjectOutput(bstream);
+            if (targetType != null) {
+                out.writeObject(data, targetType);
+            } else {
+                out.writeObject(data);
+            }
+            // DON'T out.close() when using factory method;
+            out.flush();
+            bstream.close();
+            byte[] result = bstream.toByteArray();
+            return result;
+        } catch (IOException ex) {
+            throw new SerializationException("Can't serialize data [" + data + "] for topic [" + topic + "]", ex);
+        }
+        */
     }
 
     @Override

@@ -6,8 +6,6 @@
 package com.github.jahto.utils.FSTSerializers;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalTime;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -39,6 +37,6 @@ public class FSTInstantSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-        return SerializerImplementations.deSerializeInstant(in);
+        return SerializerImplementations.deserializeInstant(in);
     }
 }

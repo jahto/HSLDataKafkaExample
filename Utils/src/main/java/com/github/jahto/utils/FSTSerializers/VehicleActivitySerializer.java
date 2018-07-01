@@ -5,8 +5,8 @@
  */
 package com.github.jahto.utils.FSTSerializers;
 
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -16,23 +16,17 @@ import org.nustaq.serialization.FSTObjectOutput;
  *
  * @author jah
  */
-// TBD
-public class FSTZonedDateTimeSerializer extends FSTBasicObjectSerializer {
+public class VehicleActivitySerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        SerializerImplementations.serializeZonedDateTime(toWrite, out);
-    }
-
-
-    @Override
-    public boolean alwaysCopy() {
-        return true;
+        out.defaultWriteObject(toWrite, clzInfo);
     }
 
     @Override
-    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-        return SerializerImplementations.deserializeZonedDateTime(in);
+    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+        VehicleActivity t = new VehicleActivity();
+        in.defaultReadObject(referencee, serializationInfo, t);
+        return t;
     }
-
 }

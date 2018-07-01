@@ -22,13 +22,16 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.github.jahto.utils.CommonFSTConfiguration;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +39,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -66,6 +70,7 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-test-connector");
         return props;
     }
@@ -80,12 +85,20 @@ public class KafkaConfiguration {
     public ProducerFactory<String, Object> producerFactory() {
         LOG.info("ProducerFactory");
         DefaultKafkaProducerFactory<String, Object> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
+        
         final JsonSerde<Object> serde = new JsonSerde<>(smileMapper);
         Serializer<Object> ser =  serde.serializer();
         factory.setValueSerializer(ser);
+        
         return factory;
     }
 
+    @Bean
+    public FSTConfiguration getFSTConfiguration() {
+        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+        return conf;
+    }
+    
     @Bean
     @Qualifier( "json")
     public ObjectMapper customizedObjectMapper() {

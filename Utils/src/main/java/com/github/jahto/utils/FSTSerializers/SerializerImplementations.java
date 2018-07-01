@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
@@ -50,11 +52,38 @@ public class SerializerImplementations {
         out.writeInt(inst.getNano());
     }
 
-    public static Object deSerializeInstant(FSTObjectInput in) throws IOException {
+    public static Object deserializeInstant(FSTObjectInput in) throws IOException {
         long seconds = in.readLong();
         int nanos = in.readInt();
         Object res = Instant.ofEpochSecond(seconds, nanos);
         return res;
     }
-    
+
+    public static Object deserializeZoneId(FSTObjectInput in) throws IOException {
+        String id = in.readStringUTF();
+        Object res = ZoneId.of(id);
+        //        in.registerObject(res,streamPosition,serializationInfo, referencee); can skip as alwaysCopy is true
+        return res;
+    }
+
+    public static void serializeZoneId(Object toWrite, FSTObjectOutput out) throws IOException {
+        ZoneId id = (ZoneId) toWrite;
+        out.writeStringUTF(id.getId());
+    }
+
+    public static Object deserializeZonedDateTime(FSTObjectInput in) throws IOException {
+        LocalDate date = (LocalDate) deserializeLocalDate(in);
+        LocalTime time = (LocalTime) deserializeLocalTime(in);
+        ZoneId zone = (ZoneId) deserializeZoneId(in);
+        Object res = ZonedDateTime.of(date, time, zone);
+        //        in.registerObject(res,streamPosition,serializationInfo, referencee); can skip as alwaysCopy is true
+        return res;
+    }
+
+    public static void serializeZonedDateTime(Object toWrite, FSTObjectOutput out) throws IOException {
+        ZonedDateTime zdt = (ZonedDateTime) toWrite;
+        serializeLocalDate(zdt.toLocalDate(), out);
+        serializeLocalTime(zdt.toLocalTime(), out);
+        serializeZoneId(zdt.getZone(), out);
+    }
 }

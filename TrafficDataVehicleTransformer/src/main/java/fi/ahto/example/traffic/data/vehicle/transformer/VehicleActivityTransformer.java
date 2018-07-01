@@ -17,10 +17,16 @@ package fi.ahto.example.traffic.data.vehicle.transformer;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import com.github.jahto.utils.FSTSerializers.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.FSTLocalDateSerializer;
 import com.github.jahto.utils.FSTSerializers.FSTLocalTimeSerializer;
+import com.github.jahto.utils.FSTSerializers.FSTSetSerializer;
+import com.github.jahto.utils.FSTSerializers.FSTZonedDateTimeSerializer;
+import com.github.jahto.utils.FSTSerializers.GenericObjectSerializer;
+import com.github.jahto.utils.FSTSerializers.ServiceStopSerializer;
+import com.github.jahto.utils.FSTSerializers.VehicleActivitySerializer;
 import com.github.jahto.utils.KryoSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
@@ -34,6 +40,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -82,12 +89,17 @@ public class VehicleActivityTransformer {
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
+        final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+        final FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
+        final FSTSerde<VehicleHistorySet> fstvhsetserde = new FSTSerde<>(VehicleHistorySet.class, conf);
+        
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
+        // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstserde));
 
-        //VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
+        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
         /*
         Kryo kryo = new Kryo();
         kryo.register(VehicleActivity.class);
@@ -102,12 +114,22 @@ public class VehicleActivityTransformer {
         final KryoSerde<VehicleActivity> kryovaserde = new KryoSerde<>(VehicleActivity.class, kryo);
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
         */
+        /*
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         conf.registerSerializer(LocalTime.class, new FSTLocalTimeSerializer(), false);
         conf.registerSerializer(LocalDate.class, new FSTLocalDateSerializer(), false);
         conf.registerSerializer(Instant.class, new FSTInstantSerializer(), false);
+        conf.registerSerializer(ZonedDateTime.class, new FSTZonedDateTimeSerializer(), false);
+        conf.registerSerializer(Set.class, new FSTSetSerializer(), false);
+        conf.registerSerializer(ServiceStopSet.class, new FSTSetSerializer(), false);
+        conf.registerSerializer(ServiceStop.class, new ServiceStopSerializer(), false);
+        // conf.registerSerializer(VehicleActivity.class, new VehicleActivitySerializer(), false);
+        conf.registerSerializer(VehicleActivity.class, new GenericObjectSerializer<VehicleActivity>(VehicleActivity.class), false);
+        conf.registerClass(ServiceStopSet.class);
+        conf.registerClass(ServiceStop.class);
         conf.setShareReferences(false);
-        FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
+        */
+        
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
@@ -143,7 +165,8 @@ public class VehicleActivityTransformer {
                 .aggregate(vehicleinitializer, vehicleaggregator,
                         Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(vhsetserde)
+                                // .withValueSerde(vhsetserde)
+                                .withValueSerde(fstvhsetserde)
                 );
 
         vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vhsetserde));
@@ -157,6 +180,7 @@ public class VehicleActivityTransformer {
                                 -> KeyValue.pair(value.getInternalLineId(), value));
 
         tolines.to("data-by-lineid", Produced.with(Serdes.String(), vaserde));
+        // tolines.to("data-by-lineid", Produced.with(Serdes.String(), fstserde));
 
         /* Seems not to be needed, but leaving still here just in case...
         KStream<String, VehicleActivity> tochanges  = 

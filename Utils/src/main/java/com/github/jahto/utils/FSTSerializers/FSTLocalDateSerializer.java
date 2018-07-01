@@ -6,7 +6,6 @@
 package com.github.jahto.utils.FSTSerializers;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
