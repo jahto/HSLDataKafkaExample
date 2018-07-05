@@ -30,10 +30,19 @@ import java.util.Map;
 // Only for internal use, so we can safely use the most efficient form.
 // @JsonFormat(shape=JsonFormat.Shape.ARRAY)
 // @JsonPropertyOrder({"TimesForward", "TimesBackward"})
-public class ServiceTrips implements Serializable {
+public class ServiceTrips implements Serializable, Partitionable {
     private static final long serialVersionUID = -7159227698102377063L;
+    public String route;
     @JsonProperty("TimesForward")
     public Map<LocalTime, String> timesforward = new HashMap<>();
     @JsonProperty("TimesBackward")
     public Map<LocalTime, String> timesbackward = new HashMap<>();
+
+    @Override
+    public byte[] getKeyBytes() {
+        if (route == null) {
+            return null;
+        }
+        return route.getBytes();
+    }
 }

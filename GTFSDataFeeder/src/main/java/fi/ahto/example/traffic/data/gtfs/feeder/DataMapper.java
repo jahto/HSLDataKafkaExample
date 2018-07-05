@@ -24,9 +24,7 @@ import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
@@ -46,7 +44,7 @@ public class DataMapper {
 
     public Map<String, RouteData> routes = new HashMap<>();
     public Map<String, StopData> stops = new HashMap<>();
-    public Map<TripKey, TripStopSet> trips = new HashMap<>();
+    public Map<String, TripStopSet> trips = new HashMap<>();
     public Map<String, ServiceData> services = new HashMap<>();
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
@@ -107,8 +105,6 @@ public class DataMapper {
         }
     }
 
-    static String currentroutedid = "FOO";
-
     public void add(String prefix, StopTime st) {
         dataFixer(prefix, st);
         String stopid = prefix + st.getStop().getId().getId();
@@ -116,10 +112,6 @@ public class DataMapper {
         String serviceid = prefix + st.getTrip().getServiceId().getId();
         String blockid = st.getTrip().getBlockId();
 
-        if (!currentroutedid.equals(routeid)) {
-            currentroutedid = routeid;
-            // LOG.info(routeid);
-        }
         StopData stop = stops.get(stopid);
         if (stop == null) {
             stop = new StopData();
@@ -153,15 +145,19 @@ public class DataMapper {
         ServiceTrips servicetripmap = servicetrips.get(srkey);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
+            servicetripmap.route = routeid;
             servicetrips.put(srkey, servicetripmap);
             LOG.debug("Added service " + serviceid + " to route " + routeid);
         }
 
-        ServiceTrips blocktripmap = servicetrips.get(blockid);
-        if (blocktripmap == null) {
-            blocktripmap = new ServiceTrips();
-            servicetrips.put(blockid, blocktripmap);
-            LOG.debug("Added block " + blockid + " to route " + routeid);
+        if (blockid != null) {
+            ServiceTrips blocktripmap = servicetrips.get(blockid);
+            if (blocktripmap == null) {
+                blocktripmap = new ServiceTrips();
+                blocktripmap.route = routeid;
+                servicetrips.put(blockid, blocktripmap);
+                LOG.debug("Added block " + blockid + " to route " + routeid);
+            }
         }
 
         ServiceData service = services.get(serviceid);
@@ -180,15 +176,14 @@ public class DataMapper {
 
         // Have to think how to handle these ones.
         String tripid = st.getTrip().getId().getId();
-        TripKey trkey = new TripKey(tripid, routeid);
-        TripStopSet tr = trips.get(trkey);
+        TripStopSet tr = trips.get(tripid);
         if (tr == null) {
             tr = new TripStopSet();
             tr.route = routeid;
             tr.service = serviceid;
             tr.direction = st.getTrip().getDirectionId();
             tr.block = blockid;
-            trips.put(trkey, tr);
+            trips.put(tripid, tr);
             LOG.debug("Added trip " + tripid);
         }
 

@@ -28,7 +28,7 @@ import java.util.TreeSet;
 // Only for internal use, so we can safely use the most efficient form.
 // @JsonFormat(shape=JsonFormat.Shape.ARRAY)
 // @JsonPropertyOrder({"service", "route", "direction", "block"})
-public class TripStopSet extends TreeSet<TripStop> implements Serializable {
+public class TripStopSet extends TreeSet<TripStop> implements Serializable, Partitionable {
     private static final long serialVersionUID = -6790939219985230972L;
 
     public String service;
@@ -38,5 +38,13 @@ public class TripStopSet extends TreeSet<TripStop> implements Serializable {
 
     public TripStopSet() {
         super((Comparator<TripStop> & Serializable) (TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
+    }
+
+    @Override
+    public byte[] getKeyBytes() {
+        if (route == null) {
+            return null;
+        }
+        return route.getBytes();
     }
 }

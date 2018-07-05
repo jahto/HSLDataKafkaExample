@@ -64,6 +64,7 @@ public class KafkaConfiguration {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-gtfs-feeder");
+        props.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, "fi.ahto.example.traffic.data.contracts.internal.CustomPartitioner");
         LOG.debug("ProducerConfigs");
         return props;
     }

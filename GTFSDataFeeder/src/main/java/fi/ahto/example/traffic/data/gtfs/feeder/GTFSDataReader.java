@@ -16,14 +16,13 @@
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class GTFSDataReader implements ApplicationRunner {
     private static String prefix = null;
     private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
-    private final Map<String, List<ServiceData>> routeservices = new HashMap<>();
+    private final Map<String, ServiceList> routeservices = new HashMap<>();
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -138,31 +137,37 @@ public class GTFSDataReader implements ApplicationRunner {
             String key = serviceid + ":" + routeid;
             ServiceTrips service = mapper.servicetrips.get(key);
             if (service != null) {
+                if (service.route == null) {
+                    LOG.warn("Logic error!");
+                    service.route = v.route;
+                }
                 if (v.direction.equals("0")) {
-                    service.timesforward.put(stop.arrivalTime, k.tripid);
+                    service.timesforward.put(stop.arrivalTime, k);
                 }
                 if (v.direction.equals("1")) {
-                    service.timesbackward.put(stop.arrivalTime, k.tripid);
+                    service.timesbackward.put(stop.arrivalTime, k);
                 }
             }
             ServiceTrips block = mapper.servicetrips.get(v.block);
             if (block != null) {
+                if (service.route == null) {
+                    LOG.warn("Logic error!");
+                    service.route = v.route;
+                }
                 if (v.direction.equals("0")) {
-                    block.timesforward.put(stop.arrivalTime, k.tripid);
+                    block.timesforward.put(stop.arrivalTime, k);
                 }
                 if (v.direction.equals("1")) {
-                    block.timesbackward.put(stop.arrivalTime, k.tripid);
+                    block.timesbackward.put(stop.arrivalTime, k);
                 }
             }
         });
 
-        mapper.blocks.forEach((k, v) -> {
-        });
         mapper.services.forEach((k, v) -> {
             for (String route : v.routeIds) {
-                List<ServiceData> list = routeservices.get(route);
+                ServiceList list = routeservices.get(route);
                 if (list == null) {
-                    list = new ArrayList<>();
+                    list = new ServiceList();
                     routeservices.put(route, list);
                 }
                 list.add(v);
@@ -177,32 +182,45 @@ public class GTFSDataReader implements ApplicationRunner {
 
         LOG.debug("Sending services-to-trips maps");
         mapper.servicetrips.forEach((k, v) -> {
-            kafkaTemplate.send("services-to-trips", k, v);
-            LOG.info("stt {}", k);
+            if (k != null && v != null) {
+                if (v.route != null) {
+                    kafkaTemplate.send("services-to-trips", k, v);
+                    LOG.info("stt {} to partition for {}", k, v.route);
+                } else {
+                    LOG.warn("Logic error!");
+                }
+            } else {
+                LOG.warn("Logic error!");
+            }
         });
 
         LOG.debug("Sending stops");
-        mapper.stops.forEach((k, v) -> {
-            kafkaTemplate.send("stops", k, v);
-        });
+        mapper.stops.forEach(
+                (k, v) -> {
+                    kafkaTemplate.send("stops", k, v);
+                }
+        );
 
         LOG.debug("Sending routes");
-        mapper.routes.forEach((k, v) -> {
-            kafkaTemplate.send("routes", k, v);
-        });
+        mapper.routes.forEach(
+                (k, v) -> {
+                    kafkaTemplate.send("routes", k, v);
+                }
+        );
 
         LOG.debug("Sending trips");
-        mapper.trips.forEach((k, v) -> {
-            // Try to find out how to get the right partition for k.routeid,
-            // so we don't have to use a global table, there's quite lof of
-            // data in trips...
-            kafkaTemplate.send("trips", k.tripid, v);
-        });
+        mapper.trips.forEach(
+                (k, v) -> {
+                    kafkaTemplate.send("trips", k, v);
+                }
+        );
 
         LOG.debug("Sending shapes");
-        collector.shapes.forEach((k, v) -> {
-            kafkaTemplate.send("shapes", k, v);
-        });
+        collector.shapes.forEach(
+                (k, v) -> {
+                    kafkaTemplate.send("shapes", k, v);
+                }
+        );
     }
 
     @Component
