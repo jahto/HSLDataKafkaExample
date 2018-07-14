@@ -18,13 +18,6 @@ import org.nustaq.serialization.FSTObjectOutput;
  * @author jah
  */
 public class ServiceStopSerializer extends FSTBasicObjectSerializer {
-    /*
-    public String stopid;
-    public int seq;
-    public LocalTime arrivalTime;
-    public String name;
-
-    */
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {

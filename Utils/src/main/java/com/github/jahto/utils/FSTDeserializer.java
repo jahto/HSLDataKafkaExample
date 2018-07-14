@@ -76,7 +76,7 @@ public class FSTDeserializer<T> implements Deserializer<T> {
             if (targetType != null) {
                 conf.registerClass(targetType);
             }
-            */
+             */
         }
         this.targetType = targetType;
         this.conf = conf;
@@ -113,6 +113,11 @@ public class FSTDeserializer<T> implements Deserializer<T> {
         if (data == null) {
             return null;
         }
+        /*
+        if (targetType != null) {
+            System.out.println("Deserializing " + targetType.getName());
+        }
+        */
         T result = (T) conf.asObject(data);
         return result;
         /*
@@ -134,7 +139,7 @@ public class FSTDeserializer<T> implements Deserializer<T> {
             throw new SerializationException("Can't deserialize data [" + Arrays.toString(data)
                     + "] from topic [" + topic + "]", ex);
         }
-        */
+         */
     }
 
     @Override

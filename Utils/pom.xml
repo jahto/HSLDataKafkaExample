@@ -17,8 +17,7 @@
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
-            <version>5.0.0-RC1</version>
-            <!-- <version>4.0.2</version> -->
+            <version>5.0.0-RC2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
