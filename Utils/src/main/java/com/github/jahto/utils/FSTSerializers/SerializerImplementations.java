@@ -15,51 +15,62 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoField;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 /**
  *
- * @author jah
+ * @author Jouni Ahto
  */
 public class SerializerImplementations {
 
     public static Object deserializeLocalTime(FSTObjectInput in) throws IOException {
         byte h = in.readByte();
-        byte m = in.readByte();
-        byte s = in.readByte();
-        int n = in.readInt();
+        boolean hasMinutes = (h & 0b10000000) == 0;
+        boolean hasSeconds = (h & 0b01000000) == 0;
+        boolean hasNanos = (h & 0b00100000) == 0;
+        h &= 0b00011111;
+        byte m = 0;
+        byte s = 0;
+        int n = 0;
+        if (hasMinutes) {
+            m = in.readByte();
+        }
+        if (hasSeconds) {
+            s = in.readByte();
+        }
+        if (hasNanos) {
+            n = in.readInt();
+        }
         Object res = LocalTime.of(h, m, s, n);
         return res;
     }
 
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
-        // Considering variable length encoding... So WithoutNanos variants aren't even needed.
-        // Hours have some unneeded upper bits for flagging the cases.
         boolean hasMinutes = ld.getMinute() != 0;
         boolean hasSeconds = ld.getSecond() != 0;
         boolean hasNanos = ld.getNano() != 0;
-        out.writeByte(ld.getHour());
-        out.writeByte(ld.getMinute());
-        out.writeByte(ld.getSecond());
-        out.writeInt(ld.getNano());
-    }
-
-    public static Object deserializeLocalTimeWithoutNanos(FSTObjectInput in) throws IOException {
-        byte h = in.readByte();
-        byte m = in.readByte();
-        byte s = in.readByte();
-        Object res = LocalTime.of(h, m, s);
-        return res;
-    }
-
-    public static void serializeLocalTimeWithoutNanos(Object toWrite, FSTObjectOutput out) throws IOException {
-        LocalTime ld = (LocalTime) toWrite;
-        out.writeByte(ld.getHour());
-        out.writeByte(ld.getMinute());
-        out.writeByte(ld.getSecond());
+        byte hour = (byte) ld.getHour();
+        if (!hasMinutes) {
+            hour |= 0b10000000;
+        }
+        if (!hasSeconds) {
+            hour |= 0b01000000;
+        }
+        if (!hasNanos) {
+            hour |= 0b00100000;
+        }
+        out.writeByte(hour);
+        if (hasMinutes) {
+            out.writeByte(ld.getMinute());
+        }
+        if (hasSeconds) {
+            out.writeByte(ld.getSecond());
+        }
+        if (hasNanos) {
+            out.writeInt(ld.getNano());
+        }
     }
 
     public static Object deserializeLocalDate(FSTObjectInput in) throws IOException {
@@ -116,88 +127,75 @@ public class SerializerImplementations {
         serializeZoneId(zdt.getZone(), out);
     }
 
-    public static Object deserializeZonedDateTimeWithoutNanos(FSTObjectInput in) throws IOException {
-        LocalDate date = (LocalDate) deserializeLocalDate(in);
-        LocalTime time = (LocalTime) deserializeLocalTimeWithoutNanos(in);
-        ZoneId zone = (ZoneId) deserializeZoneId(in);
-        Object res = ZonedDateTime.of(date, time, zone);
-        return res;
-    }
-
-    public static void serializeZonedDateTimeWithoutNanos(Object toWrite, FSTObjectOutput out) throws IOException {
-        ZonedDateTime zdt = (ZonedDateTime) toWrite;
-        serializeLocalDate(zdt.toLocalDate(), out);
-        serializeLocalTimeWithoutNanos(zdt.toLocalTime(), out);
-        serializeZoneId(zdt.getZone(), out);
-    }
-
     public static Object deserializeLocalDateTime(FSTObjectInput in) throws IOException {
         LocalDate date = (LocalDate) deserializeLocalDate(in);
         LocalTime time = (LocalTime) deserializeLocalTime(in);
         Object res = LocalDateTime.of(date, time);
         return res;
     }
-    
+
     public static void serializeLocalDateTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalDateTime zdt = (LocalDateTime) toWrite;
         serializeLocalDate(zdt.toLocalDate(), out);
         serializeLocalTime(zdt.toLocalTime(), out);
     }
-    
-    public static Object deserializeLocalDateTimeWithoutNanos(FSTObjectInput in) throws IOException {
-        LocalDate date = (LocalDate) deserializeLocalDate(in);
-        LocalTime time = (LocalTime) deserializeLocalTimeWithoutNanos(in);
-        Object res = LocalDateTime.of(date, time);
-        return res;
-    }
-    
-    public static void serializeLocalDateTimeWithoutNanos(Object toWrite, FSTObjectOutput out) throws IOException {
-        LocalDateTime zdt = (LocalDateTime) toWrite;
-        serializeLocalDate(zdt.toLocalDate(), out);
-        serializeLocalTimeWithoutNanos(zdt.toLocalTime(), out);
-    }
-    
+
     public static Object deserializeOffsetDateTime(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeOffsetDateTime(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeOffsetDateTimeWithoutNanos(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeOffsetDateTimeWithoutNanos(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializePeriod(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializePeriod(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeDuration(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeDuration(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeDurationWithoutNanos(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeDurationWithoutNanos(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeYear(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeYear(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeYearMonth(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeYearMonth(Object toWrite, FSTObjectOutput out) throws IOException {
     }
+
     public static Object deserializeMonthDay(FSTObjectInput in) throws IOException {
         return null;
     }
+
     public static void serializeMonthDay(Object toWrite, FSTObjectOutput out) throws IOException {
     }
-    
+
     public static Object deserializeZoneId(FSTObjectInput in) throws IOException {
         String id = in.readStringUTF();
         Object res = ZoneId.of(id);
@@ -208,7 +206,7 @@ public class SerializerImplementations {
         ZoneId id = (ZoneId) toWrite;
         out.writeStringUTF(id.getId());
     }
-    
+
     public static Object deserializeZoneOffset(FSTObjectInput in) throws IOException {
         //int s = readThreeByteInt(in);
         int s = in.readInt();
