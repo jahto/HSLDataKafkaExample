@@ -18,6 +18,7 @@ package com.github.jahto.utils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,14 +53,8 @@ public class FSTSerializer<T> implements Serializer<T> {
 
     @SuppressWarnings("unchecked")
     public FSTSerializer(Class<T> targetType, FSTConfiguration conf) {
-        if (conf == null) {
-            conf = FSTConfiguration.createDefaultConfiguration();
-            /*
-            if (targetType != null) {
-                conf.registerClass(targetType);
-            }
-            */
-        }
+        Objects.requireNonNull(targetType);
+        Objects.requireNonNull(conf);
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -80,11 +75,7 @@ public class FSTSerializer<T> implements Serializer<T> {
         try {
             ByteArrayOutputStream bstream = new ByteArrayOutputStream();
             FSTObjectOutput out = conf.getObjectOutput(bstream);
-            if (targetType != null) {
-                out.writeObject(data, targetType);
-            } else {
-                out.writeObject(data);
-            }
+            out.writeObject(data, targetType);
             // DON'T out.close() when using factory method;
             out.flush();
             bstream.close();

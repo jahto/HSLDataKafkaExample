@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,25 +60,10 @@ public class FSTDeserializer<T> implements Deserializer<T> {
 
     protected Class<T> targetType;
 
-    public FSTDeserializer() {
-        this((Class<T>) null, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    public FSTDeserializer(Class<T> targetType) {
-        this(targetType, null);
-    }
-
     @SuppressWarnings("unchecked")
     public FSTDeserializer(Class<T> targetType, FSTConfiguration conf) {
-        if (conf == null) {
-            conf = FSTConfiguration.createDefaultConfiguration();
-            /*
-            if (targetType != null) {
-                conf.registerClass(targetType);
-            }
-             */
-        }
+        Objects.requireNonNull(targetType);
+        Objects.requireNonNull(conf);
         this.targetType = targetType;
         this.conf = conf;
     }
@@ -113,23 +99,14 @@ public class FSTDeserializer<T> implements Deserializer<T> {
         if (data == null) {
             return null;
         }
-        /*
-        if (targetType != null) {
-            System.out.println("Deserializing " + targetType.getName());
-        }
-        */
+
         T result = (T) conf.asObject(data);
         return result;
         /*
         try {
             ByteArrayInputStream bstream = new ByteArrayInputStream(data);
             FSTObjectInput in = conf.getObjectInput(bstream);
-            T result = null;
-            if (targetType != null) {
-                result = (T) in.readObject(targetType);
-            } else {
-                result = (T) in.readObject();
-            }
+            T result = (T) in.readObject(targetType);
             return result;
 
         } catch (IOException | ClassNotFoundException e) {

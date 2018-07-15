@@ -16,6 +16,7 @@
 package com.github.jahto.utils;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -44,37 +45,12 @@ public class FSTSerde<T> implements Serde<T> {
 
     private final FSTDeserializer<T> fstDeserializer;
 
-    public FSTSerde() {
-        this((Class<T>) null, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    public FSTSerde(Class<T> targetType) {
-        this(targetType, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    public FSTSerde(FSTConfiguration conf) {
-        this(null, conf);
-    }
-
     @SuppressWarnings("unchecked")
     public FSTSerde(Class<T> targetType, FSTConfiguration conf) {
-        if (conf == null) {
-            conf = FSTConfiguration.createDefaultConfiguration();
-            /*
-            if (targetType != null) {
-                conf.registerClass(targetType);
-            }
-            */
-        }
-        if (targetType != null) {
-            this.fstSerializer = new FSTSerializer<>(targetType, conf);
-            this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
-        } else {
-            this.fstSerializer = new FSTSerializer<>(targetType, conf);
-            this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
-        }
+        Objects.requireNonNull(targetType);
+        Objects.requireNonNull(conf);
+        this.fstSerializer = new FSTSerializer<>(targetType, conf);
+        this.fstDeserializer = new FSTDeserializer<>(targetType, conf);
     }
 
     public FSTSerde(FSTSerializer<T> fstSerializer, FSTDeserializer<T> fstDeserializer) {
