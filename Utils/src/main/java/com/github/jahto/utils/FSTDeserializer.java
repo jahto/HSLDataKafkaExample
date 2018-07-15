@@ -104,8 +104,8 @@ public class FSTDeserializer<T> implements Deserializer<T> {
         return result;
         /*
         try {
-            ByteArrayInputStream bstream = new ByteArrayInputStream(data);
-            FSTObjectInput in = conf.getObjectInput(bstream);
+            // ByteArrayInputStream bstream = new ByteArrayInputStream(data);
+            FSTObjectInput in = conf.getObjectInput(data);
             T result = (T) in.readObject(targetType);
             return result;
 
@@ -116,7 +116,7 @@ public class FSTDeserializer<T> implements Deserializer<T> {
             throw new SerializationException("Can't deserialize data [" + Arrays.toString(data)
                     + "] from topic [" + topic + "]", ex);
         }
-         */
+        */
     }
 
     @Override

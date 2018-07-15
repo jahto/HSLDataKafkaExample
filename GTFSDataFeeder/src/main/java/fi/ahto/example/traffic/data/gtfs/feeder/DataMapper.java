@@ -105,12 +105,18 @@ public class DataMapper {
         }
     }
 
+    private String hashedId(String id) {
+        return id;
+    }
+    
     public void add(String prefix, StopTime st) {
         dataFixer(prefix, st);
         String stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
         String serviceid = prefix + st.getTrip().getServiceId().getId();
         String blockid = st.getTrip().getBlockId();
+        String srkey = serviceid + ":" + routeid;
+        String tripid = st.getTrip().getId().getId();
 
         StopData stop = stops.get(stopid);
         if (stop == null) {
@@ -141,7 +147,6 @@ public class DataMapper {
             LOG.debug("Added route " + routeid);
         }
 
-        String srkey = serviceid + ":" + routeid;
         ServiceTrips servicetripmap = servicetrips.get(srkey);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
@@ -175,7 +180,6 @@ public class DataMapper {
         }
 
         // Have to think how to handle these ones.
-        String tripid = st.getTrip().getId().getId();
         TripStopSet tr = trips.get(tripid);
         if (tr == null) {
             tr = new TripStopSet();
@@ -190,7 +194,8 @@ public class DataMapper {
         TripStop ts = new TripStop();
         ts.stopid = stopid;
         ts.seq = st.getStopSequence();
-        ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
+        // ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
+        ts.arrivalTime = st.getArrivalTime();
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }

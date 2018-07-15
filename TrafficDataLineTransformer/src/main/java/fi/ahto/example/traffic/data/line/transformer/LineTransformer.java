@@ -20,6 +20,7 @@ import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
@@ -36,21 +37,32 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.Consumed;
+// import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
+// import org.apache.kafka.streams.Consumed;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Initializer;
+import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
+import org.apache.kafka.streams.kstream.internals.Change;
+import org.apache.kafka.streams.processor.AbstractProcessor;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
@@ -72,14 +84,23 @@ public class LineTransformer {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Must be static when declared here as inner class, otherwise you run into
-    // problems with Jackson objectmapper and databinder.
-    public static class ServiceList extends ArrayList<ServiceData> implements Serializable {
-        private static final long serialVersionUID = -8122393047868332629L;
-    }
-
     void VehicleActivityTransformers() {
         LOG.debug("VehicleActivityTransformers created");
+    }
+
+    static class UnneededCruftSupplier implements ProcessorSupplier<String, Change<ServiceTrips>> {
+
+        @Override
+        public Processor<String, Change<ServiceTrips>> get() {
+            return new AbstractProcessor<String, Change<ServiceTrips>>() {
+                @Override
+                public void process(String k, Change<ServiceTrips> v) {
+                    LOG.info("Processing change event");
+                    this.context().forward(k, v.newValue);
+                    this.context().commit();
+                }
+            };
+        }
     }
 
     @Bean
@@ -90,28 +111,52 @@ public class LineTransformer {
         final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
         final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
         final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
-        final JsonSerde<ServiceList> sdbserde = new JsonSerde<>(ServiceList.class, objectMapper);
+        final JsonSerde<ServiceList> jsonServiceListSerde = new JsonSerde<>(ServiceList.class, objectMapper);
         final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
 
         final FSTSerde<VehicleActivity> fstvafserde = new FSTSerde<>(VehicleActivity.class, conf);
         final FSTSerde<VehicleDataList> fstvaflistserde = new FSTSerde<>(VehicleDataList.class, conf);
+        final FSTSerde<ServiceList> fstServiceListSerde = new FSTSerde<>(ServiceList.class, conf);
+        final FSTSerde<TripStopSet> fsttripsserde = new FSTSerde<>(TripStopSet.class, conf);
+        final FSTSerde<ServiceTrips> fstserviceserde = new FSTSerde<>(ServiceTrips.class, conf);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
-
-        GlobalKTable<String, ServiceList> routeservices
+        
+        GlobalKTable<String, ServiceList> routesToServices
                 = builder.globalTable("routes-to-services",
-                        Consumed.with(Serdes.String(), sdbserde),
-                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services"));
-
-        GlobalKTable<String, ServiceTrips> servicetrips
+                        //Consumed.with(Serdes.String(), jsonServiceListSerde),
+                        Consumed.with(Serdes.String(), fstServiceListSerde),
+                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
+                                //.withKeySerde(Serdes.String())
+                                //.withValueSerde(fstServiceListSerde)
+                );
+        
+        /*
+        KTable<String, ServiceList> routesToServices = builder
+                .stream("routes-to-services", Consumed.with(Serdes.String(), jsonServiceListSerde))
+                .groupByKey()
+                .reduce((foo, value) -> value,
+                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
+                                .withKeySerde(Serdes.String())
+                                .withValueSerde(fstServiceListSerde));
+        */
+        GlobalKTable<String, ServiceTrips> serviceToTrips
                 = builder.globalTable("services-to-trips",
-                        Consumed.with(Serdes.String(), serviceserde),
-                        Materialized.<String, ServiceTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips"));
+                        //Consumed.with(Serdes.String(), serviceserde),
+                        Consumed.with(Serdes.String(), fstserviceserde),
+                        Materialized.<String, ServiceTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips-store")
+                                //.withKeySerde(Serdes.String())
+                                //.withValueSerde(fstserviceserde)
+                );
 
         GlobalKTable<String, TripStopSet> trips
                 = builder.globalTable("trips",
-                        Consumed.with(Serdes.String(), tripsserde),
-                        Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("trips"));
+                        //Consumed.with(Serdes.String(), tripsserde),
+                        Consumed.with(Serdes.String(), fsttripsserde),
+                        Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("fsttrips")
+                                //.withKeySerde(Serdes.String())
+                                //.withValueSerde(fsttripsserde)
+                );
 
         Initializer<VehicleDataList> lineinitializer = () -> {
             VehicleDataList valist = new VehicleDataList();
@@ -139,10 +184,8 @@ public class LineTransformer {
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
                 .filterNot((k, v) -> v.LineHasChanged())
-                .leftJoin(routeservices,
-                        (String key, VehicleActivity value) -> {
-                            return value.getInternalLineId();
-                        },
+                .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
+                // .leftJoin(routesToServices,
                         (VehicleActivity value, ServiceList right) -> {
                             if (right == null) {
                                 LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
@@ -154,8 +197,10 @@ public class LineTransformer {
                         });
 
         KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
-                .flatMapValues(v -> {
+                .flatMapValues((k, v) -> {
+                //.flatMap((k, v) -> {
                     List<VehicleActivity> rval = new ArrayList<>();
+                    //List<KeyValue<String, VehicleActivity>> rval = new ArrayList<>();
                     if (v == null) {
                         // Happens when I forget to feed static GTFS-data, must check later...
                         return rval;
@@ -163,41 +208,39 @@ public class LineTransformer {
                     for (String s : v.getPossibilities()) {
                         VehicleActivity va = new VehicleActivity(v);
                         va.setServiceID(s);
+                        String key = va.getServiceID() + ":" + va.getInternalLineId();
                         rval.add(va);
+                        //rval.add(KeyValue.pair(key, va));
                     }
                     return rval;
                 });
+        
+        KStream<String, VehicleActivity> hasnotblockid = tripstreamalt
+                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getServiceID() + ":" + value.getInternalLineId(),
+                        (VehicleActivity value, ServiceTrips right) -> {
+                            String newkey = value.getServiceID() + ":" + value.getInternalLineId();
+                            if (right == null) {
+                                LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                            } else {
+                                LOG.debug("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                            }
+                            value = findTrip(value, right);
+                            if (value.getTripID() == null) {
+                                LOG.debug("Didn't find correct trip for service {}, route {}, line {}, time {}",
+                                        value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
+                                return null;
+                            }
 
-        KStream<String, VehicleActivity> hasnotblockid = tripstreamalt.leftJoin(servicetrips,
-                (String key, VehicleActivity value) -> {
-                    return value.getServiceID() + ":" + value.getInternalLineId();
-                },
-                (VehicleActivity value, ServiceTrips right) -> {
-                    String newkey = value.getServiceID() + ":" + value.getInternalLineId();
-                    if (right == null) {
-                        LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
-                    } else {
-                        LOG.debug("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
-                    }
-                    value = findTrip(value, right);
-                    if (value.getTripID() == null) {
-                        LOG.debug("Didn't find correct trip for service {}, route {}, line {}, time {}",
-                                value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
-                        return null;
-                    }
-
-                    LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
-                            value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
-                    return value;
-                }).filter((k, v) -> v != null);
+                            LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
+                                    value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
+                            return value;
+                        }
+                ).filter((k, v) -> v != null);
 
         KStream<String, VehicleActivity> hasblockidstream = streamin
                 .filter((k, v) -> v.getBlockId() != null && !v.getBlockId().isEmpty())
                 .filterNot((k, v) -> v.LineHasChanged())
-                .leftJoin(servicetrips,
-                        (String key, VehicleActivity value) -> {
-                            return value.getBlockId();
-                        },
+                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getBlockId(),
                         (VehicleActivity value, ServiceTrips right) -> {
                             if (right == null) {
                                 LOG.info("Didn't find correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
@@ -221,7 +264,6 @@ public class LineTransformer {
                 );
 
         // Compare current and previous estimated stop times, react if they differ
-        // TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), vafserde, "stop-times");
         TimeTableComparerSupplier transformer = new TimeTableComparerSupplier(builder, Serdes.String(), fstvafserde, "stop-times");
         KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
@@ -296,6 +338,9 @@ public class LineTransformer {
             cnt++;
         }
         va.setPossibilities(possibilities);
+        if ("FI:HSL:1077".equals(va.getInternalLineId())) {
+            int i = 0;
+        }
         return va;
     }
 
@@ -307,7 +352,7 @@ public class LineTransformer {
         }
 
         if (va.getDirection().equals("1")) {
-            tripId = sd.timesforward.get(va.getStartTime());
+            tripId = sd.timesforward.get(va.getStartTime().toSecondOfDay());
             if (tripId == null) {
                 LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
                         va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
@@ -316,7 +361,7 @@ public class LineTransformer {
         }
 
         if (va.getDirection().equals("2")) {
-            tripId = sd.timesbackward.get(va.getStartTime());
+            tripId = sd.timesbackward.get(va.getStartTime().toSecondOfDay());
             if (tripId == null) {
                 LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
                         va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
@@ -366,7 +411,9 @@ public class LineTransformer {
 
         if (missing != null && missing.size() > 0) {
             for (TripStop miss : missing) {
-                LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
+                Integer diff = miss.arrivalTime - left.getDelay();
+                LocalTime newtime = LocalTime.ofSecondOfDay(diff);
+                // LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
                 ServiceStop toadd = new ServiceStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;

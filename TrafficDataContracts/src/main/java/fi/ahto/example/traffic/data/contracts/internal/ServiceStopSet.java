@@ -35,7 +35,11 @@ public class ServiceStopSet extends TreeSet<ServiceStop> implements Serializable
     public String route;
 
     public ServiceStopSet() {
-        super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
-        // super(new ServiceStopSetComparator());
+        // super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
+        super(new ServiceStopSetComparator());
+    }
+    public ServiceStopSet(ServiceStopSetComparator comp) {
+        // super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
+        super(comp);
     }
 }

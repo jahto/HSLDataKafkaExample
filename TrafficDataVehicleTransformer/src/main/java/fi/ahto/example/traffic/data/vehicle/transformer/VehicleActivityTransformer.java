@@ -95,12 +95,13 @@ public class VehicleActivityTransformer {
         
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
+        
+        // final KryoSerde<VehicleActivity> kryoserde = new KryoSerde<>(VehicleActivity.class);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
         // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstserde));
 
-        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
-        /*
+        
         Kryo kryo = new Kryo();
         kryo.register(VehicleActivity.class);
         kryo.register(ServiceStopSetComparator.class);
@@ -112,25 +113,12 @@ public class VehicleActivityTransformer {
         kryo.register(ZonedDateTime.class);
         kryo.setRegistrationRequired(false);
         final KryoSerde<VehicleActivity> kryovaserde = new KryoSerde<>(VehicleActivity.class, kryo);
-        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
-        */
-        /*
-        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
-        conf.registerSerializer(LocalTime.class, new FSTLocalTimeSerializer(), false);
-        conf.registerSerializer(LocalDate.class, new FSTLocalDateSerializer(), false);
-        conf.registerSerializer(Instant.class, new FSTInstantSerializer(), false);
-        conf.registerSerializer(ZonedDateTime.class, new FSTZonedDateTimeSerializer(), false);
-        conf.registerSerializer(Set.class, new FSTSetSerializer(), false);
-        conf.registerSerializer(ServiceStopSet.class, new FSTSetSerializer(), false);
-        conf.registerSerializer(ServiceStop.class, new ServiceStopSerializer(), false);
-        // conf.registerSerializer(VehicleActivity.class, new VehicleActivitySerializer(), false);
-        conf.registerSerializer(VehicleActivity.class, new GenericObjectSerializer<VehicleActivity>(VehicleActivity.class), false);
-        conf.registerClass(ServiceStopSet.class);
-        conf.registerClass(ServiceStop.class);
-        conf.setShareReferences(false);
-        */
+        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
         
+
+        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstserde, "vehicle-transformer-extended");
+        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 

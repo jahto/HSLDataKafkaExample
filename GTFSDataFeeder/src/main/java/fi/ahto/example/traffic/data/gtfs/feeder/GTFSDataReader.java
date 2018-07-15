@@ -15,9 +15,15 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,6 +32,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -35,11 +46,14 @@ import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
 /**
@@ -60,10 +74,58 @@ public class GTFSDataReader implements ApplicationRunner {
     private GtfsEntityHandler entityHandler;
 
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private Producer<String, Object> producer;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private FSTSerde<ServiceList> fstslserde;
+
+    @Autowired
+    private FSTSerde<ServiceTrips> fststserde;
+
+    @Autowired
+    private FSTSerde<TripStopSet> fsttsserde;
 
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
+    }
+
+    ProducerRecord sendJsonRecord(String topic, String key, Object value) {
+        try {
+            byte[] msg = objectMapper.writeValueAsBytes(value);
+            ProducerRecord record = new ProducerRecord(topic, key, msg);
+            producer.send(record);
+            return record;
+        } catch (JsonProcessingException ex) {
+            java.util.logging.Logger.getLogger(GTFSDataReader.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+    
+    ProducerRecord sendRecord(String topic, String key, ServiceList value) {
+        Serializer ser = fstslserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+        return record;
+    }
+
+    ProducerRecord sendRecord(String topic, String key, ServiceTrips value) {
+        Serializer ser = fststserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+        return record;
+    }
+
+    ProducerRecord sendRecord(String topic, String key, TripStopSet value) {
+        Serializer ser = fsttsserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+        return record;
     }
 
     @Override
@@ -176,7 +238,9 @@ public class GTFSDataReader implements ApplicationRunner {
 
         LOG.debug("Sending routes-to-services maps");
         routeservices.forEach((k, v) -> {
-            kafkaTemplate.send("routes-to-services", k, v);
+            //kafkaTemplate.send("routes-to-services", k, v);
+            ProducerRecord record = sendRecord("routes-to-services", k, v);
+            //kafkaTemplate.send(record);
             LOG.info("rts {}", k);
         });
 
@@ -184,7 +248,9 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.servicetrips.forEach((k, v) -> {
             if (k != null && v != null) {
                 if (v.route != null) {
-                    kafkaTemplate.send("services-to-trips", k, v);
+                    //kafkaTemplate.send("services-to-trips", k, v);
+                    ProducerRecord record = sendRecord("services-to-trips", k, v);
+                    //kafkaTemplate.send(record);
                     LOG.info("stt {} to partition for {}", k, v.route);
                 } else {
                     LOG.warn("Logic error!");
@@ -197,30 +263,37 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending stops");
         mapper.stops.forEach(
                 (k, v) -> {
-                    kafkaTemplate.send("stops", k, v);
+                    sendJsonRecord("stops", k, v);
+                    //kafkaTemplate.send("stops", k, v);
                 }
         );
 
         LOG.debug("Sending routes");
         mapper.routes.forEach(
                 (k, v) -> {
-                    kafkaTemplate.send("routes", k, v);
+                    sendJsonRecord("routes", k, v);
+                    //kafkaTemplate.send("routes", k, v);
                 }
         );
-
+        
         LOG.debug("Sending trips");
         mapper.trips.forEach(
                 (k, v) -> {
-                    kafkaTemplate.send("trips", k, v);
+                    sendRecord("trips", k, v);
+                    //kafkaTemplate.send("trips", k, v);
+                    //ProducerRecord record = sendRecord("trips", k, v);
+                    //kafkaTemplate.send(record);
                 }
         );
-
+        
         LOG.debug("Sending shapes");
         collector.shapes.forEach(
                 (k, v) -> {
-                    kafkaTemplate.send("shapes", k, v);
+                    sendJsonRecord("shapes", k, v);
+                    //kafkaTemplate.send("shapes", k, v);
                 }
         );
+        
     }
 
     @Component

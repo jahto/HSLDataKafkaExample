@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Component;
  * @author Jouni Ahto
  */
 @Component
-public class LineDataProcessorSupplier implements ProcessorSupplier<String, Change<VehicleDataList>> {
+public class LineDataProcessorSupplier implements ProcessorSupplier<String, Change<RouteData>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(LineDataProcessorSupplier.class);
 
@@ -42,12 +43,12 @@ public class LineDataProcessorSupplier implements ProcessorSupplier<String, Chan
     }
 
     @Override
-    public Processor<String, Change<VehicleDataList>> get() {
+    public Processor<String, Change<RouteData>> get() {
         return lineProcessor;
     }
 
     @Component
-    static class LineDataProcessor implements Processor<String, Change<VehicleDataList>> {
+    static class LineDataProcessor implements Processor<String, Change<RouteData>> {
 
         @Autowired
         BrokerSender sender;
@@ -62,9 +63,9 @@ public class LineDataProcessorSupplier implements ProcessorSupplier<String, Chan
         }
 
         @Override
-        public void process(String k, Change<VehicleDataList> v) {
+        public void process(String k, Change<RouteData> v) {
             if (v.newValue != null) {
-                sender.sendLine(k, v.newValue);
+                sender.sendLine(k, null);
             }
         }
 

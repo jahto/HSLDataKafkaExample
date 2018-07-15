@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
@@ -63,6 +64,7 @@ public class KafkaConfiguration {
     
     @Bean
     @Qualifier( "json")
+    @Primary
     public ObjectMapper customizedObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new AfterburnerModule());

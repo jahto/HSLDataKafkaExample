@@ -80,8 +80,6 @@ public class SiriDataPoller {
     @Autowired
      private ProducerFactory<String, Object> producerFactory;
 
-
-
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {

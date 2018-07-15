@@ -69,14 +69,15 @@ public class TrafficDataStreamsListener {
                         Consumed.with(Serdes.String(), vaflistserde),
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(StaticData.LINE_STORE));
         // Should be safe, build() just returns the internal Topology object, no side effects.
+        /*
         TopologyDescription td = streamBuilder.build().describe();
-        String parent = "";
-        // We get an iterator to a TreeSet sorted by processing order,
-        // and just want the last one.
+        String parent = null;
+        // We get an iterator to a TreeSet sorted by processing order, and just want the last one.
         for (TopologyDescription.GlobalStore store : td.globalStores()) {
             parent = store.processor().name();
         }
         streamBuilder.build().addProcessor("LineDataProcessor", lineProcessorSupplier, parent);
+        */
         return table;
     }
 
@@ -110,6 +111,14 @@ public class TrafficDataStreamsListener {
                 = streamBuilder.globalTable(StaticData.ROUTE_STREAM,
                         Consumed.with(Serdes.String(), stopserde),
                         Materialized.<String, RouteData, KeyValueStore<Bytes, byte[]>>as(StaticData.ROUTE_STORE));
+
+        TopologyDescription td = streamBuilder.build().describe();
+        String parent = null;
+        // We get an iterator to a TreeSet sorted by processing order, and just want the last one.
+        for (TopologyDescription.GlobalStore store : td.globalStores()) {
+            parent = store.processor().name();
+        }
+        streamBuilder.build().addProcessor("LineDataProcessor", lineProcessorSupplier, parent);
         return table;
     }
 

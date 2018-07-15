@@ -33,10 +33,16 @@ import java.util.Map;
 public class ServiceTrips implements Serializable, Partitionable {
     private static final long serialVersionUID = -7159227698102377063L;
     public String route;
+    /*
     @JsonProperty("TimesForward")
     public Map<LocalTime, String> timesforward = new HashMap<>();
     @JsonProperty("TimesBackward")
     public Map<LocalTime, String> timesbackward = new HashMap<>();
+    */
+    @JsonProperty("TimesForward")
+    public Map<Integer, String> timesforward = new HashMap<>();
+    @JsonProperty("TimesBackward")
+    public Map<Integer, String> timesbackward = new HashMap<>();
 
     @Override
     public byte[] getKeyBytes() {
