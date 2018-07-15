@@ -16,7 +16,6 @@
 package com.github.jahto.utils.FSTSerializers;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -27,13 +26,12 @@ import org.nustaq.serialization.FSTObjectOutput;
  * @author Jouni Ahto
  */
 
-public class FSTZonedDateTimeSerializer extends FSTBasicObjectSerializer {
+public class FSTPeriodSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        SerializerImplementations.serializeZonedDateTime(toWrite, out);
+        SerializerImplementations.serializePeriod(toWrite, out);
     }
-
 
     @Override
     public boolean alwaysCopy() {
@@ -42,7 +40,7 @@ public class FSTZonedDateTimeSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-        return SerializerImplementations.deserializeZonedDateTime(in);
+        return SerializerImplementations.deserializePeriod(in);
     }
 
 }
