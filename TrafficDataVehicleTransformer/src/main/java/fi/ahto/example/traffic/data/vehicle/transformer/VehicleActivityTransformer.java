@@ -167,8 +167,8 @@ public class VehicleActivityTransformer {
                         .map((key, value)
                                 -> KeyValue.pair(value.getInternalLineId(), value));
 
-        tolines.to("data-by-lineid", Produced.with(Serdes.String(), vaserde));
-        // tolines.to("data-by-lineid", Produced.with(Serdes.String(), fstserde));
+        // tolines.to("data-by-lineid", Produced.with(Serdes.String(), vaserde));
+        tolines.to("data-by-lineid", Produced.with(Serdes.String(), fstserde));
 
         /* Seems not to be needed, but leaving still here just in case...
         KStream<String, VehicleActivity> tochanges  = 

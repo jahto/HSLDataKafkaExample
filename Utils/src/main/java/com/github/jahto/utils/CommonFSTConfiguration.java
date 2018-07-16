@@ -23,6 +23,7 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistoryRecord;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySetComparator;
 import java.lang.invoke.SerializedLambda;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,6 +58,7 @@ public class CommonFSTConfiguration {
         //conf.registerSerializer(TripStop.class, new TripStopSerializer(), false);
         conf.registerClass(TripStop.class);
         conf.registerClass(VehicleHistorySet.class);
+        conf.registerClass(VehicleHistorySetComparator.class);
         conf.registerClass(VehicleActivity.class);
         conf.registerClass(ServiceList.class);
         conf.registerClass(ServiceData.class);
@@ -71,8 +73,8 @@ public class CommonFSTConfiguration {
         conf.setShareReferences(false);
         // Must test with both true and false. Speedier serialization comes with the price
         // of increased object size, and it seems the bottleneck is instead I/O when doing
-        // lookups from globaltables, so false might win.
-        conf.setPreferSpeed(false);
+        // lookups from globaltables, so false might win. Ok, true was better.
+        conf.setPreferSpeed(true);
         return conf;
     }
 }

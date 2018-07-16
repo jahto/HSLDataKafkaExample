@@ -40,11 +40,12 @@ public class TripStopSet extends TreeSet<TripStop> implements Serializable {
         // super((Comparator<TripStop> & Serializable) (TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
         super(new TripStopSetComparator());
     }
-
+    
     public TripStopSet(TripStopSetComparator comp) {
         // super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
         super(comp);
     }
+    
     /*
     @Override
     public byte[] getKeyBytes() {

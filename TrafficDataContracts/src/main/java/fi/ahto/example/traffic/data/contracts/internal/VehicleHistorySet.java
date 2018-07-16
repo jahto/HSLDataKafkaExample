@@ -27,6 +27,7 @@ public class VehicleHistorySet extends TreeSet<VehicleHistoryRecord> implements 
     private static final long serialVersionUID = 4892554282933714559L;
 
     public VehicleHistorySet() {
-        super((Comparator<VehicleHistoryRecord> & Serializable) (VehicleHistoryRecord o1, VehicleHistoryRecord o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
+        // super((Comparator<VehicleHistoryRecord> & Serializable) (VehicleHistoryRecord o1, VehicleHistoryRecord o2) -> o1.getRecordTime().compareTo(o2.getRecordTime()));
+        super(new VehicleHistorySetComparator());
     }
 }
