@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.github.jahto.utils.FSTSerializers;
+package com.github.jahto.utils.FSTSerializers.java.time;
 
 import java.io.IOException;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
@@ -15,10 +15,10 @@ import org.nustaq.serialization.FSTObjectOutput;
  *
  * @author jah
  */
-public class FSTLocalDateSerializer extends FSTBasicObjectSerializer{
+public class FSTLocalTimeSerializer extends FSTBasicObjectSerializer{
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        SerializerImplementations.serializeLocalDate(toWrite, out);
+        SerializerImplementations.serializeLocalTime(toWrite, out);
     }
 
 
@@ -34,7 +34,7 @@ public class FSTLocalDateSerializer extends FSTBasicObjectSerializer{
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-        return SerializerImplementations.deserializeLocalDate(in);
+        return SerializerImplementations.deserializeLocalTime(in);
     }
 
 }

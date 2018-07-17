@@ -5,6 +5,7 @@
  */
 package com.github.jahto.utils.FSTSerializers;
 
+import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.io.IOException;

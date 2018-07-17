@@ -5,6 +5,10 @@
  */
 package com.github.jahto.utils.tests;
 
+import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneOffsetSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTInstantSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import com.github.jahto.utils.FSTSerializers.*;

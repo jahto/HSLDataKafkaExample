@@ -5,10 +5,10 @@
  */
 package com.github.jahto.utils;
 
-import com.github.jahto.utils.FSTSerializers.FSTInstantSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTLocalDateSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTLocalTimeSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTZonedDateTimeSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTInstantSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalDateSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.ServiceStopSerializer;
 import com.github.jahto.utils.FSTSerializers.TripStopSerializer;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;

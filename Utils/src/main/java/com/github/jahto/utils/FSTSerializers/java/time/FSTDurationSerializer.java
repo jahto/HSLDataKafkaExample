@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.jahto.utils.FSTSerializers;
+package com.github.jahto.utils.FSTSerializers.java.time;
 
 import java.io.IOException;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
