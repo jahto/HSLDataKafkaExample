@@ -412,9 +412,9 @@ public class LineTransformer {
 
         if (missing != null && missing.size() > 0) {
             for (TripStop miss : missing) {
-                Integer diff = miss.arrivalTime - left.getDelay();
-                LocalTime newtime = LocalTime.ofSecondOfDay(diff);
-                // LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
+                //Integer diff = miss.arrivalTime - left.getDelay();
+                //LocalTime newtime = LocalTime.ofSecondOfDay(diff);
+                LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
                 ServiceStop toadd = new ServiceStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;

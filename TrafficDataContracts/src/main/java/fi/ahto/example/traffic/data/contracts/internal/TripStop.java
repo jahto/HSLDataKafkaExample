@@ -36,10 +36,10 @@ public class TripStop implements Serializable {
     public String stopid;
     @JsonProperty("Sequence")
     public int seq;
-    //@JsonProperty("ArrivalTime")
-    //public LocalTime arrivalTime;
     @JsonProperty("ArrivalTime")
-    public Integer arrivalTime;
+    public LocalTime arrivalTime;
+    //@JsonProperty("ArrivalTime")
+    //public Integer arrivalTime;
 
     @Override
     public int hashCode() {

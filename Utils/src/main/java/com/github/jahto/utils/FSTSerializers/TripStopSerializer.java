@@ -23,23 +23,42 @@ public class TripStopSerializer extends FSTBasicObjectSerializer {
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         TripStop st = (TripStop) toWrite;
-        out.writeUTF(st.stopid);
+        writeUTFOrNull(st.stopid, out);
         out.writeInt(st.seq);
-        out.writeInt(st.arrivalTime);
-        //SerializerImplementations.serializeLocalTime(st.arrivalTime, out);
+        SerializerImplementations.serializeLocalTime(st.arrivalTime, out);
     }
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         TripStop st = new TripStop();
-        st.stopid = in.readUTF();
+        st.stopid = readUTFOrNull(in);
         st.seq = in.readInt();
-        st.arrivalTime = in.readInt();
-        //st.arrivalTime = (LocalTime) SerializerImplementations.deserializeLocalTime(in);
+        st.arrivalTime = (LocalTime) SerializerImplementations.deserializeLocalTime(in);
         return st;
     }
     @Override
     public boolean alwaysCopy() {
         return true;
+    }
+
+    private void writeUTFOrNull(String str, FSTObjectOutput out) throws IOException {
+        if (str == null) {
+            out.writeByte(FSTObjectOutput.NULL);
+            return;
+        }
+        out.writeByte(FSTObjectOutput.STRING);
+        out.writeUTF(str);
+    }
+    
+    private String readUTFOrNull(FSTObjectInput in) throws IOException {
+        byte code = in.readByte();
+        if (code == FSTObjectOutput.NULL) {
+            
+        }
+        // Shouldn't happen..
+        if (code != FSTObjectOutput.STRING) {
+            return null;
+        }
+        return in.readUTF();
     }
 }

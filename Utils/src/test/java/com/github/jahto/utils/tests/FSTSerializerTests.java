@@ -122,11 +122,11 @@ public class FSTSerializerTests {
         TripStop stop1 = new TripStop();
         stop1.stopid = "STOP1";
         stop1.seq = 1;
-        stop1.arrivalTime = LocalTime.of(15, 10).toSecondOfDay();
+        stop1.arrivalTime = LocalTime.of(15, 10);
         TripStop stop2 = new TripStop();
         stop2.stopid = "STOP2";
         stop2.seq = 2;
-        stop2.arrivalTime = LocalTime.of(15, 15).toSecondOfDay();
+        stop2.arrivalTime = LocalTime.of(15, 15);
         set.add(stop1);
         set.add(stop2);
         

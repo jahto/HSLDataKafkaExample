@@ -194,8 +194,8 @@ public class DataMapper {
         TripStop ts = new TripStop();
         ts.stopid = stopid;
         ts.seq = st.getStopSequence();
-        // ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
-        ts.arrivalTime = st.getArrivalTime();
+        ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
+        //ts.arrivalTime = st.getArrivalTime();
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }

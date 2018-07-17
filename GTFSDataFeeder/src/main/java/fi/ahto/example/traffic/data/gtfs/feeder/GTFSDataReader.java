@@ -204,10 +204,10 @@ public class GTFSDataReader implements ApplicationRunner {
                     service.route = v.route;
                 }
                 if (v.direction.equals("0")) {
-                    service.timesforward.put(stop.arrivalTime, k);
+                    service.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
                 if (v.direction.equals("1")) {
-                    service.timesbackward.put(stop.arrivalTime, k);
+                    service.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
             }
             ServiceTrips block = mapper.servicetrips.get(v.block);
@@ -217,10 +217,10 @@ public class GTFSDataReader implements ApplicationRunner {
                     service.route = v.route;
                 }
                 if (v.direction.equals("0")) {
-                    block.timesforward.put(stop.arrivalTime, k);
+                    block.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
                 if (v.direction.equals("1")) {
-                    block.timesbackward.put(stop.arrivalTime, k);
+                    block.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
             }
         });
