@@ -103,7 +103,7 @@ public class GTFSDataReader implements ApplicationRunner {
         }
         return null;
     }
-    
+
     ProducerRecord sendRecord(String topic, String key, ServiceList value) {
         Serializer ser = fstslserde.serializer();
         byte[] msg = ser.serialize(topic, value);
@@ -193,73 +193,83 @@ public class GTFSDataReader implements ApplicationRunner {
 
     private void triggerChanges() {
         mapper.trips.forEach((k, v) -> {
-            TripStop stop = v.first();
-            String serviceid = v.service;
-            String routeid = v.route;
-            // String key = serviceid + ":" + routeid;
-            String key = serviceid;
-            ServiceTrips service = mapper.servicetrips.get(key);
-            if (service != null) {
-                if (service.route == null) {
-                    LOG.warn("Logic error!");
-                    service.route = v.route;
+            try {
+                TripStop stop = v.first();
+                String serviceid = v.service;
+                String routeid = v.route;
+                // String key = serviceid + ":" + routeid;
+                String key = serviceid;
+                ServiceTrips service = mapper.servicetrips.get(key);
+                if (service != null) {
+                    if (service.route == null) {
+                        LOG.warn("Logic error!");
+                        service.route = v.route;
+                    }
+                    if (v.direction.equals("0")) {
+                        service.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
+                    }
+                    if (v.direction.equals("1")) {
+                        service.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
+                    }
                 }
-                if (v.direction.equals("0")) {
-                    service.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
+                ServiceTrips block = mapper.servicetrips.get(v.block);
+                if (block != null) {
+                    if (service.route == null) {
+                        LOG.warn("Logic error!");
+                        service.route = v.route;
+                    }
+                    if (v.direction.equals("0")) {
+                        block.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
+                    }
+                    if (v.direction.equals("1")) {
+                        block.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
+                    }
                 }
-                if (v.direction.equals("1")) {
-                    service.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
-                }
-            }
-            ServiceTrips block = mapper.servicetrips.get(v.block);
-            if (block != null) {
-                if (service.route == null) {
-                    LOG.warn("Logic error!");
-                    service.route = v.route;
-                }
-                if (v.direction.equals("0")) {
-                    block.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
-                }
-                if (v.direction.equals("1")) {
-                    block.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
-                }
+            } catch (Exception e) {
+                LOG.warn("{}", e);
             }
         });
 
-        mapper.services.forEach((k, v) -> {
-            for (String route : v.routeIds) {
-                ServiceList list = routeservices.get(route);
-                if (list == null) {
-                    list = new ServiceList();
-                    routeservices.put(route, list);
+        mapper.services.forEach(
+                (k, v) -> {
+                    for (String route : v.routeIds) {
+                        ServiceList list = routeservices.get(route);
+                        if (list == null) {
+                            list = new ServiceList();
+                            routeservices.put(route, list);
+                        }
+                        list.add(v);
+                    }
                 }
-                list.add(v);
-            }
-        });
+        );
 
         LOG.debug("Sending routes-to-services maps");
-        routeservices.forEach((k, v) -> {
-            //kafkaTemplate.send("routes-to-services", k, v);
-            ProducerRecord record = sendRecord("routes-to-services", k, v);
-            //kafkaTemplate.send(record);
-            LOG.info("rts {}", k);
-        });
+        routeservices.forEach(
+                (k, v) -> {
+                    //kafkaTemplate.send("routes-to-services", k, v);
+                    ProducerRecord record = sendRecord("routes-to-services", k, v);
+                    //kafkaTemplate.send(record);
+                    LOG.info("rts {}", k);
+                }
+        );
 
         LOG.debug("Sending services-to-trips maps");
-        mapper.servicetrips.forEach((k, v) -> {
-            if (k != null && v != null) {
-                if (v.route != null) {
-                    //kafkaTemplate.send("services-to-trips", k, v);
-                    ProducerRecord record = sendRecord("services-to-trips", k, v);
-                    //kafkaTemplate.send(record);
-                    LOG.info("stt {} to partition for {}", k, v.route);
-                } else {
-                    LOG.warn("Logic error!");
+        mapper.servicetrips.forEach(
+                (k, v) -> {
+                    if (k != null && v != null) {
+                        if (v.route != null) {
+                            //kafkaTemplate.send("services-to-trips", k, v);
+                            ProducerRecord record = sendRecord("services-to-trips", k, v);
+                            //kafkaTemplate.send(record);
+                            LOG.info("stt {} to partition for {}", k, v.route);
+                        } else {
+                            LOG.warn("Logic error!");
+                        }
+                    } else {
+                        LOG.warn("Logic error!");
+                    }
                 }
-            } else {
-                LOG.warn("Logic error!");
-            }
-        });
+        );
 
         LOG.debug("Sending stops");
         mapper.stops.forEach(
@@ -276,7 +286,7 @@ public class GTFSDataReader implements ApplicationRunner {
                     //kafkaTemplate.send("routes", k, v);
                 }
         );
-        
+
         LOG.debug("Sending trips");
         mapper.trips.forEach(
                 (k, v) -> {
@@ -286,7 +296,7 @@ public class GTFSDataReader implements ApplicationRunner {
                     //kafkaTemplate.send(record);
                 }
         );
-        
+
         LOG.debug("Sending shapes");
         collector.shapes.forEach(
                 (k, v) -> {
@@ -294,7 +304,7 @@ public class GTFSDataReader implements ApplicationRunner {
                     //kafkaTemplate.send("shapes", k, v);
                 }
         );
-        
+
     }
 
     @Component

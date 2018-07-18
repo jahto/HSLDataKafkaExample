@@ -88,21 +88,6 @@ public class LineTransformer {
         LOG.debug("VehicleActivityTransformers created");
     }
 
-    static class UnneededCruftSupplier implements ProcessorSupplier<String, Change<ServiceTrips>> {
-
-        @Override
-        public Processor<String, Change<ServiceTrips>> get() {
-            return new AbstractProcessor<String, Change<ServiceTrips>>() {
-                @Override
-                public void process(String k, Change<ServiceTrips> v) {
-                    LOG.info("Processing change event");
-                    this.context().forward(k, v.newValue);
-                    this.context().commit();
-                }
-            };
-        }
-    }
-
     @Bean
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-lineid");
@@ -232,7 +217,7 @@ public class LineTransformer {
                                 return null;
                             }
 
-                            LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
+                            LOG.debug("Found correct trip for service {}, route {}, line {}, time {}",
                                     value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                             return value;
                         }
@@ -339,9 +324,6 @@ public class LineTransformer {
             cnt++;
         }
         va.setPossibilities(possibilities);
-        if ("FI:HSL:1077".equals(va.getInternalLineId())) {
-            int i = 0;
-        }
         return va;
     }
 
@@ -483,9 +465,9 @@ public class LineTransformer {
                 }
 
                 if (current.LineHasChanged()) {
-                    LOG.debug("Removing all remaining stops for vehicle " + current.getVehicleId());
+                    LOG.debug("Removing all remaining stops for vehicle {}", current.getVehicleId());
                     for (ServiceStop ss : current.getOnwardCalls()) {
-                        LOG.debug("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
+                        LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.remove = true;
                         vas.vehicleId = previous.getVehicleId();
@@ -524,7 +506,7 @@ public class LineTransformer {
                 }
 
                 if (fixed) {
-                    LOG.info("Fixed estimated arrival times.");
+                    LOG.debug("Fixed estimated arrival times.");
                 }
 
                 if (curstop != null) {
@@ -534,7 +516,7 @@ public class LineTransformer {
                         // to them anymore. Push the information to some queue.
                         LOG.debug("Removing stops.");
                         for (ServiceStop ss : remove) {
-                            LOG.debug("Removing vehicle " + current.getVehicleId() + " from stop " + ss.stopid);
+                            LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
                             VehicleAtStop vas = new VehicleAtStop();
                             vas.remove = true;
                             vas.vehicleId = current.getVehicleId();

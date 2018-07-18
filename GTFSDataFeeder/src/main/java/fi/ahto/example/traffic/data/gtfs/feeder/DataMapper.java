@@ -64,7 +64,9 @@ public class DataMapper {
     }
 
     public void add(String prefix, ServiceCalendar sc) {
-        ServiceData sd = services.get(prefix + sc.getServiceId().getId());
+        String key = prefix + sc.getServiceId().getId();
+        key = compressedId(key);
+        ServiceData sd = services.get(key);
         if (sd == null) {
             LOG.warn("Service not found " + sc.getServiceId().getId());
             return;
@@ -101,7 +103,9 @@ public class DataMapper {
 
     public void add(String prefix, ServiceCalendarDate sct) {
         if (sct.getExceptionType() == 1) {
-            ServiceData sd = services.get(prefix + sct.getServiceId().getId());
+        String key = prefix + sct.getServiceId().getId();
+        key = compressedId(key);
+            ServiceData sd = services.get(key);
             if (sd != null) {
                 ServiceDate dt = sct.getDate();
                 LocalDate notinuse = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDay());
@@ -115,6 +119,7 @@ public class DataMapper {
         // 64-bit murmur2 could be a possibility if the strings are still too long.
         long murmur2id = Murmur2.hash64(data, data.length, MURMUR_SEED);
         String newid = Base64.encodeBase64URLSafeString(longToBytes(murmur2id));
+        // return newid;
         return id;
     }
 
@@ -132,11 +137,11 @@ public class DataMapper {
         String blockid = prefix + st.getTrip().getBlockId();
         // String srkey = serviceid + ":" + routeid;
         // String srkey = prefix + serviceid ;
-        String srkey = serviceid ;
+        // String srkey = serviceid ;
         String tripid = prefix + st.getTrip().getId().getId();
 
-        //serviceid = compressedId(serviceid);
-        //tripid = compressedId(tripid);
+        serviceid = compressedId(serviceid);
+        tripid = compressedId(tripid);
 
         StopData stop = stops.get(stopid);
         if (stop == null) {
@@ -167,11 +172,11 @@ public class DataMapper {
             LOG.debug("Added route " + routeid);
         }
 
-        ServiceTrips servicetripmap = servicetrips.get(srkey);
+        ServiceTrips servicetripmap = servicetrips.get(serviceid);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
             servicetripmap.route = routeid;
-            servicetrips.put(srkey, servicetripmap);
+            servicetrips.put(serviceid, servicetripmap);
             LOG.debug("Added service " + serviceid + " to route " + routeid);
         }
 
