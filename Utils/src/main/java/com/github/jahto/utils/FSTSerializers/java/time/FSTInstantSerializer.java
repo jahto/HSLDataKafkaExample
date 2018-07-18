@@ -1,7 +1,17 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2015-2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.github.jahto.utils.FSTSerializers.java.time;
 
@@ -13,7 +23,7 @@ import org.nustaq.serialization.FSTObjectOutput;
 
 /**
  *
- * @author jah
+ * @author Jouni Ahto
  */
 public class FSTInstantSerializer extends FSTBasicObjectSerializer {
 
@@ -22,14 +32,6 @@ public class FSTInstantSerializer extends FSTBasicObjectSerializer {
         SerializerImplementations.serializeInstant(toWrite, out);
     }
 
-
-    /**
-     * @return true if FST can skip a search for same instances in the
-     * serialized ObjectGraph. This speeds up reading and writing and makes
-     * sense for short immutable such as Integer, Short, Character, Date, .. .
-     * For those classes it is more expensive (CPU, size) to do a lookup than to
-     * just write the Object twice in case.
-     */
     @Override
     public boolean alwaysCopy() {
         return true;

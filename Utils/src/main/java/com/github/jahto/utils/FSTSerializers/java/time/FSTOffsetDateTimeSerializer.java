@@ -42,5 +42,4 @@ public class FSTOffsetDateTimeSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
         return SerializerImplementations.deserializeOffsetDateTime(in);
     }
-
 }
