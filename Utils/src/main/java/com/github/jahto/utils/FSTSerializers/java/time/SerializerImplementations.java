@@ -39,30 +39,11 @@ import org.nustaq.serialization.FSTObjectOutput;
  */
 public class SerializerImplementations {
 
-    public static Object deserializeLocalTime(FSTObjectInput in) throws IOException {
-        byte h = in.readByte();
-        boolean hasMinutes = (h & 0b10000000) == 0;
-        boolean hasSeconds = (h & 0b01000000) == 0;
-        boolean hasNanos = (h & 0b00100000) == 0;
-        h &= 0b00011111;
-        byte m = 0;
-        byte s = 0;
-        int n = 0;
-        if (hasMinutes) {
-            m = in.readByte();
-        }
-        if (hasSeconds) {
-            s = in.readByte();
-        }
-        if (hasNanos) {
-            n = in.readInt();
-        }
-        Object res = LocalTime.of(h, m, s, n);
-        return res;
-    }
-
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
+        // Minutes guaranteed by Java specs to be in range 0...59, which fits in 5 bits,
+        // and we can use there remaining 3 higher ones to indicate if the remaining fields
+        // are 0, which we don't bother to write, or something else.
         boolean hasMinutes = ld.getMinute() != 0;
         boolean hasSeconds = ld.getSecond() != 0;
         boolean hasNanos = ld.getNano() != 0;
@@ -88,23 +69,33 @@ public class SerializerImplementations {
         }
     }
 
-    public static Object deserializeLocalDate(FSTObjectInput in) throws IOException {
-        int year = in.readInt();
-        byte month = in.readByte();
-        byte day = in.readByte();
-        Object res = LocalDate.of(year, month, day);
+    public static Object deserializeLocalTime(FSTObjectInput in) throws IOException {
+        byte h = in.readByte();
+        boolean hasMinutes = (h & 0b10000000) == 0;
+        boolean hasSeconds = (h & 0b01000000) == 0;
+        boolean hasNanos = (h & 0b00100000) == 0;
+        h &= 0b00011111;
+        byte m = 0;
+        byte s = 0;
+        int n = 0;
+        if (hasMinutes) {
+            m = in.readByte();
+        }
+        if (hasSeconds) {
+            s = in.readByte();
+        }
+        if (hasNanos) {
+            n = in.readInt();
+        }
+        Object res = LocalTime.of(h, m, s, n);
         return res;
-    }
-
-    public static void serializeLocalDate(Object toWrite, FSTObjectOutput out) throws IOException {
-        LocalDate ld = (LocalDate) toWrite;
-        out.writeInt(ld.getYear());
-        out.writeByte(ld.getMonthValue());
-        out.writeByte(ld.getDayOfMonth());
     }
 
     public static void serializeInstant(Object toWrite, FSTObjectOutput out) throws IOException {
         Instant inst = (Instant) toWrite;
+        // Guaranteed by Java specs to be in range -31557014167219200L...31556889864403199L,
+        // so we have some extra bits to use for optimization, and can avoid writing nanos
+        // totally if there aren't any.
         long s = inst.getEpochSecond();
         int n = inst.getNano();
         if (s < 0) {
@@ -136,11 +127,19 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static Object deserializeZonedDateTime(FSTObjectInput in) throws IOException {
-        LocalDate date = (LocalDate) deserializeLocalDate(in);
-        LocalTime time = (LocalTime) deserializeLocalTime(in);
-        ZoneId zone = (ZoneId) deserializeZoneId(in);
-        Object res = ZonedDateTime.of(date, time, zone);
+    public static void serializeLocalDate(Object toWrite, FSTObjectOutput out) throws IOException {
+        LocalDate ld = (LocalDate) toWrite;
+        out.writeInt(ld.getYear());
+        // Both guaranteed by Java specs to fit in a byte
+        out.writeByte(ld.getMonthValue());
+        out.writeByte(ld.getDayOfMonth());
+    }
+
+    public static Object deserializeLocalDate(FSTObjectInput in) throws IOException {
+        int year = in.readInt();
+        byte month = in.readByte();
+        byte day = in.readByte();
+        Object res = LocalDate.of(year, month, day);
         return res;
     }
 
@@ -151,10 +150,11 @@ public class SerializerImplementations {
         serializeZoneId(zdt.getZone(), out);
     }
 
-    public static Object deserializeLocalDateTime(FSTObjectInput in) throws IOException {
+    public static Object deserializeZonedDateTime(FSTObjectInput in) throws IOException {
         LocalDate date = (LocalDate) deserializeLocalDate(in);
         LocalTime time = (LocalTime) deserializeLocalTime(in);
-        Object res = LocalDateTime.of(date, time);
+        ZoneId zone = (ZoneId) deserializeZoneId(in);
+        Object res = ZonedDateTime.of(date, time, zone);
         return res;
     }
 
@@ -164,11 +164,10 @@ public class SerializerImplementations {
         serializeLocalTime(zdt.toLocalTime(), out);
     }
 
-    public static Object deserializeOffsetDateTime(FSTObjectInput in) throws IOException {
+    public static Object deserializeLocalDateTime(FSTObjectInput in) throws IOException {
         LocalDate date = (LocalDate) deserializeLocalDate(in);
         LocalTime time = (LocalTime) deserializeLocalTime(in);
-        ZoneOffset off = (ZoneOffset) deserializeZoneOffset(in);
-        Object res = OffsetDateTime.of(date, time, off);
+        Object res = LocalDateTime.of(date, time);
         return res;
     }
 
@@ -179,6 +178,22 @@ public class SerializerImplementations {
         serializeZoneOffset(zdt.getOffset(), out);
     }
 
+    public static Object deserializeOffsetDateTime(FSTObjectInput in) throws IOException {
+        LocalDate date = (LocalDate) deserializeLocalDate(in);
+        LocalTime time = (LocalTime) deserializeLocalTime(in);
+        ZoneOffset off = (ZoneOffset) deserializeZoneOffset(in);
+        Object res = OffsetDateTime.of(date, time, off);
+        return res;
+    }
+
+    public static void serializePeriod(Object toWrite, FSTObjectOutput out) throws IOException {
+        Period p = (Period) toWrite;
+        // No limits in Java specs, so no chance to optimize
+        out.writeInt(p.getYears());
+        out.writeInt(p.getMonths());
+        out.writeInt(p.getDays());
+    }
+
     public static Object deserializePeriod(FSTObjectInput in) throws IOException {
         int y = in.readInt();
         int m = in.readInt();
@@ -187,11 +202,11 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void serializePeriod(Object toWrite, FSTObjectOutput out) throws IOException {
-        Period p = (Period) toWrite;
-        out.writeInt(p.getYears());
-        out.writeInt(p.getMonths());
-        out.writeInt(p.getDays());
+    public static void serializeDuration(Object toWrite, FSTObjectOutput out) throws IOException {
+        Duration d = (Duration) toWrite;
+        // No limits in Java specs, so no chance to optimize
+        out.writeLong(d.getSeconds());
+        out.writeInt(d.getNano());
     }
 
     public static Object deserializeDuration(FSTObjectInput in) throws IOException {
@@ -201,10 +216,9 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void serializeDuration(Object toWrite, FSTObjectOutput out) throws IOException {
-        Duration d = (Duration) toWrite;
-        out.writeLong(d.getSeconds());
-        out.writeInt(d.getNano());
+    public static void serializeYear(Object toWrite, FSTObjectOutput out) throws IOException {
+        Year y = (Year) toWrite;
+        out.writeInt(y.getValue());
     }
 
     public static Object deserializeYear(FSTObjectInput in) throws IOException {
@@ -213,9 +227,11 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void serializeYear(Object toWrite, FSTObjectOutput out) throws IOException {
-        Year y = (Year) toWrite;
-        out.writeInt(y.getValue());
+    public static void serializeYearMonth(Object toWrite, FSTObjectOutput out) throws IOException {
+        YearMonth y = (YearMonth) toWrite;
+        out.writeInt(y.getYear());
+        // Month guaranteed by Java specs to fit in a byte
+        out.writeByte(y.getMonthValue());
     }
 
     public static Object deserializeYearMonth(FSTObjectInput in) throws IOException {
@@ -225,10 +241,11 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void serializeYearMonth(Object toWrite, FSTObjectOutput out) throws IOException {
-        YearMonth y = (YearMonth) toWrite;
-        out.writeInt(y.getYear());
-        out.writeByte(y.getMonthValue());
+    public static void serializeMonthDay(Object toWrite, FSTObjectOutput out) throws IOException {
+        MonthDay md = (MonthDay) toWrite;
+        // Both guaranteed by Java specs to fit in a byte
+        out.writeByte(md.getMonthValue());
+        out.writeByte(md.getDayOfMonth());
     }
 
     public static Object deserializeMonthDay(FSTObjectInput in) throws IOException {
@@ -238,28 +255,20 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void serializeMonthDay(Object toWrite, FSTObjectOutput out) throws IOException {
-        MonthDay md = (MonthDay) toWrite;
-        out.writeByte(md.getMonthValue());
-        out.writeByte(md.getDayOfMonth());
+    public static void serializeZoneId(Object toWrite, FSTObjectOutput out) throws IOException {
+        ZoneId id = (ZoneId) toWrite;
+        // Could be enhanced somewhat by constructing a list of 254 suitable ZoneIds and writing it
+        // as one byte, or 0 if not in the list and then whe whole name. Possibilities for the list:
+        // - remove all aliases
+        // - remove all past zones, ie. not in use year 2018
+        // - sort the remaining ones by approximate population
+        // - take the top 254.
+        out.writeStringUTF(id.getId());
     }
 
     public static Object deserializeZoneId(FSTObjectInput in) throws IOException {
         String id = in.readStringUTF();
         Object res = ZoneId.of(id);
-        return res;
-    }
-
-    public static void serializeZoneId(Object toWrite, FSTObjectOutput out) throws IOException {
-        ZoneId id = (ZoneId) toWrite;
-        out.writeStringUTF(id.getId());
-    }
-
-    public static Object deserializeZoneOffset(FSTObjectInput in) throws IOException {
-        int s = in.readByte();
-        // Idea and code taken from JDK sources
-        s = (s == 127 ? readThreeByteInt(in) : s * 900);
-        Object res = ZoneOffset.ofTotalSeconds(s);
         return res;
     }
 
@@ -270,8 +279,17 @@ public class SerializerImplementations {
         s = s % 900 == 0 ? s / 900 : 127; // compress to -72 to +72
         out.writeByte(s);
         if (s == 127) {
+            // Offset guaranteed to be in range -64800...64800, so will fit in three bytes.
             writeThreeByteInt(s, out);
         }
+    }
+
+    public static Object deserializeZoneOffset(FSTObjectInput in) throws IOException {
+        int s = in.readByte();
+        // Idea and code taken from JDK sources
+        s = (s == 127 ? readThreeByteInt(in) : s * 900);
+        Object res = ZoneOffset.ofTotalSeconds(s);
+        return res;
     }
 
     public static void writeThreeByteInt(int val, FSTObjectOutput out) throws IOException {
