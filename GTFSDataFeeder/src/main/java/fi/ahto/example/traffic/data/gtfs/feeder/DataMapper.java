@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
+import com.sangupta.murmur.Murmur2;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
@@ -22,10 +23,12 @@ import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.codec.binary.Base64;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -50,6 +53,8 @@ public class DataMapper {
     public Map<String, ServiceTrips> blocks = new HashMap<>();
 
     private static final Map<Integer, Integer> routeFixes = new HashMap<>();
+
+    private static final long MURMUR_SEED = 0x7f3a21eaL;
 
     static {
         routeFixes.put(109, 2);
@@ -105,18 +110,33 @@ public class DataMapper {
         }
     }
 
-    private String hashedId(String id) {
+    private String compressedId(String id) {
+        byte[] data = id.getBytes();
+        // 64-bit murmur2 could be a possibility if the strings are still too long.
+        long murmur2id = Murmur2.hash64(data, data.length, MURMUR_SEED);
+        String newid = Base64.encodeBase64URLSafeString(longToBytes(murmur2id));
         return id;
     }
-    
+
+    public byte[] longToBytes(long x) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(x);
+        return buffer.array();
+    }
+
     public void add(String prefix, StopTime st) {
         dataFixer(prefix, st);
         String stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
         String serviceid = prefix + st.getTrip().getServiceId().getId();
-        String blockid = st.getTrip().getBlockId();
-        String srkey = serviceid + ":" + routeid;
-        String tripid = st.getTrip().getId().getId();
+        String blockid = prefix + st.getTrip().getBlockId();
+        // String srkey = serviceid + ":" + routeid;
+        // String srkey = prefix + serviceid ;
+        String srkey = serviceid ;
+        String tripid = prefix + st.getTrip().getId().getId();
+
+        //serviceid = compressedId(serviceid);
+        //tripid = compressedId(tripid);
 
         StopData stop = stops.get(stopid);
         if (stop == null) {

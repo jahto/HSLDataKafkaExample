@@ -209,7 +209,7 @@ public class LineTransformer {
                     for (String s : v.getPossibilities()) {
                         VehicleActivity va = new VehicleActivity(v);
                         va.setServiceID(s);
-                        String key = va.getServiceID() + ":" + va.getInternalLineId();
+                        String key = va.getServiceID();// + ":" + va.getInternalLineId();
                         rval.add(va);
                         //rval.add(KeyValue.pair(key, va));
                     }
@@ -217,9 +217,9 @@ public class LineTransformer {
                 });
         
         KStream<String, VehicleActivity> hasnotblockid = tripstreamalt
-                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getServiceID() + ":" + value.getInternalLineId(),
+                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getServiceID(), // + ":" + value.getInternalLineId(),
                         (VehicleActivity value, ServiceTrips right) -> {
-                            String newkey = value.getServiceID() + ":" + value.getInternalLineId();
+                            String newkey = value.getServiceID(); // + ":" + value.getInternalLineId();
                             if (right == null) {
                                 LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
                             } else {

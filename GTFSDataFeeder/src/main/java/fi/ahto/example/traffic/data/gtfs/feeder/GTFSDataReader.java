@@ -196,7 +196,8 @@ public class GTFSDataReader implements ApplicationRunner {
             TripStop stop = v.first();
             String serviceid = v.service;
             String routeid = v.route;
-            String key = serviceid + ":" + routeid;
+            // String key = serviceid + ":" + routeid;
+            String key = serviceid;
             ServiceTrips service = mapper.servicetrips.get(key);
             if (service != null) {
                 if (service.route == null) {
