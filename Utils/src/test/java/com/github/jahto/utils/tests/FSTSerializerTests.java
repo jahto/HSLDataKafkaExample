@@ -12,6 +12,7 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import com.github.jahto.utils.FSTSerializers.*;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
 /*
 import com.github.jahto.utils.FSTSerializers.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.FSTLocalDateSerializer;
@@ -26,6 +27,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Year;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import org.junit.Test;
 import org.nustaq.serialization.FSTConfiguration;
@@ -49,6 +52,29 @@ public class FSTSerializerTests {
             int j = SerializerImplementations.readThreeByteInt(in);
             assertThat(j, is(i));
         }
+    }
+    
+    //@Test
+    public void test_YearMonth() {
+        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        conf.registerSerializer(YearMonth.class, new FSTYearMonthSerializer(), false);
+        FSTSerde<YearMonth> serde = new FSTSerde<>(YearMonth.class, conf);
+        YearMonth ym = YearMonth.of(Year.MAX_VALUE, 12);
+        byte[] ser = serde.serializer().serialize("foo", ym);
+        YearMonth max = serde.deserializer().deserialize("foobar", ser);
+        ym = YearMonth.of(Year.MIN_VALUE, 1);
+        ser = serde.serializer().serialize("foo", ym);
+        YearMonth min = serde.deserializer().deserialize("foobar", ser);
+        
+        ym = YearMonth.of(2018, 7);
+        ser = serde.serializer().serialize("foo", ym);
+        YearMonth now = serde.deserializer().deserialize("foobar", ser);
+
+        ym = YearMonth.of(-2018, 7);
+        ser = serde.serializer().serialize("foo", ym);
+        YearMonth past = serde.deserializer().deserialize("foobar", ser);
+
+        int i = ym.getYear();
     }
     
     @Test

@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.MonthDay;
 import java.time.OffsetDateTime;
 import java.time.Period;
@@ -37,7 +38,10 @@ import org.nustaq.serialization.FSTObjectOutput;
  *
  * @author Jouni Ahto
  */
+
 public class SerializerImplementations {
+    
+    private static final int YEAR_ADJUST = 2018;
 
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
@@ -129,17 +133,17 @@ public class SerializerImplementations {
 
     public static void serializeLocalDate(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalDate ld = (LocalDate) toWrite;
-        out.writeInt(ld.getYear());
-        // Both guaranteed by Java specs to fit in a byte
-        out.writeByte(ld.getMonthValue());
+        YearMonth ym = YearMonth.of(ld.getYear(), ld.getMonthValue());
+        // See explanation in that method, there's a way to compress the value. 
+        serializeYearMonth(ym, out);
+        // Guaranteed by Java specs to fit in a byte
         out.writeByte(ld.getDayOfMonth());
     }
 
     public static Object deserializeLocalDate(FSTObjectInput in) throws IOException {
-        int year = in.readInt();
-        byte month = in.readByte();
+        YearMonth ym = (YearMonth) deserializeYearMonth(in);
         byte day = in.readByte();
-        Object res = LocalDate.of(year, month, day);
+        Object res = LocalDate.of(ym.getYear(), ym.getMonthValue(), day);
         return res;
     }
 
@@ -228,15 +232,76 @@ public class SerializerImplementations {
     }
 
     public static void serializeYearMonth(Object toWrite, FSTObjectOutput out) throws IOException {
-        YearMonth y = (YearMonth) toWrite;
-        out.writeInt(y.getYear());
-        // Month guaranteed by Java specs to fit in a byte
-        out.writeByte(y.getMonthValue());
+        YearMonth ym = (YearMonth) toWrite;
+        // Month guaranteed by Java specs to in range 1...12. Which leaves
+        // the upper bits free to use for decoding to express if the year needs
+        // 1, 2, 3 or 4 bytes. My hunch is that the year is in most common use
+        // cases somewhere near present time (2018 when this was written) and
+        // can then be compressed to one byte.
+        byte m = (byte) ym.getMonthValue();
+        int y = ym.getYear() - YEAR_ADJUST;
+        boolean oneByteYear = false;
+        boolean twoByteYear = false;
+        boolean threeByteYear = false;
+        boolean negativeYear = y < 0;
+        if (negativeYear) {
+            m |= 0b00010000;
+            y = ~y;
+        }
+        if (y < 128) {
+            oneByteYear = true;
+            m |= 0b00100000;
+        }
+        else if (y < 32768) {
+            twoByteYear = true;
+            m |= 0b01000000;
+        }
+        else if (y < 8388608) {
+            threeByteYear = true;
+            m |= 0b10000000;
+        }
+        out.writeByte(m);
+        if (oneByteYear) {
+            out.writeByte(y);
+        }
+        else if (twoByteYear) {
+            out.writeShort(y);
+        }
+        else if (threeByteYear) {
+            writeThreeByteInt(y, out);
+        }
+        else {
+            out.writeInt(y);
+        }
     }
 
     public static Object deserializeYearMonth(FSTObjectInput in) throws IOException {
-        int y = in.readInt();
+        int y;
         byte m = in.readByte();
+        boolean negativeYear = (m & 0b00010000) != 0;
+        boolean oneByteYear = (m & 0b00100000) != 0;
+        boolean twoByteYear = (m & 0b01000000) != 0;
+        boolean threeByteYear = (m & 0b10000000) != 0;
+        m &= 0b00001111;
+        if (oneByteYear) {
+            y = in.readByte();
+        }
+        else if (twoByteYear) {
+            y = in.readShort();
+        }
+        else if (threeByteYear) {
+            y = readThreeByteInt(in);
+        }
+        else {
+            y = in.readInt();
+        }
+        if (negativeYear) {
+            y -= YEAR_ADJUST;
+            y = ~y;
+        }
+        else {
+            y += YEAR_ADJUST;
+        }
         YearMonth res = YearMonth.of(y, m);
         return res;
     }
