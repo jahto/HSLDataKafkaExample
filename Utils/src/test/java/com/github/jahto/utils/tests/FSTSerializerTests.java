@@ -13,6 +13,8 @@ import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import com.github.jahto.utils.FSTSerializers.*;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneIdSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 /*
 import com.github.jahto.utils.FSTSerializers.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.FSTLocalDateSerializer;
@@ -29,7 +31,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Year;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Set;
+import java.util.TreeSet;
 import org.junit.Test;
 import org.nustaq.serialization.FSTConfiguration;
 import static org.junit.Assert.*;
@@ -54,7 +60,7 @@ public class FSTSerializerTests {
         }
     }
     
-    //@Test
+    @Test
     public void test_YearMonth() {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         conf.registerSerializer(YearMonth.class, new FSTYearMonthSerializer(), false);
@@ -130,16 +136,16 @@ public class FSTSerializerTests {
     }
     
     @Test
-    public void test_ZoneOffset() {
+    public void test_ZonedDateTime() {
+        //Africa/Abidjan
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
-        conf.registerSerializer(ZoneOffset.class, new FSTZoneOffsetSerializer(), false);
-        FSTSerde<ZoneOffset> serde = new FSTSerde<>(ZoneOffset.class, conf);
-        byte[] ser = serde.serializer().serialize("foo", ZoneOffset.MAX);
-        ZoneOffset max = serde.deserializer().deserialize("foobar", ser);
-        assertThat(max, is(ZoneOffset.MAX));
-        ser = serde.serializer().serialize("foo", ZoneOffset.MIN);
-        ZoneOffset min = serde.deserializer().deserialize("foobar", ser);
-        assertThat(min, is(ZoneOffset.MIN));
+        conf.registerSerializer(ZonedDateTime.class, new FSTZonedDateTimeSerializer(), false);
+        FSTSerde<ZonedDateTime> serde = new FSTSerde<>(ZonedDateTime.class, conf);
+        byte[] ser = serde.serializer().serialize("foo", ZonedDateTime.now());
+        ZonedDateTime now = serde.deserializer().deserialize("foobar", ser);
+        ser = serde.serializer().serialize("foo", ZonedDateTime.now().withZoneSameInstant(ZoneId.of("Africa/Abidjan")));
+        ZonedDateTime now2 = serde.deserializer().deserialize("foobar", ser);
+        int i = 0;
     }
     
     //@Test
