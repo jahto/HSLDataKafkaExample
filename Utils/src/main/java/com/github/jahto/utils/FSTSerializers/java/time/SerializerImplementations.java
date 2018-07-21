@@ -199,6 +199,34 @@ public class SerializerImplementations {
         out.writeInt(p.getDays());
     }
 
+    // Not implemented yet...
+    public static void serializePeriodAlt(Object toWrite, FSTObjectOutput out) throws IOException {
+        Period p = (Period) toWrite;
+        /*
+        Theory of Periods, and the most likely outcome is 40 bits, not 42...
+        Assume that in most cases, years, months and days are in somewhat reasonable
+        range, ie. not 50000000 years, -4000000 months, 75000000 days. Probably in most
+        cases the values could be encoded in just one byte. So we'll add one extra byte
+        containing that information.
+        Bits 0-1, bytes needed for the day.
+        Bits 2-3, bytes needed for the month.
+        Bits 4-5, bytes needed for the year.
+        Which leaves bits 6-7 for another use. Like encoding the information whether
+        days, months and years even exist or are zero instead. Possible alternatives:
+        noDays (00)
+        noMonths (01)
+        noYears (10)
+        yearsNeitherMonthsOrDays (11)
+        The last one was chosen somewhat arbitrarily, assuming that people needing
+        something like years being 5 million don't really need the exact month and date.
+        Sorry for the people who use Periods for predicting that the end of world will
+        happen after 50000000 years from now, on ThirteenMillionthMonths day 7123456.
+        They'll get 13 bytes written instead of the minimum 12, but I'd guess they
+        have a time nearing infinity to wait anyway, and everyone else benefits.
+        Besides, using Period was the wrong choice in any case.
+        */
+    }
+
     public static Object deserializePeriod(FSTObjectInput in) throws IOException {
         int y = in.readInt();
         int m = in.readInt();
@@ -212,6 +240,22 @@ public class SerializerImplementations {
         // No limits in Java specs, so no chance to optimize
         out.writeLong(d.getSeconds());
         out.writeInt(d.getNano());
+    }
+
+    // Not implemented yet...
+    public static void serializeDurationAlt(Object toWrite, FSTObjectOutput out) throws IOException {
+        Duration d = (Duration) toWrite;
+        /*
+        Theory of durations. People needing seconds to not be in
+        the range -2147483648...2147483647, ie. covering a little bit more
+        than -68...67 years, do not probably really need the nanoseconds part.
+        So just write an extra byte and encode that and how many bytes are
+        actually needed for each part, or do the nanos even exist. Probably
+        I don't bother to write read/write sevenByteLong, sixByteLong and
+        fiveByteLong variations, althoug threeByteInt versions could be
+        copy-pasted and modified. Writing that extra byte that need only one
+        bit to encode if there are nanos or not leaves exactly 7 bits... 
+        */
     }
 
     public static Object deserializeDuration(FSTObjectInput in) throws IOException {
