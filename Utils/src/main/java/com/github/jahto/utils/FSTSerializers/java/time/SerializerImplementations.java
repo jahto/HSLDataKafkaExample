@@ -199,6 +199,14 @@ public class SerializerImplementations {
         out.writeInt(p.getDays());
     }
 
+    public static Object deserializePeriod(FSTObjectInput in) throws IOException {
+        int y = in.readInt();
+        int m = in.readInt();
+        int d = in.readInt();
+        Period res = Period.of(y, m, d);
+        return res;
+    }
+
     // Not implemented yet...
     public static void serializePeriodAlt(Object toWrite, FSTObjectOutput out) throws IOException {
         Period p = (Period) toWrite;
@@ -213,26 +221,180 @@ public class SerializerImplementations {
         Bits 4-5, bytes needed for the year.
         Which leaves bits 6-7 for another use. Like encoding the information whether
         days, months and years even exist or are zero instead. Possible alternatives:
-        noDays (00)
-        noMonths (01)
-        noYears (10)
-        yearsNeitherMonthsOrDays (11)
-        The last one was chosen somewhat arbitrarily, assuming that people needing
-        something like years being 5 million don't really need the exact month and date.
+        hasEverything (00)
+        hasDaysOnly (01)
+        hasMonthsOnly (10)
+        hasYearsOnly (11)
+        No more bits left to use anymore, so something not stricly necessary will be
+        written anyway using one byte...
         Sorry for the people who use Periods for predicting that the end of world will
         happen after 50000000 years from now, on ThirteenMillionthMonths day 7123456.
         They'll get 13 bytes written instead of the minimum 12, but I'd guess they
         have a time nearing infinity to wait anyway, and everyone else benefits.
-        Besides, using Period was the wrong choice in any case.
+        Besides, using Period is the wrong choice in any case.
         */
+        byte codec = 0;
+        boolean oneByteDay = false;
+        boolean twoByteDay = false;
+        boolean threeByteDay = false;
+        boolean fourByteDay = false;
+        boolean oneByteMonth = false;
+        boolean twoByteMonth = false;
+        boolean threeByteMonth = false;
+        boolean fourByteMonth = false;
+        boolean oneByteYear = false;
+        boolean twoByteYear = false;
+        boolean threeByteYear = false;
+        boolean fourByteYear = false;
+        boolean hasDays = p.getDays() != 0;
+        boolean hasMonths = p.getMonths() != 0;
+        boolean hasYears = p.getYears() != 0;
+        boolean hasEverything = false;
+        
+        if (hasYears && hasMonths && hasDays) {
+            hasEverything = true;
+        }
+        else if (hasYears && !hasMonths && !hasDays) {
+            codec |=  0b1100_0000;
+        }
+        else if (!hasYears && hasMonths && !hasDays) {
+            codec |=  0b1000_0000;
+        }
+        else if (!hasYears && !hasMonths && hasDays) {
+            codec |=  0b0100_0000;
+        }
+        
+        if (hasDays) {
+            int i = p.getDays();
+            if (i >= -128 && i < 128) {
+                oneByteDay = true;
+            }
+            else if (i >= -32768 && i < 32768) {
+                codec |= 0b0000_0001;
+                twoByteDay = true;
+            }
+            else if (i >= -8388608 && i < 8388608) {
+                codec |= 0b0000_0010;
+                threeByteDay = true;
+            }
+            else {
+                codec |= 0b0000_0011;
+                fourByteDay = true;
+            }
+        }
+        if (hasMonths) {
+            int i = p.getMonths();
+            if (i >= -128 && i < 128) {
+                oneByteMonth = true;
+            }
+            else if (i >= -32768 && i < 32768) {
+                codec |= 0b0000_0100;
+                twoByteMonth = true;
+            }
+            else if (i >= -8388608 && i < 8388608) {
+                codec |= 0b0000_1000;
+                threeByteMonth = true;
+            }
+            else {
+                codec |= 0b0000_1100;
+                fourByteMonth = true;
+            }
+        }
+        if (hasYears) {
+            int i = p.getYears();
+            if (i >= -128 && i < 128) {
+                oneByteYear = true;
+            }
+            else if (i >= -32768 && i < 32768) {
+                codec |= 0b0001_0000;
+                twoByteYear = true;
+            }
+            else if (i >= -8388608 && i < 8388608) {
+                codec |= 0b0010_0000;
+                threeByteYear = true;
+            }
+            else {
+                codec |= 0b0011_0000;
+                fourByteYear = true;
+            }
+        }
+        
+        out.writeByte(codec);
+        
+        if (hasYears) {
+            if (oneByteYear) {
+                out.writeByte(p.getYears());
+            }
+            if (twoByteYear) {
+                out.writeShort(p.getYears());
+            }
+            if (threeByteYear) {
+                writeThreeByteInt(p.getYears(), out);
+            }
+            if (fourByteYear) {
+                out.writeInt(p.getYears());
+            }
+        }
+        if (hasMonths) {
+            if (oneByteMonth) {
+                out.writeByte(p.getMonths());
+            }
+            if (twoByteMonth) {
+                out.writeShort(p.getMonths());
+            }
+            if (threeByteMonth) {
+                writeThreeByteInt(p.getMonths(), out);
+            }
+            if (fourByteMonth) {
+                out.writeInt(p.getMonths());
+            }
+        }
+        if (hasDays) {
+            if (oneByteDay) {
+                out.writeByte(p.getDays());
+            }
+            if (twoByteDay) {
+                out.writeShort(p.getDays());
+            }
+            if (threeByteDay) {
+                writeThreeByteInt(p.getDays(), out);
+            }
+            if (fourByteDay) {
+                out.writeInt(p.getDays());
+            }
+        }
     }
 
-    public static Object deserializePeriod(FSTObjectInput in) throws IOException {
-        int y = in.readInt();
-        int m = in.readInt();
-        int d = in.readInt();
-        Period res = Period.of(y, m, d);
-        return res;
+    // Not implemented yet...
+    public static Object deserializePeriodAlt(FSTObjectInput in) throws IOException {
+        byte codec = in.readByte();
+        boolean oneByteDay;
+        boolean twoByteDay;
+        boolean threeByteDay;
+        boolean fourByteDay;
+        boolean oneByteMonth;
+        boolean twoByteMonth;
+        boolean threeByteMonth;
+        boolean fourByteMonth;
+        boolean oneByteYear;
+        boolean twoByteYear;
+        boolean threeByteYear;
+        boolean fourByteYear;
+        boolean hasDaysOnly = (codec & 0b11000000) == 0b0100_0000;
+        boolean hasMonthsOnly = (codec & 0b11000000) == 0b1000_0000;
+        boolean hasYearsOnly = (codec & 0b11000000) == 0b1100_0000;
+        boolean hasEverything = (codec & 0b11000000) == 0;
+        
+        if (hasYearsOnly || hasEverything) {
+            
+        }
+        if (hasMonthsOnly || hasEverything) {
+            
+        }
+        if (hasDaysOnly || hasEverything) {
+            
+        }
+        return null;
     }
 
     public static void serializeDuration(Object toWrite, FSTObjectOutput out) throws IOException {
@@ -240,6 +402,13 @@ public class SerializerImplementations {
         // No limits in Java specs, so no chance to optimize
         out.writeLong(d.getSeconds());
         out.writeInt(d.getNano());
+    }
+
+    public static Object deserializeDuration(FSTObjectInput in) throws IOException {
+        long s = in.readLong();
+        int n = in.readInt();
+        Duration res = Duration.ofSeconds(s, n);
+        return res;
     }
 
     // Not implemented yet...
@@ -258,11 +427,9 @@ public class SerializerImplementations {
         */
     }
 
-    public static Object deserializeDuration(FSTObjectInput in) throws IOException {
-        long s = in.readLong();
-        int n = in.readInt();
-        Duration res = Duration.ofSeconds(s, n);
-        return res;
+    public static Object deserializeDurationAlt(FSTObjectInput in) throws IOException {
+        byte codec = in.readByte();
+        return null;
     }
 
     public static void serializeYear(Object toWrite, FSTObjectOutput out) throws IOException {

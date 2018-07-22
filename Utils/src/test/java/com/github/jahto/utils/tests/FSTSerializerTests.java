@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Period;
 import java.time.Year;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -137,7 +138,6 @@ public class FSTSerializerTests {
     
     @Test
     public void test_ZonedDateTime() {
-        //Africa/Abidjan
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         conf.registerSerializer(ZonedDateTime.class, new FSTZonedDateTimeSerializer(), false);
         FSTSerde<ZonedDateTime> serde = new FSTSerde<>(ZonedDateTime.class, conf);
@@ -148,36 +148,15 @@ public class FSTSerializerTests {
         int i = 0;
     }
     
-    //@Test
-    public void test_TreeSerde() {
-        TripStopSet set = new TripStopSet();
-        TripStop stop1 = new TripStop();
-        stop1.stopid = "STOP1";
-        stop1.seq = 1;
-        stop1.arrivalTime = LocalTime.of(15, 10);
-        TripStop stop2 = new TripStop();
-        stop2.stopid = "STOP2";
-        stop2.seq = 2;
-        stop2.arrivalTime = LocalTime.of(15, 15);
-        set.add(stop1);
-        set.add(stop2);
-        
-        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
-        FSTSerde<TripStopSet> serde = new FSTSerde<>(TripStopSet.class, conf);
-        byte[] ser = serde.serializer().serialize("foo", set);
-        TripStopSet cmp = serde.deserializer().deserialize("foobar", ser);
-        int i = 0;
-    }
-    //@Test
-    public void test_ServiceList() {
-        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
-        ServiceList list = new ServiceList();
-        ServiceData d1 = new ServiceData();
-        d1.notinuse.add(LocalDate.MIN);
-        list.add(d1);
-        FSTSerde<ServiceList> serde = new FSTSerde<>(ServiceList.class, conf);
-        byte[] ser = serde.serializer().serialize("foo", list);
-        ServiceList cmp = serde.deserializer().deserialize("foobar", ser);
-        int i = 0;
+    @Test
+    public void test_Period() {
+        Period zero = Period.of(0, 0, 0);
+        Period one = Period.of(0, 0, 1);
+        Period two = Period.of(0, 1, 1);
+        Period three = Period.of(1, 0, 1);
+        Period four = Period.of(1, 1, 1);
+        Period five = Period.of(0, 1, 0);
+        Period six = Period.of(1, 1, 0);
+        Period seven = Period.of(1, 0, 0);
     }
 }
