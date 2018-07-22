@@ -15,11 +15,8 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.io.Serializable;
-import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,22 +24,11 @@ import java.util.Map;
  *
  * @author Jouni Ahto
  */
-// Only for internal use, so we can safely use the most efficient form.
-// @JsonFormat(shape=JsonFormat.Shape.ARRAY)
-// @JsonPropertyOrder({"TimesForward", "TimesBackward"})
+
 public class ServiceTrips implements Serializable, Partitionable {
     private static final long serialVersionUID = -7159227698102377063L;
+
     public String route;
-    /*
-    @JsonProperty("TimesForward")
-    public Map<LocalTime, String> timesforward = new HashMap<>();
-    @JsonProperty("TimesBackward")
-    public Map<LocalTime, String> timesbackward = new HashMap<>();
-    */
-    //@JsonProperty("TimesForward")
-    //public Map<Integer, String> timesforward = new HashMap<>();
-    //@JsonProperty("TimesBackward")
-    //public Map<Integer, String> timesbackward = new HashMap<>();
     @JsonProperty("StartTimes")
     public Map<Integer, String> starttimes = new HashMap<>();
 

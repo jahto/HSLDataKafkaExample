@@ -266,8 +266,7 @@ public class LineTransformer {
         for (ServiceData sdb : sd) {
             LOG.debug("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
 
-            // The date was specifically added to timetables,
-            //  so it should override anything else.
+            // The date was specifically added to timetables, so it should override anything else.
             if (sdb.inuse.contains(date)) {
                 possibilities.add(sdb.serviceId);
                 continue;
@@ -323,13 +322,7 @@ public class LineTransformer {
             if (sdb.notinuse.contains(date)) {
                 continue;
             }
-            /*
-            if (sdb.routeIds.contains(va.getInternalLineId()) == false) {
-                LOG.info("Should not happen, check mappings, service {}, route {}, line {}",
-                        sdb.serviceId, va.getInternalLineId(), va.getLineId());
-                continue;
-            }
-             */
+
             possibilities.add(sdb.serviceId);
             LOG.debug("Service {} matches for route {}, line {}, time {}",
                     sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());

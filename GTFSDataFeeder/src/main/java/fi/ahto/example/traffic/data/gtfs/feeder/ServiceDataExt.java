@@ -16,8 +16,6 @@
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 

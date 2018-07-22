@@ -17,13 +17,11 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import com.sangupta.murmur.Murmur2;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
-import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -245,7 +243,6 @@ public class DataMapper {
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }
-        int i = 0;
     }
 
     // Fix some observed anomalies or deviations from the standard.

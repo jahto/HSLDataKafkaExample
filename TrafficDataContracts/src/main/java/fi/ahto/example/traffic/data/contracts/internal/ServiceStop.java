@@ -15,9 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.util.Objects;
@@ -26,9 +24,7 @@ import java.util.Objects;
  *
  * @author Jouni Ahto
  */
-// Only for internal use, so we can safely use the most efficient form.
-// @JsonFormat(shape=JsonFormat.Shape.ARRAY)
-// @JsonPropertyOrder({"StopId", "Sequence", "ArrivalTime", "Name>"})
+
 public class ServiceStop implements Serializable {
     private static final long serialVersionUID = -4066234945648076125L;
     

@@ -15,12 +15,7 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
-import java.io.Serializable;
-import java.util.Comparator;
-import java.util.TreeSet;
 
 /**
  *

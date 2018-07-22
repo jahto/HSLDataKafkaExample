@@ -27,9 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -84,40 +82,35 @@ public class GTFSDataReader implements ApplicationRunner {
         SpringApplication.run(GTFSDataReader.class, args);
     }
 
-    ProducerRecord sendJsonRecord(String topic, String key, Object value) {
+    void sendJsonRecord(String topic, String key, Object value) {
         try {
             byte[] msg = objectMapper.writeValueAsBytes(value);
             ProducerRecord record = new ProducerRecord(topic, key, msg);
             producer.send(record);
-            return record;
         } catch (JsonProcessingException ex) {
-            java.util.logging.Logger.getLogger(GTFSDataReader.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error(topic, ex);
         }
-        return null;
     }
 
-    ProducerRecord sendRecord(String topic, String key, ServiceList value) {
+    void sendRecord(String topic, String key, ServiceList value) {
         Serializer ser = fstslserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
-        return record;
     }
 
-    ProducerRecord sendRecord(String topic, String key, ServiceTrips value) {
+    void sendRecord(String topic, String key, ServiceTrips value) {
         Serializer ser = fststserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
-        return record;
     }
 
-    ProducerRecord sendRecord(String topic, String key, TripStopSet value) {
+    void sendRecord(String topic, String key, TripStopSet value) {
         Serializer ser = fsttsserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
-        return record;
     }
 
     @Override
@@ -227,9 +220,7 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending routes-to-services maps");
         mapper.routeservices.forEach(
                 (k, v) -> {
-                    //kafkaTemplate.send("routes-to-services", k, v);
-                    ProducerRecord record = sendRecord("routes-to-services", k, v);
-                    //kafkaTemplate.send(record);
+                    sendRecord("routes-to-services", k, v);
                     LOG.info("rts {}", k);
                 }
         );
@@ -239,9 +230,7 @@ public class GTFSDataReader implements ApplicationRunner {
                 (k, v) -> {
                     if (k != null && v != null) {
                         if (v.route != null) {
-                            //kafkaTemplate.send("services-to-trips", k, v);
-                            ProducerRecord record = sendRecord("services-to-trips", k, v);
-                            //kafkaTemplate.send(record);
+                            sendRecord("services-to-trips", k, v);
                             LOG.info("stt {} to partition for {}", k, v.route);
                         } else {
                             LOG.warn("Logic error!");
@@ -256,7 +245,6 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.stops.forEach(
                 (k, v) -> {
                     sendJsonRecord("stops", k, v);
-                    //kafkaTemplate.send("stops", k, v);
                 }
         );
 
@@ -264,7 +252,6 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.routes.forEach(
                 (k, v) -> {
                     sendJsonRecord("routes", k, v);
-                    //kafkaTemplate.send("routes", k, v);
                 }
         );
 
@@ -272,9 +259,6 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.trips.forEach(
                 (k, v) -> {
                     sendRecord("trips", k, v.toTripStopSet());
-                    //kafkaTemplate.send("trips", k, v);
-                    //ProducerRecord record = sendRecord("trips", k, v);
-                    //kafkaTemplate.send(record);
                 }
         );
 
@@ -282,7 +266,6 @@ public class GTFSDataReader implements ApplicationRunner {
         collector.shapes.forEach(
                 (k, v) -> {
                     sendJsonRecord("shapes", k, v);
-                    //kafkaTemplate.send("shapes", k, v);
                 }
         );
 
