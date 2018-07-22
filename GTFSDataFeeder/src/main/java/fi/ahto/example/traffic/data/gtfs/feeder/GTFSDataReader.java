@@ -17,13 +17,11 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,7 +34,6 @@ import java.util.logging.Level;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
-import org.nustaq.serialization.FSTConfiguration;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -46,14 +43,10 @@ import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
 /**
@@ -68,7 +61,6 @@ public class GTFSDataReader implements ApplicationRunner {
     private static String prefix = null;
     private static DataMapper mapper = null;
     private static ShapeCollector collector = null;
-    private final Map<String, ServiceList> routeservices = new HashMap<>();
 
     @Autowired
     private GtfsEntityHandler entityHandler;
@@ -195,56 +187,45 @@ public class GTFSDataReader implements ApplicationRunner {
         mapper.trips.forEach((k, v) -> {
             try {
                 TripStop stop = v.first();
-                String serviceid = v.service;
-                String routeid = v.route;
-                // String key = serviceid + ":" + routeid;
-                String key = serviceid;
-                ServiceTrips service = mapper.servicetrips.get(key);
+                String s = v.service;
+                String r = v.route;
+                String b = v.block;
+                String d = v.direction;
+                ServiceTrips service = mapper.servicetrips.get(s + ":" + r + ":" + d);
                 if (service != null) {
                     if (service.route == null) {
                         LOG.warn("Logic error!");
                         service.route = v.route;
                     }
-                    if (v.direction.equals("0")) {
-                        service.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
-                    }
-                    if (v.direction.equals("1")) {
-                        service.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
-                    }
+                    service.starttimes.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
-                ServiceTrips block = mapper.servicetrips.get(v.block);
+                ServiceTrips block = mapper.servicetrips.get(b + ":" + r + ":" + d);
                 if (block != null) {
-                    if (service.route == null) {
+                    if (block.route == null) {
                         LOG.warn("Logic error!");
-                        service.route = v.route;
+                        block.route = v.route;
                     }
-                    if (v.direction.equals("0")) {
-                        block.timesforward.put(stop.arrivalTime.toSecondOfDay(), k);
-                    }
-                    if (v.direction.equals("1")) {
-                        block.timesbackward.put(stop.arrivalTime.toSecondOfDay(), k);
-                    }
+                    block.starttimes.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
             } catch (Exception e) {
                 LOG.warn("{}", e);
             }
         });
 
-        mapper.services.forEach(
-                (k, v) -> {
+        mapper.services.forEach((k, v) -> {
                     for (String route : v.routeIds) {
-                        ServiceList list = routeservices.get(route);
+                        ServiceList list = mapper.routeservices.get(route);
                         if (list == null) {
                             list = new ServiceList();
-                            routeservices.put(route, list);
+                            mapper.routeservices.put(route, list);
                         }
-                        list.add(v);
+                        list.add(v.toServiceData());
                     }
                 }
         );
 
         LOG.debug("Sending routes-to-services maps");
-        routeservices.forEach(
+        mapper.routeservices.forEach(
                 (k, v) -> {
                     //kafkaTemplate.send("routes-to-services", k, v);
                     ProducerRecord record = sendRecord("routes-to-services", k, v);
@@ -290,7 +271,7 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending trips");
         mapper.trips.forEach(
                 (k, v) -> {
-                    sendRecord("trips", k, v);
+                    sendRecord("trips", k, v.toTripStopSet());
                     //kafkaTemplate.send("trips", k, v);
                     //ProducerRecord record = sendRecord("trips", k, v);
                     //kafkaTemplate.send(record);

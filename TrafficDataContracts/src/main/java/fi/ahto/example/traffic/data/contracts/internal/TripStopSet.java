@@ -30,12 +30,12 @@ import java.util.TreeSet;
 // @JsonPropertyOrder({"service", "route", "direction", "block"})
 public class TripStopSet extends TreeSet<TripStop> implements Serializable {
     private static final long serialVersionUID = 2289084775213919155L;
-    
+    /*
     public String service;
     public String route;
     public String direction;
     public String block;
-
+    */
     public TripStopSet() {
         // super((Comparator<TripStop> & Serializable) (TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
         super(new TripStopSetComparator());

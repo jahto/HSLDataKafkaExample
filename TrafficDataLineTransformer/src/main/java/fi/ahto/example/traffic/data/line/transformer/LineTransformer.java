@@ -18,10 +18,10 @@ package fi.ahto.example.traffic.data.line.transformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
@@ -29,7 +29,6 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
-import java.io.Serializable;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -37,32 +36,21 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
-import java.util.TreeSet;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-// import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
-// import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Initializer;
-import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.kstream.Transformer;
-import org.apache.kafka.streams.kstream.internals.Change;
-import org.apache.kafka.streams.processor.AbstractProcessor;
-import org.apache.kafka.streams.processor.Processor;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
@@ -107,16 +95,16 @@ public class LineTransformer {
 
         // KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), fstvafserde));
-        
+
         GlobalKTable<String, ServiceList> routesToServices
                 = builder.globalTable("routes-to-services",
                         //Consumed.with(Serdes.String(), jsonServiceListSerde),
                         Consumed.with(Serdes.String(), fstServiceListSerde),
                         Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
-                                //.withKeySerde(Serdes.String())
-                                //.withValueSerde(fstServiceListSerde)
+                //.withKeySerde(Serdes.String())
+                //.withValueSerde(fstServiceListSerde)
                 );
-        
+
         /*
         KTable<String, ServiceList> routesToServices = builder
                 .stream("routes-to-services", Consumed.with(Serdes.String(), jsonServiceListSerde))
@@ -125,14 +113,14 @@ public class LineTransformer {
                         Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(fstServiceListSerde));
-        */
+         */
         GlobalKTable<String, ServiceTrips> serviceToTrips
                 = builder.globalTable("services-to-trips",
                         //Consumed.with(Serdes.String(), serviceserde),
                         Consumed.with(Serdes.String(), fstserviceserde),
                         Materialized.<String, ServiceTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips-store")
-                                //.withKeySerde(Serdes.String())
-                                //.withValueSerde(fstserviceserde)
+                //.withKeySerde(Serdes.String())
+                //.withValueSerde(fstserviceserde)
                 );
 
         GlobalKTable<String, TripStopSet> trips
@@ -140,8 +128,8 @@ public class LineTransformer {
                         //Consumed.with(Serdes.String(), tripsserde),
                         Consumed.with(Serdes.String(), fsttripsserde),
                         Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("fsttrips")
-                                //.withKeySerde(Serdes.String())
-                                //.withValueSerde(fsttripsserde)
+                //.withKeySerde(Serdes.String())
+                //.withValueSerde(fsttripsserde)
                 );
 
         Initializer<VehicleDataList> lineinitializer = () -> {
@@ -171,7 +159,7 @@ public class LineTransformer {
                 .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
                 .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
-                // .leftJoin(routesToServices,
+                        // .leftJoin(routesToServices,
                         (VehicleActivity value, ServiceList right) -> {
                             if (right == null) {
                                 LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
@@ -184,7 +172,7 @@ public class LineTransformer {
 
         KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
                 .flatMapValues((k, v) -> {
-                //.flatMap((k, v) -> {
+                    //.flatMap((k, v) -> {
                     List<VehicleActivity> rval = new ArrayList<>();
                     //List<KeyValue<String, VehicleActivity>> rval = new ArrayList<>();
                     if (v == null) {
@@ -200,15 +188,20 @@ public class LineTransformer {
                     }
                     return rval;
                 });
-        
+
         KStream<String, VehicleActivity> hasnotblockid = tripstreamalt
-                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getServiceID(), // + ":" + value.getInternalLineId(),
+                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> {
+                    String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
+                    return newkey;
+                },
                         (VehicleActivity value, ServiceTrips right) -> {
-                            String newkey = value.getServiceID(); // + ":" + value.getInternalLineId();
+                            String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                             if (right == null) {
-                                LOG.info("Didn't find correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                                LOG.info("Didn't find correct service {} for route {}, line {}, time {}, dir {}",
+                                        newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             } else {
-                                LOG.debug("Found correct service {} for route {}, line {}", newkey, value.getInternalLineId(), value.getLineId());
+                                LOG.debug("Found correct service {} for route {}, line {}, time {}, dir {}",
+                                        newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             }
                             value = findTrip(value, right);
                             if (value.getTripID() == null) {
@@ -273,6 +266,25 @@ public class LineTransformer {
         for (ServiceData sdb : sd) {
             LOG.debug("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
 
+            // The date was specifically added to timetables,
+            //  so it should override anything else.
+            if (sdb.inuse.contains(date)) {
+                possibilities.add(sdb.serviceId);
+                continue;
+            }
+
+            // Check if the service is one direction only, and doesn't match current direction.
+            if (va.getDirection().equals("1")) {
+                if ((sdb.extra &= 0x1) == 0) {
+                    continue;
+                }
+            }
+            if (va.getDirection().equals("2")) {
+                if ((sdb.extra &= 0x2) == 0) {
+                    continue;
+                }
+            }
+            
             byte result = 0x0;
             switch (dow) {
                 case MONDAY:
@@ -311,13 +323,13 @@ public class LineTransformer {
             if (sdb.notinuse.contains(date)) {
                 continue;
             }
-
+            /*
             if (sdb.routeIds.contains(va.getInternalLineId()) == false) {
                 LOG.info("Should not happen, check mappings, service {}, route {}, line {}",
                         sdb.serviceId, va.getInternalLineId(), va.getLineId());
                 continue;
             }
-
+             */
             possibilities.add(sdb.serviceId);
             LOG.debug("Service {} matches for route {}, line {}, time {}",
                     sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());
@@ -334,24 +346,12 @@ public class LineTransformer {
             return va;
         }
 
-        if (va.getDirection().equals("1")) {
-            tripId = sd.timesforward.get(va.getStartTime().toSecondOfDay());
-            if (tripId == null) {
-                LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
-                        va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
-                return va;
-            }
+        tripId = sd.starttimes.get(va.getStartTime().toSecondOfDay());
+        if (tripId == null) {
+            LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
+                    va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
+            return va;
         }
-
-        if (va.getDirection().equals("2")) {
-            tripId = sd.timesbackward.get(va.getStartTime().toSecondOfDay());
-            if (tripId == null) {
-                LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
-                        va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
-                return va;
-            }
-        }
-
         LOG.debug("Time {} was found in maps, route {}, line {}, service {}, trip {}",
                 va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID(), tripId);
 

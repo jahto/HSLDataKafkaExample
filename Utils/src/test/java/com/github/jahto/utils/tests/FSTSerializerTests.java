@@ -151,10 +151,6 @@ public class FSTSerializerTests {
     //@Test
     public void test_TreeSerde() {
         TripStopSet set = new TripStopSet();
-        set.block = "A";
-        set.direction = "B";
-        set.route = "C";
-        set.service = "D";
         TripStop stop1 = new TripStop();
         stop1.stopid = "STOP1";
         stop1.seq = 1;
@@ -177,8 +173,6 @@ public class FSTSerializerTests {
         FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
         ServiceList list = new ServiceList();
         ServiceData d1 = new ServiceData();
-        d1.blockIds.add("foo");
-        d1.routeIds.add("foo");
         d1.notinuse.add(LocalDate.MIN);
         list.add(d1);
         FSTSerde<ServiceList> serde = new FSTSerde<>(ServiceList.class, conf);

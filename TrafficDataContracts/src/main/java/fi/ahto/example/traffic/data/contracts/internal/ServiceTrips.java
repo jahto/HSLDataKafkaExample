@@ -39,10 +39,12 @@ public class ServiceTrips implements Serializable, Partitionable {
     @JsonProperty("TimesBackward")
     public Map<LocalTime, String> timesbackward = new HashMap<>();
     */
-    @JsonProperty("TimesForward")
-    public Map<Integer, String> timesforward = new HashMap<>();
-    @JsonProperty("TimesBackward")
-    public Map<Integer, String> timesbackward = new HashMap<>();
+    //@JsonProperty("TimesForward")
+    //public Map<Integer, String> timesforward = new HashMap<>();
+    //@JsonProperty("TimesBackward")
+    //public Map<Integer, String> timesbackward = new HashMap<>();
+    @JsonProperty("StartTimes")
+    public Map<Integer, String> starttimes = new HashMap<>();
 
     @Override
     public byte[] getKeyBytes() {

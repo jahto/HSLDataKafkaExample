@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.TreeSet;
@@ -25,23 +26,15 @@ import java.util.TreeSet;
  *
  * @author Jouni Ahto
  */
-// Only for internal use, so we can safely use the most efficient form.
-// @JsonFormat(shape=JsonFormat.Shape.ARRAY)
-// @JsonPropertyOrder({"service", "route"})
-public class ServiceStopSet extends TreeSet<ServiceStop> implements Serializable {
-    private static final long serialVersionUID = -6790939219985230972L;
-
-    // public String service;
-    // public String route;
-
-    public ServiceStopSet() {
-        // super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
-        super(new ServiceStopSetComparator());
-    }
+public class TripStopSetExt extends TripStopSet {
+    public String service;
+    public String route;
+    public String direction;
+    public String block;
     
-    public ServiceStopSet(ServiceStopSetComparator comp) {
-        // super((Comparator<ServiceStop> & Serializable) (ServiceStop o1, ServiceStop o2) -> Integer.compare(o1.seq, o2.seq));
-        super(comp);
+    TripStopSet toTripStopSet() {
+        TripStopSet ts = new TripStopSet();
+        ts.addAll(this);
+        return ts;
     }
-    
 }

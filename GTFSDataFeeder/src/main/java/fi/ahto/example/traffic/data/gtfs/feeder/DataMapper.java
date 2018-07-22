@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 import com.sangupta.murmur.Murmur2;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
@@ -47,8 +48,8 @@ public class DataMapper {
 
     public Map<String, RouteData> routes = new HashMap<>();
     public Map<String, StopData> stops = new HashMap<>();
-    public Map<String, TripStopSet> trips = new HashMap<>();
-    public Map<String, ServiceData> services = new HashMap<>();
+    public Map<String, TripStopSetExt> trips = new HashMap<>();
+    public Map<String, ServiceDataExt> services = new HashMap<>();
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
 
@@ -62,11 +63,12 @@ public class DataMapper {
         routeFixes.put(701, 3);
         routeFixes.put(704, 3);
     }
+    final Map<String, ServiceList> routeservices = new HashMap<>();
 
     public void add(String prefix, ServiceCalendar sc) {
         String key = prefix + sc.getServiceId().getId();
         key = compressedId(key);
-        ServiceData sd = services.get(key);
+        ServiceDataExt sd = services.get(key);
         if (sd == null) {
             LOG.warn("Service not found " + sc.getServiceId().getId());
             return;
@@ -102,14 +104,17 @@ public class DataMapper {
     }
 
     public void add(String prefix, ServiceCalendarDate sct) {
-        if (sct.getExceptionType() == 1) {
         String key = prefix + sct.getServiceId().getId();
         key = compressedId(key);
-            ServiceData sd = services.get(key);
-            if (sd != null) {
-                ServiceDate dt = sct.getDate();
-                LocalDate notinuse = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDay());
-                sd.notinuse.add(notinuse);
+        ServiceDataExt sd = services.get(key);
+        if (sd != null) {
+            ServiceDate sdt = sct.getDate();
+            LocalDate dt = LocalDate.of(sdt.getYear(), sdt.getMonth(), sdt.getDay());
+            if (sct.getExceptionType() == 2) {
+                sd.notinuse.add(dt);
+            }
+            if (sct.getExceptionType() == 1) {
+                sd.inuse.add(dt);
             }
         }
     }
@@ -133,15 +138,23 @@ public class DataMapper {
         dataFixer(prefix, st);
         String stopid = prefix + st.getStop().getId().getId();
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
-        String serviceid = prefix + st.getTrip().getServiceId().getId();
-        String blockid = prefix + st.getTrip().getBlockId();
-        // String srkey = serviceid + ":" + routeid;
-        // String srkey = prefix + serviceid ;
-        // String srkey = serviceid ;
+        String serviceid = prefix + st.getTrip().getServiceId().getId(); // + ":" + routeid;
         String tripid = prefix + st.getTrip().getId().getId();
 
-        serviceid = compressedId(serviceid);
-        tripid = compressedId(tripid);
+        String dir = st.getTrip().getDirectionId();
+        if (dir.equals("1")) {
+            dir = "2";
+        }
+        if (dir.equals("0")) {
+            dir = "1";
+        }
+        String servicetripid = serviceid + ":" + routeid + ":" + dir;
+        String blockid = null;
+        if (st.getTrip().getBlockId() != null) {
+            blockid = prefix + st.getTrip().getBlockId() + ":" + routeid + ":" + dir;
+        }
+        //serviceid = compressedId(serviceid);
+        //tripid = compressedId(tripid);
 
         StopData stop = stops.get(stopid);
         if (stop == null) {
@@ -172,12 +185,12 @@ public class DataMapper {
             LOG.debug("Added route " + routeid);
         }
 
-        ServiceTrips servicetripmap = servicetrips.get(serviceid);
+        ServiceTrips servicetripmap = servicetrips.get(servicetripid);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
             servicetripmap.route = routeid;
-            servicetrips.put(serviceid, servicetripmap);
-            LOG.debug("Added service " + serviceid + " to route " + routeid);
+            servicetrips.put(servicetripid, servicetripmap);
+            LOG.debug("Added servicetrip " + servicetripid + " to route " + routeid);
         }
 
         if (blockid != null) {
@@ -190,9 +203,9 @@ public class DataMapper {
             }
         }
 
-        ServiceData service = services.get(serviceid);
+        ServiceDataExt service = services.get(serviceid);
         if (service == null) {
-            service = new ServiceData();
+            service = new ServiceDataExt();
             service.serviceId = serviceid;
             services.put(serviceid, service);
             LOG.debug("Added service " + serviceid);
@@ -200,17 +213,25 @@ public class DataMapper {
         if (service.routeIds.contains(routeid) == false) {
             service.routeIds.add(routeid);
         }
-        if (service.blockIds.contains(blockid) == false) {
-            service.blockIds.add(blockid);
+        if (blockid != null) {
+            if (service.blockIds.contains(blockid) == false) {
+                service.blockIds.add(blockid);
+            }
         }
-
+        // Need to know later if the service is in one direction only.
+        if (dir.equals("1")) {
+            service.extra |= 0x1;
+        }
+        if (dir.equals("2")) {
+            service.extra |= 0x2;
+        }
         // Have to think how to handle these ones.
-        TripStopSet tr = trips.get(tripid);
+        TripStopSetExt tr = trips.get(tripid);
         if (tr == null) {
-            tr = new TripStopSet();
+            tr = new TripStopSetExt();
             tr.route = routeid;
             tr.service = serviceid;
-            tr.direction = st.getTrip().getDirectionId();
+            tr.direction = dir;
             tr.block = blockid;
             trips.put(tripid, tr);
             LOG.debug("Added trip " + tripid);
@@ -224,6 +245,7 @@ public class DataMapper {
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }
+        int i = 0;
     }
 
     // Fix some observed anomalies or deviations from the standard.

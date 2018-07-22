@@ -33,10 +33,13 @@ public class ServiceData implements Serializable {
     private static final long serialVersionUID = 3738645659204806594L;
 
     public String serviceId;
-    public List<String> blockIds = new ArrayList<>();
-    public List<String> routeIds = new ArrayList<>();
+    // public List<String> blockIds = new ArrayList<>();
+    // public List<String> routeIds = new ArrayList<>();
     public LocalDate validfrom;
     public LocalDate validuntil;
+    public List<LocalDate> inuse = new ArrayList<>();
     public List<LocalDate> notinuse = new ArrayList<>();
     public byte weekdays = 0;
+    // Oh hell, we need an extra field for special flags...
+    public byte extra = 0;
 }
