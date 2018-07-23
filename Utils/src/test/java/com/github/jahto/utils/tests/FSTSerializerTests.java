@@ -12,6 +12,8 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import com.github.jahto.utils.FSTSerializers.*;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTDurationSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTPeriodSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneIdSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
@@ -26,6 +28,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -149,14 +152,103 @@ public class FSTSerializerTests {
     }
     
     @Test
+    public void test_Duration() {
+        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        conf.registerSerializer(Duration.class, new FSTDurationSerializer(), false);
+        FSTSerde<Duration> serde = new FSTSerde<>(Duration.class, conf);
+        byte[] ser;
+        Duration res;
+        
+        Duration eight = Duration.ofSeconds(-46028797018963968L);
+        ser = serde.serializer().serialize("", eight);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(eight));
+        
+        Duration seven = Duration.ofSeconds(-36028797018963968L);
+        ser = serde.serializer().serialize("", seven);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(seven));
+
+        Duration six = Duration.ofSeconds(-140737488355328L);
+        ser = serde.serializer().serialize("", six);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(six));
+
+        Duration five = Duration.ofSeconds(-549755813888L);
+        ser = serde.serializer().serialize("", five);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(five));
+
+        Duration four = Duration.ofSeconds(-2147483648);
+        ser = serde.serializer().serialize("", four);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(four));
+
+        Duration three = Duration.ofSeconds(-8388608);
+        ser = serde.serializer().serialize("", three);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(three));
+
+        Duration two = Duration.ofSeconds(-32768);
+        ser = serde.serializer().serialize("", two);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(two));
+
+        Duration one = Duration.ofSeconds(-128);
+        ser = serde.serializer().serialize("", one);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(one));
+
+    }
+    
+    @Test
     public void test_Period() {
+        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        conf.registerSerializer(Period.class, new FSTPeriodSerializer(), false);
+        FSTSerde<Period> serde = new FSTSerde<>(Period.class, conf);
+        
+        byte[] ser;
+        Period res;
+
         Period zero = Period.of(0, 0, 0);
-        Period one = Period.of(0, 0, 1);
-        Period two = Period.of(0, 1, 1);
-        Period three = Period.of(1, 0, 1);
-        Period four = Period.of(1, 1, 1);
-        Period five = Period.of(0, 1, 0);
-        Period six = Period.of(1, 1, 0);
-        Period seven = Period.of(1, 0, 0);
+        Period one = Period.of(0, 0, 1000);
+        Period two = Period.of(0, 1000, 1);
+        Period three = Period.of(1000, 0, 1);
+        Period four = Period.of(1000, 1, 1);
+        Period five = Period.of(0, 1000, 0);
+        Period six = Period.of(1000, 1, 0);
+        Period seven = Period.of(1000, 0, 0);
+        
+        ser = serde.serializer().serialize("", zero);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(zero));
+
+        ser = serde.serializer().serialize("", one);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(one));
+
+        ser = serde.serializer().serialize("", two);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(two));
+
+        ser = serde.serializer().serialize("", three);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(three));
+
+        ser = serde.serializer().serialize("", four);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(four));
+
+        ser = serde.serializer().serialize("", five);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(five));
+
+        ser = serde.serializer().serialize("", six);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(six));
+
+        ser = serde.serializer().serialize("", seven);
+        res = serde.deserializer().deserialize("", ser);
+        assertThat(res, is(seven));
     }
 }

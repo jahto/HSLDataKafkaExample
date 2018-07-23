@@ -207,11 +207,10 @@ public class SerializerImplementations {
         return res;
     }
 
-    // Not implemented yet...
     public static void serializePeriodAlt(Object toWrite, FSTObjectOutput out) throws IOException {
         Period p = (Period) toWrite;
         /*
-        Theory of Periods, and the most likely outcome is 40 bits, not 42...
+        Theory of Periods, and the most likely outcome is 32 bits, not 42...
         Assume that in most cases, years, months and days are in somewhat reasonable
         range, ie. not 50000000 years, -4000000 months, 75000000 days. Probably in most
         cases the values could be encoded in just one byte. So we'll add one extra byte
@@ -232,8 +231,11 @@ public class SerializerImplementations {
         They'll get 13 bytes written instead of the minimum 12, but I'd guess they
         have a time nearing infinity to wait anyway, and everyone else benefits.
         Besides, using Period is the wrong choice in any case.
-        */
+         */
         byte codec = 0;
+        int y = p.getYears();
+        int m = p.getMonths();
+        int d = p.getDays();
         boolean oneByteDay = false;
         boolean twoByteDay = false;
         boolean threeByteDay = false;
@@ -246,155 +248,149 @@ public class SerializerImplementations {
         boolean twoByteYear = false;
         boolean threeByteYear = false;
         boolean fourByteYear = false;
-        boolean hasDays = p.getDays() != 0;
-        boolean hasMonths = p.getMonths() != 0;
-        boolean hasYears = p.getYears() != 0;
-        boolean hasEverything = false;
-        
-        if (hasYears && hasMonths && hasDays) {
-            hasEverything = true;
+        boolean hasDays = d != 0;
+        boolean hasMonths = m != 0;
+        boolean hasYears = y != 0;
+        boolean hasEverything = true;
+
+        if (hasYears && !hasMonths && !hasDays) {
+            codec |= 0b1100_0000;
+            hasEverything = false;
+        } else if (!hasYears && hasMonths && !hasDays) {
+            codec |= 0b1000_0000;
+            hasEverything = false;
+        } else if (!hasYears && !hasMonths && hasDays) {
+            codec |= 0b0100_0000;
+            hasEverything = false;
         }
-        else if (hasYears && !hasMonths && !hasDays) {
-            codec |=  0b1100_0000;
-        }
-        else if (!hasYears && hasMonths && !hasDays) {
-            codec |=  0b1000_0000;
-        }
-        else if (!hasYears && !hasMonths && hasDays) {
-            codec |=  0b0100_0000;
-        }
-        
-        if (hasDays) {
-            int i = p.getDays();
-            if (i >= -128 && i < 128) {
+
+        if (hasDays || hasEverything) {
+            if (d >= -128 && d < 128) {
                 oneByteDay = true;
-            }
-            else if (i >= -32768 && i < 32768) {
+            } else if (d >= -32768 && d < 32768) {
                 codec |= 0b0000_0001;
                 twoByteDay = true;
-            }
-            else if (i >= -8388608 && i < 8388608) {
+            } else if (d >= -8388608 && d < 8388608) {
                 codec |= 0b0000_0010;
                 threeByteDay = true;
-            }
-            else {
+            } else {
                 codec |= 0b0000_0011;
                 fourByteDay = true;
             }
         }
-        if (hasMonths) {
-            int i = p.getMonths();
-            if (i >= -128 && i < 128) {
+        if (hasMonths || hasEverything) {
+            if (m >= -128 && m < 128) {
                 oneByteMonth = true;
-            }
-            else if (i >= -32768 && i < 32768) {
+            } else if (m >= -32768 && m < 32768) {
                 codec |= 0b0000_0100;
                 twoByteMonth = true;
-            }
-            else if (i >= -8388608 && i < 8388608) {
+            } else if (m >= -8388608 && m < 8388608) {
                 codec |= 0b0000_1000;
                 threeByteMonth = true;
-            }
-            else {
+            } else {
                 codec |= 0b0000_1100;
                 fourByteMonth = true;
             }
         }
-        if (hasYears) {
-            int i = p.getYears();
-            if (i >= -128 && i < 128) {
+        if (hasYears || hasEverything) {
+            if (y >= -128 && y < 128) {
                 oneByteYear = true;
-            }
-            else if (i >= -32768 && i < 32768) {
+            } else if (y >= -32768 && y < 32768) {
                 codec |= 0b0001_0000;
                 twoByteYear = true;
-            }
-            else if (i >= -8388608 && i < 8388608) {
+            } else if (y >= -8388608 && y < 8388608) {
                 codec |= 0b0010_0000;
                 threeByteYear = true;
-            }
-            else {
+            } else {
                 codec |= 0b0011_0000;
                 fourByteYear = true;
             }
         }
-        
+
         out.writeByte(codec);
-        
-        if (hasYears) {
+
+        if (hasYears || hasEverything) {
             if (oneByteYear) {
-                out.writeByte(p.getYears());
-            }
-            if (twoByteYear) {
-                out.writeShort(p.getYears());
-            }
-            if (threeByteYear) {
-                writeThreeByteInt(p.getYears(), out);
-            }
-            if (fourByteYear) {
-                out.writeInt(p.getYears());
+                out.writeByte(y);
+            } else if (twoByteYear) {
+                out.writeShort(y);
+            } else if (threeByteYear) {
+                writeThreeByteInt(y, out);
+            } else if (fourByteYear) {
+                out.writeInt(y);
             }
         }
-        if (hasMonths) {
+        if (hasMonths || hasEverything) {
             if (oneByteMonth) {
-                out.writeByte(p.getMonths());
-            }
-            if (twoByteMonth) {
-                out.writeShort(p.getMonths());
-            }
-            if (threeByteMonth) {
-                writeThreeByteInt(p.getMonths(), out);
-            }
-            if (fourByteMonth) {
-                out.writeInt(p.getMonths());
+                out.writeByte(m);
+            } else if (twoByteMonth) {
+                out.writeShort(m);
+            } else if (threeByteMonth) {
+                writeThreeByteInt(m, out);
+            } else if (fourByteMonth) {
+                out.writeInt(m);
             }
         }
-        if (hasDays) {
+        if (hasDays || hasEverything) {
             if (oneByteDay) {
-                out.writeByte(p.getDays());
-            }
-            if (twoByteDay) {
-                out.writeShort(p.getDays());
-            }
-            if (threeByteDay) {
-                writeThreeByteInt(p.getDays(), out);
-            }
-            if (fourByteDay) {
-                out.writeInt(p.getDays());
+                out.writeByte(d);
+            } else if (twoByteDay) {
+                out.writeShort(d);
+            } else if (threeByteDay) {
+                writeThreeByteInt(d, out);
+            } else if (fourByteDay) {
+                out.writeInt(d);
             }
         }
     }
 
-    // Not implemented yet...
     public static Object deserializePeriodAlt(FSTObjectInput in) throws IOException {
         byte codec = in.readByte();
-        boolean oneByteDay;
-        boolean twoByteDay;
-        boolean threeByteDay;
-        boolean fourByteDay;
-        boolean oneByteMonth;
-        boolean twoByteMonth;
-        boolean threeByteMonth;
-        boolean fourByteMonth;
-        boolean oneByteYear;
-        boolean twoByteYear;
-        boolean threeByteYear;
-        boolean fourByteYear;
+        int y = 0;
+        int m = 0;
+        int d = 0;
+
         boolean hasDaysOnly = (codec & 0b11000000) == 0b0100_0000;
         boolean hasMonthsOnly = (codec & 0b11000000) == 0b1000_0000;
         boolean hasYearsOnly = (codec & 0b11000000) == 0b1100_0000;
         boolean hasEverything = (codec & 0b11000000) == 0;
-        
+
         if (hasYearsOnly || hasEverything) {
-            
+            if ((codec & 0b00110000) == 0b00000000) {
+                y = in.readByte();
+            } else if ((codec & 0b00110000) == 0b00010000) {
+                y = in.readShort();
+            } else if ((codec & 0b00110000) == 0b00100000) {
+                y = readThreeByteInt(in);
+            } else if ((codec & 0b00110000) == 0b00110000) {
+                y = in.readInt();
+            }
         }
         if (hasMonthsOnly || hasEverything) {
-            
+            if ((codec & 0b00001100) == 0b00000000) {
+                m = in.readByte();
+            } else if ((codec & 0b00001100) == 0b00000100) {
+                m = in.readShort();
+            } else if ((codec & 0b00001100) == 0b00001000) {
+                m = readThreeByteInt(in);
+            } else if ((codec & 0b00001100) == 0b00001100) {
+                m = in.readInt();
+            }
         }
         if (hasDaysOnly || hasEverything) {
-            
+            if ((codec & 0b00000011) == 0b00000000) {
+                d = in.readByte();
+            } else if ((codec & 0b00000011) == 0b00000001) {
+                d = in.readShort();
+            } else if ((codec & 0b00000011) == 0b00000010) {
+                d = readThreeByteInt(in);
+            } else if ((codec & 0b00000011) == 0b00000011) {
+                d = in.readInt();
+            }
         }
-        return null;
+
+        Period res = Period.of(y, m, d);
+        return res;
     }
 
     public static void serializeDuration(Object toWrite, FSTObjectOutput out) throws IOException {
@@ -419,17 +415,140 @@ public class SerializerImplementations {
         the range -2147483648...2147483647, ie. covering a little bit more
         than -68...67 years, do not probably really need the nanoseconds part.
         So just write an extra byte and encode that and how many bytes are
-        actually needed for each part, or do the nanos even exist. Probably
-        I don't bother to write read/write sevenByteLong, sixByteLong and
-        fiveByteLong variations, althoug threeByteInt versions could be
-        copy-pasted and modified. Writing that extra byte that need only one
-        bit to encode if there are nanos or not leaves exactly 7 bits... 
-        */
+        actually needed for each part, or do the nanos even exist. Writing that
+        extra byte that needs only one bit to encode if there are nanos or not
+        also leaves exactly 7 bits to tell if that long seconds part is encoded
+        to something smaller.
+         */
+        boolean oneByte = false;
+        boolean twoByte = false;
+        boolean threeByte = false;
+        boolean fourByte = false;
+        boolean fiveByte = false;
+        boolean sixByte = false;
+        boolean sevenByte = false;
+        long s = d.getSeconds();
+        int n = d.getNano();
+        byte codec = 0;
+
+        if (n != 0) {
+            codec |= 0b1000_0000;
+        }
+
+        if (s >= -128 && s < 128) {
+            oneByte = true;
+            codec |= 0b0000_0001;
+        } else if (s >= -32768 && s < 32768) {
+            codec |= 0b0000_0010;
+            twoByte = true;
+        } else if (s >= -8388608 && s < 8388608) {
+            codec |= 0b0000_0100;
+            threeByte = true;
+        } else if (s >= -2147483648L && s < 2147483648L) {
+            codec |= 0b0000_1000;
+            fourByte = true;
+        } else if (s >= -549755813888L && s < 549755813888L) {
+            codec |= 0b0001_0000;
+            fiveByte = true;
+        } else if (s >= -140737488355328L && s < 140737488355328L) {
+            codec |= 0b0010_0000;
+            sixByte = true;
+        } else if (s >= -36028797018963968L && s < 36028797018963968L) {
+            codec |= 0b0100_0000;
+            sevenByte = true;
+        }
+
+        out.writeByte(codec);
+        if (oneByte) {
+            out.writeByte((byte) s);
+        }
+        else if (twoByte) {
+            out.writeShort((short) s);
+        }
+        else if (threeByte) {
+            writeThreeByteInt((int) s, out);
+        }
+        else if (fourByte) {
+            out.writeInt((int) s);
+        }
+        else if (fiveByte) {
+            int i, j;
+            i = (int) (s >> 32);
+            j = (int) s;
+            out.writeByte(i);
+            out.writeInt(j);
+        }
+        else if (sixByte) {
+            int i, j;
+            i = (int) (s >> 32);
+            j = (int) s;
+            out.writeShort(i);
+            out.writeInt(j);
+        }
+        else if (sevenByte) {
+            int i, j;
+            i = (int) (s >> 32);
+            j = (int) s;
+            writeThreeByteInt((int) i, out);
+            out.writeInt(j);
+        }
+        else {
+            out.writeLong(s);
+        }
+        if (n != 0) {
+            out.writeInt(n);
+        }
     }
 
     public static Object deserializeDurationAlt(FSTObjectInput in) throws IOException {
         byte codec = in.readByte();
-        return null;
+        long s = 0;
+        int n = 0;
+        boolean hasNanos = (codec & 0b1000_0000) == 0b1000_0000;
+        boolean oneByte = (codec & 0b0000_0001) == 0b0000_0001;
+        boolean twoByte = (codec & 0b0000_0010) == 0b0000_0010;
+        boolean threeByte = (codec & 0b0000_0100) == 0b0000_0100;
+        boolean fourByte = (codec & 0b0000_1000) == 0b0000_1000;
+        boolean fiveByte = (codec & 0b0001_0000) == 0b0001_0000;
+        boolean sixByte = (codec & 0b0010_0000) == 0b0010_0000;
+        boolean sevenByte = (codec & 0b0100_0000) == 0b0100_0000;
+        
+        if (oneByte) {
+            s = in.readByte();
+        }
+        else if (twoByte) {
+            s = in.readShort();
+        }
+        else if (threeByte) {
+            s = readThreeByteInt(in);
+        }
+        else if (fourByte) {
+            s = in.readInt();
+        }
+        else if (fiveByte) {
+            int i = in.readByte();
+            int j = in.readInt();
+            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
+        }
+        else if (sixByte) {
+            int i = in.readShort();
+            int j = in.readInt();
+            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
+        }
+        else if (sevenByte) {
+            int i = readThreeByteInt(in);
+            int j = in.readInt();
+            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
+        }
+        else {
+            s = in.readLong();
+        }
+
+        if (hasNanos) {
+            n = in.readInt();
+        }
+        Duration res = Duration.ofSeconds(s, n);
+        return res;
     }
 
     public static void serializeYear(Object toWrite, FSTObjectOutput out) throws IOException {
@@ -557,7 +676,7 @@ public class SerializerImplementations {
                 out.writeUTF(id);
             }
         }
-        */
+         */
         // Implementation 2.
         if (ZONE_TO_SHORT.containsKey(id)) {
             short s = ZONE_TO_SHORT.get(id);
@@ -603,7 +722,7 @@ public class SerializerImplementations {
         }
         String id = in.readUTF();
         ZoneId zone = ZoneId.of(id);
-        */
+         */
         // Implementation 2. 
         short s = in.readShort();
         if (s > 255) {

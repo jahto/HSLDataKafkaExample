@@ -30,7 +30,7 @@ public class FSTPeriodSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        SerializerImplementations.serializePeriod(toWrite, out);
+        SerializerImplementations.serializePeriodAlt(toWrite, out);
     }
 
     @Override
@@ -40,6 +40,6 @@ public class FSTPeriodSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
-        return SerializerImplementations.deserializePeriod(in);
+        return SerializerImplementations.deserializePeriodAlt(in);
     }
 }
