@@ -31,6 +31,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.nustaq.serialization.FSTDecoder;
+import org.nustaq.serialization.FSTEncoder;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
@@ -41,6 +43,7 @@ import org.nustaq.serialization.FSTObjectOutput;
 public class SerializerImplementations {
 
     private static final int YEAR_ADJUST = 2018;
+    private static final byte NEGATIVE_FILLER = (byte) (((byte) -1 + 256) & 0xFF);
 
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
@@ -693,7 +696,7 @@ public class SerializerImplementations {
 
     // Should do something to possible exceptions if the id is not valid...
     public static Object deserializeZoneId(FSTObjectInput in) throws IOException {
-        // Impelementation 1. 
+        // Implementation 1. 
         /*
         byte b = in.readByte();
         if (b != 0) {
@@ -752,57 +755,79 @@ public class SerializerImplementations {
         return res;
     }
 
+    // These ones will save some bytes if you know for sure the exact amount of bytes
+    // really needed. Otherwise, just use normal methods in FSTObjectOutput and
+    // FSTObjectInput.
     public static void writeShort(int val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[2];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
-        out.write(buf, 0, 2);
+        enc.writeRawBytes(buf, 0, 2);
+        //out.write(buf, 0, 2);
     }
 
     public static short readShort(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[2];
-        in.read(buf);
+        in.read(buf, 0, 2);
         int ch1 = (buf[0] + 256) & 0xFF;
         int ch2 = (buf[1] + 256) & 0xFF;
         short res = (short) ((ch2 << 8) + (ch1 << 0));
         return res;
     }
     
-    public static void writeThreeByteInt(int val, FSTObjectOutput out) throws IOException {
-        byte[] buf = new byte[3];
-        buf[0] = (byte) ((val >>> 0) & 0xFF);
+    public static final void writeThreeByteInt(final int val, final FSTObjectOutput out) throws IOException {
+        final FSTEncoder enc = out.getCodec();
+        final byte[] buf = new byte[3];
+        buf[0] = (byte) ((val) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
         buf[2] = (byte) ((val >>> 16) & 0xFF);
-        out.write(buf, 0, 3);
+        
+        // For some reason, writing byte-by-byte seems to be the fastest alternative.
+        // Maybe because there's no System.arraycopy? Which should be quite optimized,
+        // but probably still takes some. Now if we just could get access to the encoders'
+        // FSTOutPutStream...
+        enc.writeFByte(buf[0]);
+        enc.writeFByte(buf[1]);
+        enc.writeFByte(buf[2]);
+        // enc.writeRawBytes(buf, 0, 3);
+        // out.write(buf, 0, 3);
     }
 
-    public static int readThreeByteInt(FSTObjectInput in) throws IOException {
-        byte[] buf = new byte[3];
-        in.read(buf);
-        int i = 0;
-        int ch1 = (buf[0] + 256) & 0xFF;
-        int ch2 = (buf[1] + 256) & 0xFF;
-        int ch3 = (buf[2] + 256) & 0xFF;
+    public static final int readThreeByteInt(final FSTObjectInput in) throws IOException {
+        final byte[] buf = new byte[3];
+        final FSTDecoder dec = in.getCodec();
+        buf[0] = dec.readFByte();
+        buf[1] = dec.readFByte();
+        buf[2] = dec.readFByte();
+        // dec.readFPrimitiveArray(buf, byte.class, 3);
+        // in.read(buf, 0 ,3);
+        final int ch1 = (buf[0] + 256) & 0xFF;
+        final int ch2 = (buf[1] + 256) & 0xFF;
+        final int ch3 = (buf[2] + 256) & 0xFF;
         int ch4 = 0;
         if (buf[2] < 0) {
-            ch4 =  ((byte) -1 + 256) & 0xFF;
+            // ch4 =  ((byte) -1 + 256) & 0xFF;
+            ch4 = NEGATIVE_FILLER;
         }
-        int res = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
+        final int res = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
         return res;
     }
 
     public static void writeInt(int val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[4];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
         buf[2] = (byte) ((val >>> 16) & 0xFF);
         buf[3] = (byte) ((val >>> 24) & 0xFF);
-        out.write(buf, 0, 4);
+        enc.writeRawBytes(buf, 0, 4);
+        //out.write(buf, 0, 4);
     }
 
     public static int readInt(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[4];
-        in.read(buf);
+        in.read(buf, 0, 4);
         int i = 0;
         int ch1 = (buf[0] + 256) & 0xFF;
         int ch2 = (buf[1] + 256) & 0xFF;
@@ -813,18 +838,20 @@ public class SerializerImplementations {
     }
 
     public static void writeFiveByteLong(long val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[5];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
         buf[2] = (byte) ((val >>> 16) & 0xFF);
         buf[3] = (byte) ((val >>> 24) & 0xFF);
         buf[4] = (byte) ((val >>> 32) & 0xFF);
-        out.write(buf, 0, 5);
+        enc.writeRawBytes(buf, 0, 5);
+        //out.write(buf, 0, 5);
     }
 
     public static long readFiveByteLong(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[5];
-        in.read(buf);
+        in.read(buf, 0, 5);
         long ch1 = (buf[0] + 256) & 0xFF;
         long ch2 = (buf[1] + 256) & 0xFF;
         long ch3 = (buf[2] + 256) & 0xFF;
@@ -843,6 +870,7 @@ public class SerializerImplementations {
     }
     
     public static void writeSixByteLong(long val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[8];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
@@ -852,12 +880,13 @@ public class SerializerImplementations {
         buf[5] = (byte) ((val >>> 40) & 0xFF);
         buf[6] = (byte) ((val >>> 48) & 0xFF);
         buf[7] = (byte) ((val >>> 54) & 0xFF);
-        out.write(buf, 0, 6);
+        enc.writeRawBytes(buf, 0, 6);
+        //out.write(buf, 0, 6);
     }
 
     public static long readSixByteLong(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[6];
-        in.read(buf);
+        in.read(buf, 0, 6);
         long ch1 = (buf[0] + 256) & 0xFF;
         long ch2 = (buf[1] + 256) & 0xFF;
         long ch3 = (buf[2] + 256) & 0xFF;
@@ -875,6 +904,7 @@ public class SerializerImplementations {
     }
     
     public static void writeSevenByteLong(long val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[7];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
@@ -883,12 +913,13 @@ public class SerializerImplementations {
         buf[4] = (byte) ((val >>> 32) & 0xFF);
         buf[5] = (byte) ((val >>> 40) & 0xFF);
         buf[6] = (byte) ((val >>> 48) & 0xFF);
-        out.write(buf, 0, 7);
+        enc.writeRawBytes(buf, 0, 7);
+        //out.write(buf, 0, 7);
     }
 
     public static long readSevenByteLong(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[7];
-        in.read(buf);
+        in.read(buf, 0, 7);
         long ch1 = (buf[0] + 256) & 0xFF;
         long ch2 = (buf[1] + 256) & 0xFF;
         long ch3 = (buf[2] + 256) & 0xFF;
@@ -905,6 +936,7 @@ public class SerializerImplementations {
     }
 
     public static void writeLong(long val, FSTObjectOutput out) throws IOException {
+        FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[8];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
@@ -914,12 +946,13 @@ public class SerializerImplementations {
         buf[5] = (byte) ((val >>> 40) & 0xFF);
         buf[6] = (byte) ((val >>> 48) & 0xFF);
         buf[7] = (byte) ((val >>> 56) & 0xFF);
-        out.write(buf, 0, 8);
+        enc.writeRawBytes(buf, 0, 8);
+        //out.write(buf, 0, 8);
     }
 
     public static long readLong(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[8];
-        in.read(buf);
+        in.read(buf, 0, 8);
         long ch1 = (buf[0] + 256) & 0xFF;
         long ch2 = (buf[1] + 256) & 0xFF;
         long ch3 = (buf[2] + 256) & 0xFF;

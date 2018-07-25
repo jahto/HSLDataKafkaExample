@@ -36,15 +36,81 @@ import org.nustaq.serialization.FSTObjectOutput;
 public class FSTSerializerTests {
     @Test
     public void test_ThreeByteInt() throws IOException {
-        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        final FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         for (int i = -8388608; i < 8388608; i++){
-            FSTObjectOutput out = conf.getObjectOutput();
+            final FSTObjectOutput out = conf.getObjectOutput();
             SerializerImplementations.writeThreeByteInt(i, out);
-            byte[] b = out.getBuffer();
-            FSTObjectInput in = conf.getObjectInput(b);
-            int j = SerializerImplementations.readThreeByteInt(in);
+            final byte[] b = out.getBuffer();
+            final FSTObjectInput in = conf.getObjectInput(b);
+            final int j = SerializerImplementations.readThreeByteInt(in);
             assertThat(j, is(i));
         }
+    }
+    
+    @Test
+    public void test_ThreeByteIntAndCompareSpeed() throws IOException {
+        final FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        // Seems we need warming runs for both cases before the measurements
+        for (int i = -8388608; i < 8388608; i++){
+            // We only want to test ints that actually need three bytes.
+            // In any other case, like the length not known before,
+            // just use out.writeInt().
+            if (i > Short.MIN_VALUE && i < Short.MAX_VALUE) {
+                i = Short.MAX_VALUE;
+                continue;
+            }
+            final FSTObjectOutput out = conf.getObjectOutput();
+            out.writeInt(i);
+            final byte[] b = out.getBuffer();
+            final FSTObjectInput in = conf.getObjectInput(b);
+            final int j = in.readInt();
+        }
+        for (int i = -8388608; i < 8388608; i++){
+            if (i > Short.MIN_VALUE && i < Short.MAX_VALUE) {
+                i = Short.MAX_VALUE;
+                continue;
+            }
+            final FSTObjectOutput out = conf.getObjectOutput();
+            SerializerImplementations.writeThreeByteInt(i, out);
+            final byte[] b = out.getBuffer();
+            final FSTObjectInput in = conf.getObjectInput(b);
+            final int j = SerializerImplementations.readThreeByteInt(in);
+        }
+
+        Instant start = Instant.now();
+        for (int i = -8388608; i < 8388608; i++){
+            if (i > Short.MIN_VALUE && i < Short.MAX_VALUE) {
+                i = Short.MAX_VALUE;
+                continue;
+            }
+            final FSTObjectOutput out = conf.getObjectOutput();
+            SerializerImplementations.writeThreeByteInt(i, out);
+            final byte[] b = out.getBuffer();
+            final FSTObjectInput in = conf.getObjectInput(b);
+            final int j = SerializerImplementations.readThreeByteInt(in);
+        }
+        Instant end = Instant.now();
+        System.out.println(Duration.between(start, end));
+        start = Instant.now();
+        for (int i = -8388608; i < 8388608; i++){
+            if (i > Short.MIN_VALUE && i < Short.MAX_VALUE) {
+                i = Short.MAX_VALUE;
+                continue;
+            }
+            final FSTObjectOutput out = conf.getObjectOutput();
+            out.writeInt(i);
+            final byte[] b = out.getBuffer();
+            final FSTObjectInput in = conf.getObjectInput(b);
+            final int j = in.readInt();
+        }
+        end = Instant.now();
+        System.out.println(Duration.between(start, end));
+        // Result: so near each other it's impossible to tell which one
+        // wins at any test, could be either one... So any enhancement
+        // that writeThreeByteInt comes with, it's guaranteed to only
+        // write three bytes so there'll be some small space savings.
+        // The same should apply to all the other exact-byte versions
+        // of short-int-long serializers.
     }
     
     @Test
@@ -60,16 +126,16 @@ public class FSTSerializerTests {
         }
     }
     
-    // @Test
+    @Test
     public void test_Int() throws IOException {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
-        for (int i = -2147483648; i <= 2147483647; i++){
+        for (long i = -2147483648; i < 2147483648L; i += 1000){
             FSTObjectOutput out = conf.getObjectOutput();
-            SerializerImplementations.writeInt(i, out);
+            SerializerImplementations.writeInt((int) i, out);
             byte[] b = out.getBuffer();
             FSTObjectInput in = conf.getObjectInput(b);
             int j = SerializerImplementations.readInt(in);
-            assertThat(j, is(i));
+            assertThat(j, is((int) i));
         }
     }
     
@@ -168,42 +234,42 @@ public class FSTSerializerTests {
         byte[] ser;
         Duration res;
         
-        Duration eight = Duration.ofSeconds(46028797018963968L);
+        Duration eight = Duration.ofSeconds(-46028797018963968L);
         ser = serde.serializer().serialize("", eight);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(eight));
         
-        Duration seven = Duration.ofSeconds(36028797018963968L);
+        Duration seven = Duration.ofSeconds(-36028797018963968L);
         ser = serde.serializer().serialize("", seven);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(seven));
 
-        Duration six = Duration.ofSeconds(140737488355328L);
+        Duration six = Duration.ofSeconds(-140737488355328L);
         ser = serde.serializer().serialize("", six);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(six));
 
-        Duration five = Duration.ofSeconds(549755813888L);
+        Duration five = Duration.ofSeconds(-549755813888L);
         ser = serde.serializer().serialize("", five);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(five));
 
-        Duration four = Duration.ofSeconds(2147483647);
+        Duration four = Duration.ofSeconds(-2147483647);
         ser = serde.serializer().serialize("", four);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(four));
 
-        Duration three = Duration.ofSeconds(8388607);
+        Duration three = Duration.ofSeconds(-8388607);
         ser = serde.serializer().serialize("", three);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(three));
 
-        Duration two = Duration.ofSeconds(32767);
+        Duration two = Duration.ofSeconds(-32767);
         ser = serde.serializer().serialize("", two);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(two));
 
-        Duration one = Duration.ofSeconds(127);
+        Duration one = Duration.ofSeconds(-127);
         ser = serde.serializer().serialize("", one);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(one));
