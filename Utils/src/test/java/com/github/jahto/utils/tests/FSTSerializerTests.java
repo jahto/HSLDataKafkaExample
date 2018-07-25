@@ -5,28 +5,14 @@
  */
 package com.github.jahto.utils.tests;
 
-import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
-import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneOffsetSerializer;
+import com.github.jahto.utils.FSTSerde;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTDurationSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
-import com.github.jahto.utils.CommonFSTConfiguration;
-import com.github.jahto.utils.FSTSerde;
-import com.github.jahto.utils.FSTSerializers.*;
-import com.github.jahto.utils.FSTSerializers.java.time.FSTDurationSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTPeriodSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
-import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneIdSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
-/*
-import com.github.jahto.utils.FSTSerializers.FSTInstantSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTLocalDateSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTLocalTimeSerializer;
-import com.github.jahto.utils.FSTSerializers.FSTLocalTimeWithoutNanosSerializer;
-*/
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.TripStop;
-import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
+import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,14 +22,11 @@ import java.time.Period;
 import java.time.Year;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.Set;
-import java.util.TreeSet;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 import org.junit.Test;
 import org.nustaq.serialization.FSTConfiguration;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 /**
@@ -60,6 +43,32 @@ public class FSTSerializerTests {
             byte[] b = out.getBuffer();
             FSTObjectInput in = conf.getObjectInput(b);
             int j = SerializerImplementations.readThreeByteInt(in);
+            assertThat(j, is(i));
+        }
+    }
+    
+    @Test
+    public void test_Short() throws IOException {
+        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        for (int i = -32768; i < 32768; i++){
+            FSTObjectOutput out = conf.getObjectOutput();
+            SerializerImplementations.writeShort(i, out);
+            byte[] b = out.getBuffer();
+            FSTObjectInput in = conf.getObjectInput(b);
+            int j = SerializerImplementations.readShort(in);
+            assertThat(j, is(i));
+        }
+    }
+    
+    // @Test
+    public void test_Int() throws IOException {
+        FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        for (int i = -2147483648; i <= 2147483647; i++){
+            FSTObjectOutput out = conf.getObjectOutput();
+            SerializerImplementations.writeInt(i, out);
+            byte[] b = out.getBuffer();
+            FSTObjectInput in = conf.getObjectInput(b);
+            int j = SerializerImplementations.readInt(in);
             assertThat(j, is(i));
         }
     }
@@ -159,42 +168,42 @@ public class FSTSerializerTests {
         byte[] ser;
         Duration res;
         
-        Duration eight = Duration.ofSeconds(-46028797018963968L);
+        Duration eight = Duration.ofSeconds(46028797018963968L);
         ser = serde.serializer().serialize("", eight);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(eight));
         
-        Duration seven = Duration.ofSeconds(-36028797018963968L);
+        Duration seven = Duration.ofSeconds(36028797018963968L);
         ser = serde.serializer().serialize("", seven);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(seven));
 
-        Duration six = Duration.ofSeconds(-140737488355328L);
+        Duration six = Duration.ofSeconds(140737488355328L);
         ser = serde.serializer().serialize("", six);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(six));
 
-        Duration five = Duration.ofSeconds(-549755813888L);
+        Duration five = Duration.ofSeconds(549755813888L);
         ser = serde.serializer().serialize("", five);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(five));
 
-        Duration four = Duration.ofSeconds(-2147483648);
+        Duration four = Duration.ofSeconds(2147483647);
         ser = serde.serializer().serialize("", four);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(four));
 
-        Duration three = Duration.ofSeconds(-8388608);
+        Duration three = Duration.ofSeconds(8388607);
         ser = serde.serializer().serialize("", three);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(three));
 
-        Duration two = Duration.ofSeconds(-32768);
+        Duration two = Duration.ofSeconds(32767);
         ser = serde.serializer().serialize("", two);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(two));
 
-        Duration one = Duration.ofSeconds(-128);
+        Duration one = Duration.ofSeconds(127);
         ser = serde.serializer().serialize("", one);
         res = serde.deserializer().deserialize("", ser);
         assertThat(res, is(one));

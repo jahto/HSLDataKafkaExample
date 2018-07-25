@@ -16,13 +16,11 @@
 package com.github.jahto.utils.FSTSerializers.java.time;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.Month;
 import java.time.MonthDay;
 import java.time.OffsetDateTime;
 import java.time.Period;
@@ -313,33 +311,39 @@ public class SerializerImplementations {
             if (oneByteYear) {
                 out.writeByte(y);
             } else if (twoByteYear) {
-                out.writeShort(y);
+                writeShort(y, out);
+                //out.writeShort(y);
             } else if (threeByteYear) {
                 writeThreeByteInt(y, out);
             } else if (fourByteYear) {
-                out.writeInt(y);
+                writeInt(y, out);
+                //out.writeInt(y);
             }
         }
         if (hasMonths || hasEverything) {
             if (oneByteMonth) {
                 out.writeByte(m);
             } else if (twoByteMonth) {
-                out.writeShort(m);
+                writeShort(m, out);
+                //out.writeShort(m);
             } else if (threeByteMonth) {
                 writeThreeByteInt(m, out);
             } else if (fourByteMonth) {
-                out.writeInt(m);
+                writeInt(m, out);
+                //out.writeInt(m);
             }
         }
         if (hasDays || hasEverything) {
             if (oneByteDay) {
                 out.writeByte(d);
             } else if (twoByteDay) {
-                out.writeShort(d);
+                writeShort(d, out);
+                //out.writeShort(d);
             } else if (threeByteDay) {
                 writeThreeByteInt(d, out);
             } else if (fourByteDay) {
-                out.writeInt(d);
+                writeInt(d, out);
+                //out.writeInt(d);
             }
         }
     }
@@ -359,33 +363,39 @@ public class SerializerImplementations {
             if ((codec & 0b00110000) == 0b00000000) {
                 y = in.readByte();
             } else if ((codec & 0b00110000) == 0b00010000) {
-                y = in.readShort();
+                y = readShort(in);
+                //y = in.readShort();
             } else if ((codec & 0b00110000) == 0b00100000) {
                 y = readThreeByteInt(in);
             } else if ((codec & 0b00110000) == 0b00110000) {
-                y = in.readInt();
+               y = readInt(in);
+               //y = in.readInt();
             }
         }
         if (hasMonthsOnly || hasEverything) {
             if ((codec & 0b00001100) == 0b00000000) {
                 m = in.readByte();
             } else if ((codec & 0b00001100) == 0b00000100) {
-                m = in.readShort();
+                m = readShort(in);
+                //m = in.readShort();
             } else if ((codec & 0b00001100) == 0b00001000) {
                 m = readThreeByteInt(in);
             } else if ((codec & 0b00001100) == 0b00001100) {
-                m = in.readInt();
+                m = readInt(in);
+                //m = in.readInt();
             }
         }
         if (hasDaysOnly || hasEverything) {
             if ((codec & 0b00000011) == 0b00000000) {
                 d = in.readByte();
             } else if ((codec & 0b00000011) == 0b00000001) {
-                d = in.readShort();
+                d = readShort(in);
+                //d = in.readShort();
             } else if ((codec & 0b00000011) == 0b00000010) {
                 d = readThreeByteInt(in);
             } else if ((codec & 0b00000011) == 0b00000011) {
-                d = in.readInt();
+                d = readInt(in);
+                //d = in.readInt();
             }
         }
 
@@ -461,39 +471,22 @@ public class SerializerImplementations {
         out.writeByte(codec);
         if (oneByte) {
             out.writeByte((byte) s);
-        }
-        else if (twoByte) {
-            out.writeShort((short) s);
-        }
-        else if (threeByte) {
+        } else if (twoByte) {
+            writeShort((int) s, out);
+            //out.writeShort((short) s);
+        } else if (threeByte) {
             writeThreeByteInt((int) s, out);
-        }
-        else if (fourByte) {
-            out.writeInt((int) s);
-        }
-        else if (fiveByte) {
-            int i, j;
-            i = (int) (s >> 32);
-            j = (int) s;
-            out.writeByte(i);
-            out.writeInt(j);
-        }
-        else if (sixByte) {
-            int i, j;
-            i = (int) (s >> 32);
-            j = (int) s;
-            out.writeShort(i);
-            out.writeInt(j);
-        }
-        else if (sevenByte) {
-            int i, j;
-            i = (int) (s >> 32);
-            j = (int) s;
-            writeThreeByteInt((int) i, out);
-            out.writeInt(j);
-        }
-        else {
-            out.writeLong(s);
+        } else if (fourByte) {
+            writeInt((int) s, out);
+            //out.writeInt((int) s);
+        } else if (fiveByte) {
+            writeFiveByteLong(s, out);
+        } else if (sixByte) {
+            writeSixByteLong(s, out);
+        } else if (sevenByte) {
+            writeSevenByteLong(s, out);
+        } else {
+            writeLong(s, out);
         }
         if (n != 0) {
             out.writeInt(n);
@@ -512,36 +505,24 @@ public class SerializerImplementations {
         boolean fiveByte = (codec & 0b0001_0000) == 0b0001_0000;
         boolean sixByte = (codec & 0b0010_0000) == 0b0010_0000;
         boolean sevenByte = (codec & 0b0100_0000) == 0b0100_0000;
-        
+
         if (oneByte) {
             s = in.readByte();
-        }
-        else if (twoByte) {
-            s = in.readShort();
-        }
-        else if (threeByte) {
+        } else if (twoByte) {
+            s = readShort(in);
+            //s = in.readShort();
+        } else if (threeByte) {
             s = readThreeByteInt(in);
-        }
-        else if (fourByte) {
-            s = in.readInt();
-        }
-        else if (fiveByte) {
-            int i = in.readByte();
-            int j = in.readInt();
-            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
-        }
-        else if (sixByte) {
-            int i = in.readShort();
-            int j = in.readInt();
-            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
-        }
-        else if (sevenByte) {
-            int i = readThreeByteInt(in);
-            int j = in.readInt();
-            s = (((long) i) << 32) | (j & 0xFFFFFFFFL);
-        }
-        else {
-            s = in.readLong();
+        } else if (fourByte) {
+            s = readInt(in);
+        } else if (fiveByte) {
+            s = readFiveByteLong(in);
+        } else if (sixByte) {
+            s = readSixByteLong(in);
+        } else if (sevenByte) {
+            s = readSevenByteLong(in);
+        } else {
+            s = readLong(in);
         }
 
         if (hasNanos) {
@@ -593,11 +574,13 @@ public class SerializerImplementations {
         if (oneByteYear) {
             out.writeByte(y);
         } else if (twoByteYear) {
-            out.writeShort(y);
+            writeShort(y, out);
+            //out.writeShort(y);
         } else if (threeByteYear) {
             writeThreeByteInt(y, out);
         } else {
-            out.writeInt(y);
+            writeInt(y, out);
+            //out.writeInt(y);
         }
     }
 
@@ -612,11 +595,13 @@ public class SerializerImplementations {
         if (oneByteYear) {
             y = in.readByte();
         } else if (twoByteYear) {
-            y = in.readShort();
+            y = readShort(in);
+            //y = in.readShort();
         } else if (threeByteYear) {
             y = readThreeByteInt(in);
         } else {
-            y = in.readInt();
+            y = readInt(in);
+            //y = in.readInt();
         }
         if (negativeYear) {
             y -= YEAR_ADJUST;
@@ -680,7 +665,8 @@ public class SerializerImplementations {
         // Implementation 2.
         if (ZONE_TO_SHORT.containsKey(id)) {
             short s = ZONE_TO_SHORT.get(id);
-            out.writeShort(s);
+            writeShort(s, out);
+            // out.writeShort(s);
         } else {
             int i = id.lastIndexOf('/');
             // There's at least some kind of prefix
@@ -689,14 +675,17 @@ public class SerializerImplementations {
                 String sid = id.substring(i + 1);
                 if (PREFIX_TO_BYTE.containsKey(prefix)) {
                     byte b = PREFIX_TO_BYTE.get(prefix);
-                    out.writeShort(b);
+                    writeShort(b, out);
+                    //out.writeShort(b);
                     out.writeUTF(sid);
                 } else {
-                    out.writeShort(0);
+                    writeShort(0, out);
+                    //out.writeShort(0);
                     out.writeUTF(id);
                 }
             } else {
-                out.writeShort(0);
+                writeShort(0, out);
+                //out.writeShort(0);
                 out.writeUTF(id);
             }
         }
@@ -723,8 +712,9 @@ public class SerializerImplementations {
         String id = in.readUTF();
         ZoneId zone = ZoneId.of(id);
          */
-        // Implementation 2. 
-        short s = in.readShort();
+        // Implementation 2.
+        short s = readShort(in);
+        // short s = in.readShort();
         if (s > 255) {
             String zid = SHORT_TO_ZONE.get(s);
             ZoneId zone = ZoneId.of(zid);
@@ -762,37 +752,183 @@ public class SerializerImplementations {
         return res;
     }
 
+    public static void writeShort(int val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[2];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        out.write(buf, 0, 2);
+    }
+
+    public static short readShort(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[2];
+        in.read(buf);
+        int ch1 = (buf[0] + 256) & 0xFF;
+        int ch2 = (buf[1] + 256) & 0xFF;
+        short res = (short) ((ch2 << 8) + (ch1 << 0));
+        return res;
+    }
+    
     public static void writeThreeByteInt(int val, FSTObjectOutput out) throws IOException {
-        // Check that the value will fit in 23 bits, one bit is needed for the sign.
-        if (val > 8388607) {
-            // Add throw.
-        }
-        if (val < -8388608) {
-            // Add throw.
-        }
-        ByteBuffer bb = ByteBuffer.allocate(4);
-        bb.putInt(val);
-        byte[] arr = bb.array();
-        out.writeByte(arr[1]);
-        out.writeByte(arr[2]);
-        out.writeByte(arr[3]);
+        byte[] buf = new byte[3];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        out.write(buf, 0, 3);
     }
 
     public static int readThreeByteInt(FSTObjectInput in) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(4);
-        byte one = in.readByte();
-        byte two = in.readByte();
-        byte three = in.readByte();
-        // Check if one is negative first.
-        if (one < 0) {
-            bb.put(0, (byte) -1);
-        } else {
-            bb.put(0, (byte) 0);
+        byte[] buf = new byte[3];
+        in.read(buf);
+        int i = 0;
+        int ch1 = (buf[0] + 256) & 0xFF;
+        int ch2 = (buf[1] + 256) & 0xFF;
+        int ch3 = (buf[2] + 256) & 0xFF;
+        int ch4 = 0;
+        if (buf[2] < 0) {
+            ch4 =  ((byte) -1 + 256) & 0xFF;
         }
-        bb.put(1, one);
-        bb.put(2, two);
-        bb.put(3, three);
-        int res = bb.getInt();
+        int res = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
+        return res;
+    }
+
+    public static void writeInt(int val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[4];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        buf[3] = (byte) ((val >>> 24) & 0xFF);
+        out.write(buf, 0, 4);
+    }
+
+    public static int readInt(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[4];
+        in.read(buf);
+        int i = 0;
+        int ch1 = (buf[0] + 256) & 0xFF;
+        int ch2 = (buf[1] + 256) & 0xFF;
+        int ch3 = (buf[2] + 256) & 0xFF;
+        int ch4 = (buf[3] + 256) & 0xFF;
+        int res = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
+        return res;
+    }
+
+    public static void writeFiveByteLong(long val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[5];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        buf[3] = (byte) ((val >>> 24) & 0xFF);
+        buf[4] = (byte) ((val >>> 32) & 0xFF);
+        out.write(buf, 0, 5);
+    }
+
+    public static long readFiveByteLong(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[5];
+        in.read(buf);
+        long ch1 = (buf[0] + 256) & 0xFF;
+        long ch2 = (buf[1] + 256) & 0xFF;
+        long ch3 = (buf[2] + 256) & 0xFF;
+        long ch4 = (buf[3] + 256) & 0xFF;
+        long ch5 = (buf[4] + 256) & 0xFF;
+        long ch6 = 0;
+        long ch7 = 0;
+        long ch8 = 0;
+        if (buf[4] < 0) {
+            ch6 = ((byte) -1 + 256) & 0xFF;
+            ch7 = ((byte) -1 + 256) & 0xFF;
+            ch8 =  ((byte) -1 + 256) & 0xFF;
+        }
+        long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
+        return res;
+    }
+    
+    public static void writeSixByteLong(long val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[8];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        buf[3] = (byte) ((val >>> 24) & 0xFF);
+        buf[4] = (byte) ((val >>> 32) & 0xFF);
+        buf[5] = (byte) ((val >>> 40) & 0xFF);
+        buf[6] = (byte) ((val >>> 48) & 0xFF);
+        buf[7] = (byte) ((val >>> 54) & 0xFF);
+        out.write(buf, 0, 6);
+    }
+
+    public static long readSixByteLong(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[6];
+        in.read(buf);
+        long ch1 = (buf[0] + 256) & 0xFF;
+        long ch2 = (buf[1] + 256) & 0xFF;
+        long ch3 = (buf[2] + 256) & 0xFF;
+        long ch4 = (buf[3] + 256) & 0xFF;
+        long ch5 = (buf[4] + 256) & 0xFF;
+        long ch6 = (buf[5] + 256) & 0xFF;
+        long ch7 = 0;
+        long ch8 = 0;
+        if (buf[5] < 0) {
+            ch7 = ((byte) -1 + 256) & 0xFF;
+            ch8 =  ((byte) -1 + 256) & 0xFF;
+        }
+        long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
+        return res;
+    }
+    
+    public static void writeSevenByteLong(long val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[7];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        buf[3] = (byte) ((val >>> 24) & 0xFF);
+        buf[4] = (byte) ((val >>> 32) & 0xFF);
+        buf[5] = (byte) ((val >>> 40) & 0xFF);
+        buf[6] = (byte) ((val >>> 48) & 0xFF);
+        out.write(buf, 0, 7);
+    }
+
+    public static long readSevenByteLong(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[7];
+        in.read(buf);
+        long ch1 = (buf[0] + 256) & 0xFF;
+        long ch2 = (buf[1] + 256) & 0xFF;
+        long ch3 = (buf[2] + 256) & 0xFF;
+        long ch4 = (buf[3] + 256) & 0xFF;
+        long ch5 = (buf[4] + 256) & 0xFF;
+        long ch6 = (buf[5] + 256) & 0xFF;
+        long ch7 = (buf[6] + 256) & 0xFF;
+        long ch8 = 0;
+        if (buf[6] < 0) {
+            ch8 =  ((byte) -1 + 256) & 0xFF;
+        }
+        long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
+        return res;
+    }
+
+    public static void writeLong(long val, FSTObjectOutput out) throws IOException {
+        byte[] buf = new byte[8];
+        buf[0] = (byte) ((val >>> 0) & 0xFF);
+        buf[1] = (byte) ((val >>> 8) & 0xFF);
+        buf[2] = (byte) ((val >>> 16) & 0xFF);
+        buf[3] = (byte) ((val >>> 24) & 0xFF);
+        buf[4] = (byte) ((val >>> 32) & 0xFF);
+        buf[5] = (byte) ((val >>> 40) & 0xFF);
+        buf[6] = (byte) ((val >>> 48) & 0xFF);
+        buf[7] = (byte) ((val >>> 56) & 0xFF);
+        out.write(buf, 0, 8);
+    }
+
+    public static long readLong(FSTObjectInput in) throws IOException {
+        byte[] buf = new byte[8];
+        in.read(buf);
+        long ch1 = (buf[0] + 256) & 0xFF;
+        long ch2 = (buf[1] + 256) & 0xFF;
+        long ch3 = (buf[2] + 256) & 0xFF;
+        long ch4 = (buf[3] + 256) & 0xFF;
+        long ch5 = (buf[4] + 256) & 0xFF;
+        long ch6 = (buf[5] + 256) & 0xFF;
+        long ch7 = (buf[6] + 256) & 0xFF;
+        long ch8 = (buf[7] + 256) & 0xFF;
+        long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
         return res;
     }
 
