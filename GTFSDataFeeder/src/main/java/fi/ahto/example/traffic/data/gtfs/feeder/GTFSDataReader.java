@@ -28,7 +28,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
@@ -192,7 +191,8 @@ public class GTFSDataReader implements ApplicationRunner {
                     }
                     service.starttimes.put(stop.arrivalTime.toSecondOfDay(), k);
                 }
-                ServiceTrips block = mapper.servicetrips.get(b + ":" + r + ":" + d);
+                // ServiceTrips block = mapper.servicetrips.get(b + ":" + r + ":" + d);
+                ServiceTrips block = mapper.servicetrips.get(b);
                 if (block != null) {
                     if (block.route == null) {
                         LOG.warn("Logic error!");
