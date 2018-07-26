@@ -70,8 +70,13 @@ public class SerializerImplementations {
         if (hasSeconds) {
             out.writeByte(ld.getSecond());
         }
+        // Nanos always in range 0...999999999, and a strong reason to suspect that
+        // the distribution is quite even. So write always exactly 4 bytes, instead
+        // of sligtly over 3% being able to be compressed down to 3 bytes, but the
+        // rest needing 5.
         if (hasNanos) {
-            out.writeInt(ld.getNano());
+            writeInt(ld.getNano(), out);
+            // out.writeInt(ld.getNano());
         }
     }
 
@@ -91,7 +96,8 @@ public class SerializerImplementations {
             s = in.readByte();
         }
         if (hasNanos) {
-            n = in.readInt();
+            n = readInt(in);
+            // n = in.readInt();
         }
         Object res = LocalTime.of(h, m, s, n);
         return res;
@@ -111,14 +117,23 @@ public class SerializerImplementations {
         if (n != 0) {
             s |= 0x40000000_00000000L;
         }
-        out.writeLong(s);
+        // After adding those flag bits, guaranteed to need 8 bytes. This
+        // unfortunately also makes it impossible to make a small optimization
+        // valid until 03:14:07 UTC on Tuesday, 19 January 2038, which could be
+        // compressed to 5 bytes by using out.writeLong(s), but then also using
+        // one extra byte even if the nanos are really zero, because there's no
+        // extra bit anymore to indicate the fact.
+        writeLong(s, out);
+        // out.writeLong(s);
         if (n != 0) {
-            out.writeInt(inst.getNano());
+            writeInt(n, out);
+            // out.writeInt(inst.getNano());
         }
     }
 
     public static Object deserializeInstant(FSTObjectInput in) throws IOException {
-        long seconds = in.readLong();
+        long seconds = readLong(in);
+        // long seconds = in.readLong();
         boolean hasNanos = (seconds & 0x40000000_00000000L) != 0;
         boolean isNegative = (seconds & 0x80000000_00000000L) != 0;
         seconds &= 0x0FFFFFFF_FFFFFFFFL;
@@ -127,7 +142,8 @@ public class SerializerImplementations {
         }
         int nanos = 0;
         if (hasNanos) {
-            nanos = in.readInt();
+            nanos = readInt(in);
+            // nanos = in.readInt();
         }
         Object res = Instant.ofEpochSecond(seconds, nanos);
         return res;
@@ -226,7 +242,7 @@ public class SerializerImplementations {
         hasMonthsOnly (10)
         hasYearsOnly (11)
         No more bits left to use anymore, so something not stricly necessary will be
-        written anyway using one byte...
+        written anyway using one byte in case of there being two elements...
         Sorry for the people who use Periods for predicting that the end of world will
         happen after 50000000 years from now, on ThirteenMillionthMonths day 7123456.
         They'll get 13 bytes written instead of the minimum 12, but I'd guess they
@@ -492,7 +508,8 @@ public class SerializerImplementations {
             writeLong(s, out);
         }
         if (n != 0) {
-            out.writeInt(n);
+            writeInt(n, out);
+            // out.writeInt(n);
         }
     }
 
@@ -529,7 +546,8 @@ public class SerializerImplementations {
         }
 
         if (hasNanos) {
-            n = in.readInt();
+            n = readInt(in);
+            // n = in.readInt();
         }
         Duration res = Duration.ofSeconds(s, n);
         return res;
@@ -741,6 +759,8 @@ public class SerializerImplementations {
         // Idea and code taken from JDK sources
         s = s % 900 == 0 ? s / 900 : 127; // compress to -72 to +72
         out.writeByte(s);
+        // Really shouldn't happen very often, but just in case. Just write exactly three
+        // bytes, no practical reason to try to optimize.
         if (s == 127) {
             // Offset guaranteed to be in range -64800...64800, so will fit in three bytes.
             writeThreeByteInt(s, out);
