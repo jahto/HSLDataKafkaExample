@@ -41,6 +41,17 @@ import org.nustaq.serialization.FSTObjectOutput;
  * @author Jouni Ahto
  */
 public class SerializerImplementations {
+    
+    // For internal use only.
+    static class InstantOrDuration {
+        public final long seconds;
+        public final int nanos;
+        
+        InstantOrDuration(long s, int n) {
+            this.seconds = s;
+            this.nanos = n;
+        }
+    }
 
     private static final int YEAR_ADJUST = 2018;
     private static final byte NEGATIVE_FILLER = (byte) (((byte) -1 + 256) & 0xFF);
@@ -105,47 +116,17 @@ public class SerializerImplementations {
 
     public static void serializeInstant(Object toWrite, FSTObjectOutput out) throws IOException {
         Instant inst = (Instant) toWrite;
-        // Guaranteed by Java specs to be in range -31557014167219200L...31556889864403199L,
-        // so we have some extra bits to use for optimization, and can avoid writing nanos
-        // totally if there aren't any.
         long s = inst.getEpochSecond();
         int n = inst.getNano();
-        if (s < 0) {
-            s = ~s;
-            s |= 0x80000000_00000000L;
-        }
-        if (n != 0) {
-            s |= 0x40000000_00000000L;
-        }
-        // After adding those flag bits, guaranteed to need 8 bytes. This
-        // unfortunately also makes it impossible to make a small optimization
-        // valid until 03:14:07 UTC on Tuesday, 19 January 2038, which could be
-        // compressed to 5 bytes by using out.writeLong(s), but then also using
-        // one extra byte even if the nanos are really zero, because there's no
-        // extra bit anymore to indicate the fact.
-        writeLong(s, out);
-        // out.writeLong(s);
-        if (n != 0) {
-            writeInt(n, out);
-            // out.writeInt(inst.getNano());
-        }
+        // Instant and Duration have the same internal representation, long for seconds
+        // and int for nanos. Just their interpretation is different. So use the same
+        // serializers.
+        writeInstantOrDuration(s, n, out);
     }
 
     public static Object deserializeInstant(FSTObjectInput in) throws IOException {
-        long seconds = readLong(in);
-        // long seconds = in.readLong();
-        boolean hasNanos = (seconds & 0x40000000_00000000L) != 0;
-        boolean isNegative = (seconds & 0x80000000_00000000L) != 0;
-        seconds &= 0x0FFFFFFF_FFFFFFFFL;
-        if (isNegative) {
-            seconds = ~seconds;
-        }
-        int nanos = 0;
-        if (hasNanos) {
-            nanos = readInt(in);
-            // nanos = in.readInt();
-        }
-        Object res = Instant.ofEpochSecond(seconds, nanos);
+        InstantOrDuration ior = readInstantOrDuration(in);
+        Instant res = Instant.ofEpochSecond(ior.seconds, ior.nanos);
         return res;
     }
 
@@ -436,19 +417,14 @@ public class SerializerImplementations {
         return res;
     }
 
-    // Not implemented yet...
     public static void serializeDurationAlt(Object toWrite, FSTObjectOutput out) throws IOException {
         Duration d = (Duration) toWrite;
-        /*
-        Theory of durations. People needing seconds to not be in
-        the range -2147483648...2147483647, ie. covering a little bit more
-        than -68...67 years, do not probably really need the nanoseconds part.
-        So just write an extra byte and encode that and how many bytes are
-        actually needed for each part, or do the nanos even exist. Writing that
-        extra byte that needs only one bit to encode if there are nanos or not
-        also leaves exactly 7 bits to tell if that long seconds part is encoded
-        to something smaller.
-         */
+        long s = d.getSeconds();
+        int n = d.getNano();
+        writeInstantOrDuration(s, n, out);
+    }
+
+    private static void writeInstantOrDuration(long s, int n, FSTObjectOutput out) throws IOException {
         boolean oneByte = false;
         boolean twoByte = false;
         boolean threeByte = false;
@@ -456,8 +432,6 @@ public class SerializerImplementations {
         boolean fiveByte = false;
         boolean sixByte = false;
         boolean sevenByte = false;
-        long s = d.getSeconds();
-        int n = d.getNano();
         byte codec = 0;
 
         if (n != 0) {
@@ -514,6 +488,12 @@ public class SerializerImplementations {
     }
 
     public static Object deserializeDurationAlt(FSTObjectInput in) throws IOException {
+        InstantOrDuration ior = readInstantOrDuration(in);
+        Duration res = Duration.ofSeconds(ior.seconds, ior.nanos);
+        return res;
+    }
+
+    private static InstantOrDuration readInstantOrDuration(FSTObjectInput in) throws IOException {
         byte codec = in.readByte();
         long s = 0;
         int n = 0;
@@ -549,7 +529,8 @@ public class SerializerImplementations {
             n = readInt(in);
             // n = in.readInt();
         }
-        Duration res = Duration.ofSeconds(s, n);
+        
+        InstantOrDuration res = new InstantOrDuration(s, n);
         return res;
     }
 
