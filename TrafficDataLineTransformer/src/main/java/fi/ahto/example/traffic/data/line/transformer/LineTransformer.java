@@ -152,8 +152,15 @@ public class LineTransformer {
                                 .withValueSerde(fstvaflistserde)
                 );
 
-        // Map to correct trip id in several steps, another approach
-        KStream<String, VehicleActivity> possibilitiesstream = streamin
+        // Map to correct trip id in several steps, another approach.
+        // Some feeds do not have any information about the correct timetable
+        // and exact trip, so we'll have to find it based on other information
+        // available.
+        KStream<String, VehicleActivity> hasNoId = streamin
+                .filter((k, v) ->
+                        (v.getBlockId() == null || v.getBlockId().isEmpty()) &&
+                        (v.getTripID() == null || v.getTripID().isEmpty())
+                )
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
@@ -170,7 +177,7 @@ public class LineTransformer {
                             return rval;
                         });
 
-        KStream<String, VehicleActivity> tripstreamalt = possibilitiesstream
+        KStream<String, VehicleActivity> hasNoIdSecondStep = hasNoId
                 .flatMapValues((k, v) -> {
                     //.flatMap((k, v) -> {
                     List<VehicleActivity> rval = new ArrayList<>();
@@ -189,7 +196,7 @@ public class LineTransformer {
                     return rval;
                 });
 
-        KStream<String, VehicleActivity> hasnotblockid = tripstreamalt
+        KStream<String, VehicleActivity> hasNoIdThirdStep = hasNoIdSecondStep
                 .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> {
                     String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                     return newkey;
@@ -216,8 +223,14 @@ public class LineTransformer {
                         }
                 ).filter((k, v) -> v != null);
 
-        KStream<String, VehicleActivity> hasblockidstream = streamin
-                .filter((k, v) -> v.getBlockId() != null && !v.getBlockId().isEmpty())
+        // Some feeds do have some information that helps finding the correct
+        // trip and timetable.
+        KStream<String, VehicleActivity> hasBlockId = streamin
+                .filter((k, v) -> 
+                        v.getBlockId() != null && !v.getBlockId().isEmpty() &&
+                        (v.getTripID() == null || v.getTripID().isEmpty())
+
+                )
                 .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getBlockId(),
                         (VehicleActivity value, ServiceTrips right) -> {
@@ -230,8 +243,16 @@ public class LineTransformer {
                             return value;
                         });
 
+        // And them, some feeds already have a refence to the correct
+        // trip and timetable.
+        KStream<String, VehicleActivity> hasTripId = streamin
+                .filter((k, v) -> 
+                        v.getBlockId() != null && !v.getBlockId().isEmpty() &&
+                        (v.getTripID() == null || v.getTripID().isEmpty())
+
+                );
         // Add possibly missing remaining stops 
-        KStream<String, VehicleActivity> finaltripstopstream = hasnotblockid.merge(hasblockidstream);
+        KStream<String, VehicleActivity> finaltripstopstream = hasNoIdThirdStep.merge(hasBlockId).merge(hasTripId);
         KStream<String, VehicleActivity> reallyfinaltripstopstream = finaltripstopstream
                 .leftJoin(trips,
                         (String key, VehicleActivity value) -> {
