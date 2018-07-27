@@ -58,9 +58,10 @@ public class SerializerImplementations {
 
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
-        // Minutes guaranteed by Java specs to be in range 0...59, which fits in 5 bits,
+        // Hours guaranteed by Java specs to be in range 0...23, which fits in 5 bits,
         // and we can use there remaining 3 higher ones to indicate if the remaining fields
-        // are 0, which we don't bother to write, or something else.
+        // are 0, which we don't bother to write, or something else. One very common use
+        // case is public transport timetables that tend to have hours and minutes only.
         boolean hasMinutes = ld.getMinute() != 0;
         boolean hasSeconds = ld.getSecond() != 0;
         boolean hasNanos = ld.getNano() != 0;
