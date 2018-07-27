@@ -205,10 +205,10 @@ public class SiriDataPoller {
         vaf.setTransitType(decodeTransitType(mvh));
         vaf.setVehicleId(prefix + mvh.getVehicleRef().getValue());
         if (mvh.getBearing() != null) {
-            vaf.setBearing(mvh.getBearing().doubleValue());
+            vaf.setBearing(mvh.getBearing().floatValue());
         }
-        vaf.setLatitude(mvh.getVehicleLocation().getLatitude().doubleValue());
-        vaf.setLongitude(mvh.getVehicleLocation().getLongitude().doubleValue());
+        vaf.setLatitude(mvh.getVehicleLocation().getLatitude().floatValue());
+        vaf.setLongitude(mvh.getVehicleLocation().getLongitude().floatValue());
         if (mvh.getOriginAimedDepartureTime() != null) {
             vaf.setTripStart(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo")));
             vaf.setOperatingDate(mvh.getOriginAimedDepartureTime().toLocalDate());

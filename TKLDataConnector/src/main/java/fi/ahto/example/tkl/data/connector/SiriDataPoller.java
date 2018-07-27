@@ -184,12 +184,12 @@ public class SiriDataPoller {
         // Good enough for TKL until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
         vaf.setVehicleId(PREFIX + jrn.path("vehicleRef").asText());
-        vaf.setBearing(jrn.path("bearing").asDouble());
-        vaf.setSpeed(jrn.path("speed").asDouble());
+        vaf.setBearing(jrn.path("bearing").floatValue());
+        vaf.setSpeed(jrn.path("speed").floatValue());
 
         JsonNode loc = jrn.path("vehicleLocation");
-        vaf.setLatitude(loc.path("latitude").asDouble());
-        vaf.setLongitude(loc.path("longitude").asDouble());
+        vaf.setLatitude(loc.path("latitude").floatValue());
+        vaf.setLongitude(loc.path("longitude").floatValue());
 
         // What does this field refer to?
         /*

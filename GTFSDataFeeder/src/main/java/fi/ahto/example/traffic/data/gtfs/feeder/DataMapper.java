@@ -159,8 +159,8 @@ public class DataMapper {
             stop = new StopData();
             stop.stopid = stopid;
             stop.stopname = st.getStop().getName();
-            stop.latitude = st.getStop().getLat();
-            stop.longitude = st.getStop().getLon();
+            stop.latitude = (float) st.getStop().getLat();
+            stop.longitude = (float) st.getStop().getLon();
             stop.stopcode = st.getStop().getCode();
             stop.desc = st.getStop().getDesc();
             stop.routesserved.add(routeid);

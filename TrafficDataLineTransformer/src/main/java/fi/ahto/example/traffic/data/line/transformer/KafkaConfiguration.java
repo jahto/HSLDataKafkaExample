@@ -30,7 +30,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
-import org.msgpack.jackson.dataformat.MessagePackFactory;
+// import org.msgpack.jackson.dataformat.MessagePackFactory;
 // import org.rocksdb.BlockBasedTableConfig;
 // import org.rocksdb.CompressionType;
 // import org.rocksdb.IndexType;

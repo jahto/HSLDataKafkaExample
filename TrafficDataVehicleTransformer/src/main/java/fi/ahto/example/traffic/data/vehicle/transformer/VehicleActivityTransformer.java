@@ -443,7 +443,7 @@ public class VehicleActivityTransformer {
                 if (bearingdegrees < 0) {
                     bearingdegrees = 360 + bearingdegrees;
                 }
-                current.setBearing(bearingdegrees);
+                current.setBearing((float) bearingdegrees);
             }
 
             @Override

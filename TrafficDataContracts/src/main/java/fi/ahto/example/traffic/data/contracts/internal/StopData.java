@@ -31,9 +31,9 @@ public class StopData implements Serializable {
     @JsonProperty("StopName")
     public String stopname;
     @JsonProperty("Latitude")
-    public double latitude;
+    public float latitude;
     @JsonProperty("Longitude")
-    public double longitude;
+    public float longitude;
     @JsonProperty("StopCode")
     public String stopcode;
     @JsonProperty("Description")

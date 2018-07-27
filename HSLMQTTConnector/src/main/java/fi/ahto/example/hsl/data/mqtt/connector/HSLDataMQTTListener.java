@@ -148,8 +148,8 @@ public class HSLDataMQTTListener {
         vaf.setVehicleId(PREFIX + vehicle);
 
         vaf.setDelay(vp.path("dl").asInt());
-        vaf.setLatitude(vp.path("lat").asDouble());
-        vaf.setLongitude(vp.path("long").asDouble());
+        vaf.setLatitude(vp.path("lat").floatValue());
+        vaf.setLongitude(vp.path("long").floatValue());
         vaf.setDirection(vp.path("dir").asText());
         vaf.setRecordTime(Instant.ofEpochSecond(vp.path("tsi").asLong()));
 
@@ -164,8 +164,8 @@ public class HSLDataMQTTListener {
             vaf.setNextStopId(PREFIX + nextstop);
         }
         // New data available.
-        vaf.setBearing(vp.path("hdg").asDouble());
-        vaf.setSpeed(vp.path("spd").asDouble());
+        vaf.setBearing(vp.path("hdg").floatValue());
+        vaf.setSpeed(vp.path("spd").floatValue());
         vaf.setOperatingDate(operday);
         vaf.setStartTime(start);
         return vaf;

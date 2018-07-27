@@ -100,19 +100,19 @@ public class VehicleHistoryRecord implements Serializable {
         this.nextStopName = nextStopName;
     }
 
-    public Double getSpeed() {
+    public Float getSpeed() {
         return speed;
     }
 
-    public void setSpeed(Double speed) {
+    public void setSpeed(Float speed) {
         this.speed = speed;
     }
 
-    public Double getBearing() {
+    public Float getBearing() {
         return bearing;
     }
 
-    public void setBearing(Double bearing) {
+    public void setBearing(Float bearing) {
         this.bearing = bearing;
     }
 
@@ -177,19 +177,19 @@ public class VehicleHistoryRecord implements Serializable {
         this.direction = direction;
     }
 
-    public Double getLongitude() {
+    public Float getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(Double longitude) {
+    public void setLongitude(Float longitude) {
         this.longitude = longitude;
     }
 
-    public Double getLatitude() {
+    public Float getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(Double latitude) {
+    public void setLatitude(Float latitude) {
         this.latitude = latitude;
     }
 
@@ -208,9 +208,9 @@ public class VehicleHistoryRecord implements Serializable {
     @JsonProperty("Direction")
     private String direction;
     @JsonProperty("Longitude")
-    private Double longitude;
+    private Float longitude;
     @JsonProperty("Latitude")
-    private Double latitude;
+    private Float latitude;
     @JsonProperty("Delay")
     private Integer delay;
     @JsonProperty("StopPoint")
@@ -226,9 +226,9 @@ public class VehicleHistoryRecord implements Serializable {
     private Integer measurementLength;
     */
     @JsonProperty("Bearing")
-    private Double bearing;
+    private Float bearing;
     @JsonProperty("Speed")
-    private Double speed;
+    private Float speed;
     @JsonProperty("NextStopId")
     private String nextStopId;
     @JsonProperty("NextStopName")

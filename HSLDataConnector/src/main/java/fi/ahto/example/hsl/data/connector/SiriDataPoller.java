@@ -176,8 +176,8 @@ public class SiriDataPoller {
         // vaf.setSpeed(jrn.path("speed").asDouble());
 
         JsonNode loc = jrn.path("VehicleLocation");
-        vaf.setLatitude(loc.path("Latitude").asDouble());
-        vaf.setLongitude(loc.path("Longitude").asDouble());
+        vaf.setLatitude(loc.path("Latitude").floatValue());
+        vaf.setLongitude(loc.path("Longitude").floatValue());
 
         // HSL feed seems to refer to the next stop
         vaf.setNextStopId(PREFIX + jrn.path("MonitoredCall").path("StopPointRef").asText());

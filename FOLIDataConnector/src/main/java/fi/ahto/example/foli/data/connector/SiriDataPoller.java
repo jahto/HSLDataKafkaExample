@@ -180,9 +180,9 @@ public class SiriDataPoller {
         // Good enough for FOLI until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
         vaf.setVehicleId(PREFIX + node.path("vehicleref").asText());
-        vaf.setBearing(node.path("bearing").asDouble());
-        vaf.setLatitude(node.path("latitude").asDouble());
-        vaf.setLongitude(node.path("longitude").asDouble());
+        vaf.setBearing(node.path("bearing").floatValue());
+        vaf.setLatitude(node.path("latitude").floatValue());
+        vaf.setLongitude(node.path("longitude").floatValue());
         // What does this field refer to?
         /*
         if (va.getMonitoredVehicleJourney().getMonitoredCall() != null) {
