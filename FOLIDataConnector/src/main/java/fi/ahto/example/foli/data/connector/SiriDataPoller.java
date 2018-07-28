@@ -25,6 +25,8 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TripStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -199,18 +201,18 @@ public class SiriDataPoller {
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());
-        vaf.setBlockId(node.path("blockref").asText());
+        vaf.setBlockId(PREFIX + node.path("blockref").asText());
 
         JsonNode onwardcalls = node.path("onwardcalls");
 
         if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
-            ServiceStopSet set = vaf.getOnwardCalls();
+            TripStopSet set = vaf.getOnwardCalls();
 
             for (JsonNode call : onwardcalls) {
-                ServiceStop stop = new ServiceStop();
+                TripStop stop = new TripStop();
                 stop.stopid = PREFIX + call.path("stoppointref").asText();
                 stop.seq = call.path("visitnumber").asInt();
-                stop.name = call.path("stoppointname").asText();
+                // stop.name = call.path("stoppointname").asText();
                 Instant inst = Instant.ofEpochSecond(call.path("expectedarrivaltime").asLong());
                 LocalTime local = LocalTime.from(inst.atZone(zone));
                 stop.arrivalTime = local;

@@ -23,6 +23,8 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TripStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -177,7 +179,6 @@ public class SiriDataPoller {
 
         vaf.setDirection(jrn.path("directionRef").asText());
 
-        // vaf.setInternalLineId(PREFIX + jrn.path("lineRef").asText());
         vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());
         vaf.setLineId(jrn.path("lineRef").asText());
 
@@ -235,10 +236,10 @@ public class SiriDataPoller {
         JsonNode onwardcalls = jrn.path("onwardCalls");
 
         if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
-            ServiceStopSet set = vaf.getOnwardCalls();
+            TripStopSet set = vaf.getOnwardCalls();
             
             for (JsonNode call : onwardcalls) {
-                ServiceStop stop = new ServiceStop();
+                TripStop stop = new TripStop();
                 String stopid = call.path("stopPointRef").asText();
                 int index = stopid.lastIndexOf('/');
                 stop.stopid = PREFIX + stopid.substring(index + 1);

@@ -59,6 +59,12 @@
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-afterburner</artifactId>
         </dependency>
+        <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>fst</artifactId>
+            <version>2.57</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <modules>
         <module>../KafkaStreamsStateUtils</module>

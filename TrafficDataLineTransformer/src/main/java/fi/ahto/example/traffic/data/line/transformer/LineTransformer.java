@@ -92,6 +92,7 @@ public class LineTransformer {
         final FSTSerde<ServiceList> fstServiceListSerde = new FSTSerde<>(ServiceList.class, conf);
         final FSTSerde<TripStopSet> fsttripsserde = new FSTSerde<>(TripStopSet.class, conf);
         final FSTSerde<ServiceTrips> fstserviceserde = new FSTSerde<>(ServiceTrips.class, conf);
+        final FSTSerde<VehicleAtStop> fstvasserde = new FSTSerde<>(VehicleAtStop.class, conf);
 
         // KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), fstvafserde));
@@ -163,7 +164,6 @@ public class LineTransformer {
                 )
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
-                .filter((k, v) -> v.getBlockId() == null || v.getBlockId().isEmpty())
                 .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
                         // .leftJoin(routesToServices,
@@ -172,6 +172,9 @@ public class LineTransformer {
                                 LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             } else {
                                 LOG.debug("Found correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
+                            }
+                            if (value.getInternalLineId().equals("FI:TKL:71K")) {
+                                int i = 0;
                             }
                             VehicleActivity rval = findPossibleServices(value, right);
                             return rval;
@@ -186,7 +189,7 @@ public class LineTransformer {
                         // Happens when I forget to feed static GTFS-data, must check later...
                         return rval;
                     }
-                    for (String s : v.getPossibilities()) {
+                    for (String s : v.getServicePossibilities()) {
                         VehicleActivity va = new VehicleActivity(v);
                         va.setServiceID(s);
                         String key = va.getServiceID();// + ":" + va.getInternalLineId();
@@ -232,18 +235,21 @@ public class LineTransformer {
 
                 )
                 .filterNot((k, v) -> v.LineHasChanged())
-                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> value.getBlockId(),
+                .leftJoin(serviceToTrips, (String key, VehicleActivity value) ->
+                        value.getBlockId() + ":" + value.getInternalLineId(), // + ":" + value.getDirection(),
                         (VehicleActivity value, ServiceTrips right) -> {
                             if (right == null) {
-                                LOG.info("Didn't find correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
+                                LOG.info("Didn't find correct block {} for route {}, line {}, dir {}",
+                                        value.getBlockId(), value.getInternalLineId(), value.getLineId(), value.getDirection());
                             } else {
-                                LOG.debug("Found correct block {} for route {}, line {}", value.getBlockId(), value.getInternalLineId(), value.getLineId());
+                                LOG.debug("Found correct block {} for route {}, line {}, dir {}",
+                                        value.getBlockId(), value.getInternalLineId(), value.getLineId(), value.getDirection());
                             }
                             value = findTrip(value, right);
                             return value;
                         });
 
-        // And them, some feeds already have a refence to the correct
+        // And them, some feeds already have a reference to the correct
         // trip and timetable.
         KStream<String, VehicleActivity> hasTripId = streamin
                 .filter((k, v) -> 
@@ -269,7 +275,8 @@ public class LineTransformer {
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
 
-        lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
+        //lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
+        lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), fstvaflistserde));
         stopchanges.to("changes-by-stopid", Produced.with(Serdes.String(), vasserde));
         return streamin;
     }
@@ -349,7 +356,7 @@ public class LineTransformer {
                     sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());
             cnt++;
         }
-        va.setPossibilities(possibilities);
+        va.setServicePossibilities(possibilities);
         return va;
     }
 
@@ -411,7 +418,7 @@ public class LineTransformer {
                 //Integer diff = miss.arrivalTime - left.getDelay();
                 //LocalTime newtime = LocalTime.ofSecondOfDay(diff);
                 LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
-                ServiceStop toadd = new ServiceStop();
+                TripStop toadd = new TripStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;
                 toadd.arrivalTime = newtime;
@@ -466,9 +473,9 @@ public class LineTransformer {
                 }
                 if (previous == null) {
                     LOG.debug("Adding stop times first time.");
-                    Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
+                    Iterator<TripStop> iter = current.getOnwardCalls().descendingIterator();
                     while (iter.hasNext()) {
-                        ServiceStop curstop = iter.next();
+                        TripStop curstop = iter.next();
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.vehicleId = current.getVehicleId();
                         vas.lineId = current.getLineId();
@@ -480,7 +487,7 @@ public class LineTransformer {
 
                 if (current.LineHasChanged()) {
                     LOG.debug("Removing all remaining stops for vehicle {}", current.getVehicleId());
-                    for (ServiceStop ss : current.getOnwardCalls()) {
+                    for (TripStop ss : current.getOnwardCalls()) {
                         LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.remove = true;
@@ -491,11 +498,11 @@ public class LineTransformer {
                     return null;
                 }
 
-                Iterator<ServiceStop> iter = current.getOnwardCalls().descendingIterator();
-                ServiceStop curstop = null;
+                Iterator<TripStop> iter = current.getOnwardCalls().descendingIterator();
+                TripStop curstop = null;
                 while (iter.hasNext()) {
                     curstop = iter.next();
-                    ServiceStop prevstop = previous.getOnwardCalls().floor(curstop);
+                    TripStop prevstop = previous.getOnwardCalls().floor(curstop);
                     if (prevstop != null) {
                         // Just skip until the reason has been found...
                         if (curstop.arrivalTime == null) {
@@ -524,12 +531,12 @@ public class LineTransformer {
                 }
 
                 if (curstop != null) {
-                    NavigableSet<ServiceStop> remove = previous.getOnwardCalls().headSet(curstop, false);
+                    NavigableSet<TripStop> remove = previous.getOnwardCalls().headSet(curstop, false);
                     if (remove != null && remove.size() > 0) {
                         // Vehicle has gone past these stops, so will not be arriving
                         // to them anymore. Push the information to some queue.
                         LOG.debug("Removing stops.");
-                        for (ServiceStop ss : remove) {
+                        for (TripStop ss : remove) {
                             LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
                             VehicleAtStop vas = new VehicleAtStop();
                             vas.remove = true;

@@ -159,7 +159,7 @@ public class HSLDataMQTTListener {
         vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop
         if ("EOL".equals(nextstop) || nextstop.isEmpty()) {
-            vaf.setEol(true);
+            vaf.setAtRouteEnd(true);
         } else {
             vaf.setNextStopId(PREFIX + nextstop);
         }

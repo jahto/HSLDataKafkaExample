@@ -71,7 +71,7 @@ public class VehicleActivity implements Serializable {
     }
 
     public VehicleActivity() {
-        onwardCalls = new ServiceStopSet();
+        onwardCalls = new TripStopSet();
     }
 
     public VehicleActivity(VehicleActivity other) {
@@ -103,7 +103,6 @@ public class VehicleActivity implements Serializable {
         this.tripID = other.tripID;
         this.operatingDate = other.operatingDate;
         this.startTime = other.startTime;
-        this.eol = other.eol;
         this.blockId = other.blockId;
     }
 
@@ -136,7 +135,6 @@ public class VehicleActivity implements Serializable {
         this.tripID = other.tripID;
         this.operatingDate = other.operatingDate;
         this.startTime = other.startTime;
-        this.eol = other.eol;
         this.blockId = other.blockId;
     }
 
@@ -383,7 +381,7 @@ public class VehicleActivity implements Serializable {
     @JsonProperty("NextStopName")
     private String nextStopName;
     @JsonProperty("OnwardCalls")
-    private final ServiceStopSet onwardCalls;
+    private final TripStopSet onwardCalls;
     @JsonProperty("AtRouteStart")
     private boolean atRouteStart;
     @JsonProperty("AtRouteEnd")
@@ -396,14 +394,12 @@ public class VehicleActivity implements Serializable {
     private LocalDate operatingDate;
     @JsonProperty("StartTime")
     private LocalTime startTime;
-    @JsonProperty("EOL")
-    private boolean eol;
     @JsonProperty("BlockId")
     private String blockId;
     private List<String> possibilities;
 
 
-    public ServiceStopSet getOnwardCalls() {
+    public TripStopSet getOnwardCalls() {
         return onwardCalls;
     }
     /*
@@ -420,14 +416,6 @@ public class VehicleActivity implements Serializable {
         this.tripID = tripID;
     }
 
-    public boolean getEol() {
-        return eol;
-    }
-
-    public void setEol(boolean eol) {
-        this.eol = eol;
-    }
-
     public Instant getLastAddedToHistory() {
         return lastAddToHistory;
     }
@@ -439,14 +427,14 @@ public class VehicleActivity implements Serializable {
     /**
      * @return the possibilities
      */
-    public List<String> getPossibilities() {
+    public List<String> getServicePossibilities() {
         return possibilities;
     }
 
     /**
      * @param possibilities the possibilities to set
      */
-    public void setPossibilities(List<String> possibilities) {
+    public void setServicePossibilities(List<String> possibilities) {
         this.possibilities = possibilities;
     }
 }

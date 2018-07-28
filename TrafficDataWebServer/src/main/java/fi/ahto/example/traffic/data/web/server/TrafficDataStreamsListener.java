@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.web.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
@@ -32,6 +33,7 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.GlobalKTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,15 +60,19 @@ public class TrafficDataStreamsListener {
     private ObjectMapper smileMapper;
 
     @Autowired
+    private FSTConfiguration conf;
+
+    @Autowired
     private LineDataProcessorSupplier lineProcessorSupplier;
 
     @Bean
     public GlobalKTable<String, VehicleDataList> constructLineDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, smileMapper);
+        // final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, smileMapper);
+        final FSTSerde<VehicleDataList> fstvaflistserde = new FSTSerde<>(VehicleDataList.class, conf);
         LOG.debug("Constructing " + StaticData.LINE_STORE + " with StreamsBuilder");
         GlobalKTable<String, VehicleDataList> table
                 = streamBuilder.globalTable(StaticData.LINE_STREAM,
-                        Consumed.with(Serdes.String(), vaflistserde),
+                        Consumed.with(Serdes.String(), fstvaflistserde),
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as(StaticData.LINE_STORE));
         // Should be safe, build() just returns the internal Topology object, no side effects.
         /*

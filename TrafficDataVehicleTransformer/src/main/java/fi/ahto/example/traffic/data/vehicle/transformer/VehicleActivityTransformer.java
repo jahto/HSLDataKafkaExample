@@ -285,7 +285,7 @@ public class VehicleActivityTransformer {
                 if (previous == null) {
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
-                    if (current.getEol()) {
+                    if (current.isAtRouteEnd()) {
                         LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
                     }
                     return current;
@@ -308,7 +308,7 @@ public class VehicleActivityTransformer {
 
                 // Vehicle is at end the of line, remove it immediately. It may come back
                 // later, but not necessarily on the same line;
-                if (current.getEol()) {
+                if (current.isAtRouteEnd()) {
                     return vehicleIsAtEOL(previous, current);
                 }
 
@@ -393,7 +393,7 @@ public class VehicleActivityTransformer {
             }
 
             private VehicleActivity vehicleIsAtEOL(VehicleActivity previous, VehicleActivity current) {
-                if (!previous.getEol()) {
+                if (!previous.isAtRouteEnd()) {
                     LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), previous.getInternalLineId());
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
@@ -411,7 +411,7 @@ public class VehicleActivityTransformer {
                 // unless we are testing...
                 if (TESTING) {
                     // But, in that case, must guard against some oddities in incoming data.
-                    if (previous.getEol() && !current.getEol()) {
+                    if (previous.isAtRouteEnd() && !current.isAtRouteEnd()) {
                         // Prevent the vehicle from flip-flopping between states, because
                         // data seems to come in out-of-order and multiple times when
                         // the vehicle is at the end of line. Handle only after a new trip starts.

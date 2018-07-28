@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.TripStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
 import java.io.InputStream;
@@ -257,10 +259,10 @@ public class SiriDataPoller {
         }
         
         if (list != null && list.size() > 0) {
-            ServiceStopSet set = vaf.getOnwardCalls();
+            TripStopSet set = vaf.getOnwardCalls();
             
             for (OnwardCallStructure ocs : list) {
-                ServiceStop stop = new ServiceStop();
+                TripStop stop = new TripStop();
                 stop.stopid = PREFIX + ocs.getStopPointRef().getValue();
                 stop.seq = ocs.getVisitNumber().intValue();
                 // ocs.getAimedArrivalTime().toLocalTime();

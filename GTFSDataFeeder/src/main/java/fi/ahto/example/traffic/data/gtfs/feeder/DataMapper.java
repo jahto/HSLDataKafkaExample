@@ -146,10 +146,11 @@ public class DataMapper {
         if (dir.equals("0")) {
             dir = "1";
         }
+
         String servicetripid = serviceid + ":" + routeid + ":" + dir;
         String blockid = null;
         if (st.getTrip().getBlockId() != null) {
-            blockid = prefix + st.getTrip().getBlockId() + ":" + routeid + ":" + dir;
+            blockid = prefix + st.getTrip().getBlockId() + ":" + routeid; // + ":" + dir;
         }
         //serviceid = compressedId(serviceid);
         //tripid = compressedId(tripid);
@@ -189,8 +190,24 @@ public class DataMapper {
             servicetripmap.route = routeid;
             servicetrips.put(servicetripid, servicetripmap);
             LOG.debug("Added servicetrip " + servicetripid + " to route " + routeid);
-        }
 
+            // Dirty hack for TKL, so we get something that can be found
+            // in the maps, but will finally not match.
+            String servicetripidopposite = serviceid + ":" + routeid + ":";
+            if (dir.equals("1")) {
+                servicetripidopposite += "2";
+            }
+            if (dir.equals("2")) {
+                servicetripidopposite += "1";
+            }
+            ServiceTrips servicetripmapopposite = servicetrips.get(servicetripidopposite);
+            if (servicetripmapopposite == null) {
+                servicetripmapopposite = new ServiceTrips();
+                servicetripmapopposite.route = routeid;
+                servicetrips.put(servicetripidopposite, servicetripmapopposite);
+                LOG.debug("Added servicetrip " + servicetripidopposite + " to route " + routeid);
+            }
+        }
         if (blockid != null) {
             ServiceTrips blocktripmap = servicetrips.get(blockid);
             if (blocktripmap == null) {
@@ -216,6 +233,7 @@ public class DataMapper {
                 service.blockIds.add(blockid);
             }
         }
+
         // Need to know later if the service is in one direction only.
         if (dir.equals("1")) {
             service.extra |= 0x1;
@@ -244,8 +262,8 @@ public class DataMapper {
             tr.add(ts);
         }
     }
-
     // Fix some observed anomalies or deviations from the standard.
+
     private void dataFixer(String prefix, StopTime st) {
         int start = st.getArrivalTime();
         if (start > 86399) {
