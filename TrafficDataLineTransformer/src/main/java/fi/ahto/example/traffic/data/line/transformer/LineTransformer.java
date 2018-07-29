@@ -133,26 +133,6 @@ public class LineTransformer {
                 //.withValueSerde(fsttripsserde)
                 );
 
-        Initializer<VehicleDataList> lineinitializer = () -> {
-            VehicleDataList valist = new VehicleDataList();
-            return valist;
-        };
-
-        // Get a table of all vehicles currently operating on the line.
-        Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator
-                = (String key, VehicleActivity value, VehicleDataList aggregate) -> {
-                    return aggregateLine(aggregate, value, key);
-                };
-
-        KTable<String, VehicleDataList> lines = streamin
-                .groupByKey(Serialized.with(Serdes.String(), vafserde))
-                .aggregate(lineinitializer, lineaggregator,
-                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
-                                .withKeySerde(Serdes.String())
-                                // .withValueSerde(vaflistserde)
-                                .withValueSerde(fstvaflistserde)
-                );
-
         // Map to correct trip id in several steps, another approach.
         // Some feeds do not have any information about the correct timetable
         // and exact trip, so we'll have to find it based on other information
@@ -164,7 +144,7 @@ public class LineTransformer {
                 )
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
-                .filterNot((k, v) -> v.LineHasChanged())
+                // .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
                         // .leftJoin(routesToServices,
                         (VehicleActivity value, ServiceList right) -> {
@@ -234,7 +214,7 @@ public class LineTransformer {
                         (v.getTripID() == null || v.getTripID().isEmpty())
 
                 )
-                .filterNot((k, v) -> v.LineHasChanged())
+                //.filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(serviceToTrips, (String key, VehicleActivity value) ->
                         value.getBlockId() + ":" + value.getInternalLineId(), // + ":" + value.getDirection(),
                         (VehicleActivity value, ServiceTrips right) -> {
@@ -274,6 +254,27 @@ public class LineTransformer {
         KStream<String, VehicleAtStop> stopchanges = reallyfinaltripstopstream
                 .map((String key, VehicleActivity va) -> KeyValue.pair(va.getVehicleId(), va))
                 .transform(transformer, "stop-times");
+
+        // Move aggregate here...
+        // Get a table of all vehicles currently operating on the line.
+        Initializer<VehicleDataList> lineinitializer = () -> {
+            VehicleDataList valist = new VehicleDataList();
+            return valist;
+        };
+
+        Aggregator<String, VehicleActivity, VehicleDataList> lineaggregator
+                = (String key, VehicleActivity value, VehicleDataList aggregate) -> {
+                    return aggregateLine(aggregate, value, key);
+                };
+
+        KTable<String, VehicleDataList> lines = streamin
+                .groupByKey(Serialized.with(Serdes.String(), vafserde))
+                .aggregate(lineinitializer, lineaggregator,
+                        Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
+                                .withKeySerde(Serdes.String())
+                                // .withValueSerde(vaflistserde)
+                                .withValueSerde(fstvaflistserde)
+                );
 
         //lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), fstvaflistserde));
@@ -395,6 +396,10 @@ public class LineTransformer {
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
+        if (left.getVehicleId().equals(("FI:FOLI:60095"))) {
+            int i = 0;
+        }
+        
         if (right == null) {
             return left;
         }
@@ -415,8 +420,6 @@ public class LineTransformer {
 
         if (missing != null && missing.size() > 0) {
             for (TripStop miss : missing) {
-                //Integer diff = miss.arrivalTime - left.getDelay();
-                //LocalTime newtime = LocalTime.ofSecondOfDay(diff);
                 LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
                 TripStop toadd = new TripStop();
                 toadd.seq = miss.seq;
@@ -428,6 +431,9 @@ public class LineTransformer {
             LOG.debug("Added missing stops.");
         }
 
+        if (left.getOnwardCalls().isEmpty()) {
+            int i = 0;
+        }
         return left;
     }
 
@@ -469,7 +475,12 @@ public class LineTransformer {
                 boolean fixed = false;
                 LOG.debug("Comparing timetables.");
                 if (current.getOnwardCalls().isEmpty()) {
-                    LOG.info("There should be onwardcalls now");
+                    // There's still a rare strange problem with the logic for FOLI.
+                    // Vehicles that have changed line or direction, but not any
+                    // stop information, so we haven't any list of stops the vehicle
+                    // should be removed from.-
+                    LOG.info("There should be onwardcalls now, vehicle {}, line {}",
+                            current.getVehicleId(), current.getInternalLineId());
                 }
                 if (previous == null) {
                     LOG.debug("Adding stop times first time.");
