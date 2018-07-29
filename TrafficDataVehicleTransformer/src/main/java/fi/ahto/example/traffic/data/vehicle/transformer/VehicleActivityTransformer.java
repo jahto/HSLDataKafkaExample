@@ -84,16 +84,14 @@ public class VehicleActivityTransformer {
         final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
         final FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
         final FSTSerde<VehicleHistorySet> fstvhsetserde = new FSTSerde<>(VehicleHistorySet.class, conf);
-        
+
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
-        
-        // final KryoSerde<VehicleActivity> kryoserde = new KryoSerde<>(VehicleActivity.class);
 
+        // final KryoSerde<VehicleActivity> kryoserde = new KryoSerde<>(VehicleActivity.class);
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
         // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstserde));
 
-        
         Kryo kryo = new Kryo();
         kryo.register(VehicleActivity.class);
         kryo.register(ServiceStopSetComparator.class);
@@ -106,7 +104,6 @@ public class VehicleActivityTransformer {
         kryo.setRegistrationRequired(false);
         final KryoSerde<VehicleActivity> kryovaserde = new KryoSerde<>(VehicleActivity.class, kryo);
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
-        
 
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
         VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstserde, "vehicle-transformer-extended");
@@ -238,9 +235,8 @@ public class VehicleActivityTransformer {
                         }
 
                         if (va.getRecordTime().plusSeconds(20).isBefore(now)) {
-                            String check = va.getSource() + ":";
-                            // Wasn't on any line...
-                            if (!va.getInternalLineId().equals(check)) {
+                            // Have to be on some line...
+                            if (!(va.getLineId() == null || va.getLineId().isEmpty())) {
                                 va.setLineHasChanged(true);
                                 context.forward(va.getVehicleId(), va);
                             }
@@ -256,19 +252,16 @@ public class VehicleActivityTransformer {
             @Override
             public KeyValue<String, VehicleActivity> transform(String k, VehicleActivity v) {
                 VehicleActivity previous = store.get(k);
-                /*
-                if (v.getVehicleId().equals("FI:HSL:90:6310")) {
-                    if (v.getRecordTime().equals(Instant.parse("2018-05-17T04:06:22Z"))) {
-                        int i = 0;
-                    }
-                }
-                */
+
                 VehicleActivity transformed = transform(v, previous);
+                if (transformed == null) {
+                    return null;
+                }
                 store.put(k, v);
                 if (v.getLastAddedToHistory() == null) {
                     LOG.info("Did not add history stamp for vehicle {} at {}", k, v.getRecordTime());
                 }
-                if (v.getLineId() == null || v.getLineId().isEmpty()) {
+                if (v.getLineId() == null || v.getLineId().isEmpty() || v.isAtRouteEnd()) {
                     LOG.debug("Didn't bother sending data forward for vehicle {}, it isn't on any line", v.getVehicleId());
                     return null;
                 }
@@ -283,19 +276,31 @@ public class VehicleActivityTransformer {
                 }
 
                 if (previous == null) {
-                    current.setAddToHistory(true);
-                    current.setLastAddedToHistory(current.getRecordTime());
+                    // Dont' bother with the vehicle until it's on some line. 
+                    if (current.getLineId() == null || current.getLineId().isEmpty()) {
+                        return null;
+                    }
                     if (current.isAtRouteEnd()) {
                         LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
                     }
+                    current.setAddToHistory(true);
+                    current.setLastAddedToHistory(current.getRecordTime());
                     return current;
+                }
+
+                if (current.getLineId() == null || current.getLineId().isEmpty()) {
+                    int i = 0;
+                }
+
+                if (previous.getLineId() == null || previous.getLineId().isEmpty()) {
+                    int i = 0;
                 }
 
                 boolean calculate = true;
 
                 // Always copy first last history addition
                 current.setLastAddedToHistory(previous.getLastAddedToHistory());
-                
+
                 // We do not accept records coming in too late.
                 if (current.getRecordTime().isBefore(previous.getRecordTime())) {
                     return recordIsLate(previous, current);
@@ -378,17 +383,18 @@ public class VehicleActivityTransformer {
                 current.setAddToHistory(true);
                 current.setLastAddedToHistory(current.getRecordTime());
                 previous.setLineHasChanged(true);
-                String check = current.getSource() + ":";
-                // Was on no line...
-                if (!previous.getInternalLineId().equals(check)) {
+                // Was on some line, inform forward...
+                if (!(previous.getLineId() == null || previous.getLineId().isEmpty())) {
                     context.forward(previous.getVehicleId(), previous);
                 }
                 LOG.info("Vehicle {} has changed line from {} to {}", current.getVehicleId(),
                         previous.getInternalLineId(), current.getInternalLineId());
                 // Changing to no line...
-                if (current.getInternalLineId().equals(check)) {
+                /*
+                if (current.getLineId() == null || current.getLineId().isEmpty()) {
                     return null;
                 }
+                */
                 return current;
             }
 
@@ -398,6 +404,9 @@ public class VehicleActivityTransformer {
                     current.setAddToHistory(true);
                     current.setLastAddedToHistory(current.getRecordTime());
                     current.setLineHasChanged(true);
+                    // It doesn't always contain lineid, but we need it to
+                    // be able to inform the correct line that the vehicle
+                    // is not operating there anymore.
                     current.setInternalLineId(previous.getInternalLineId());
                     return current;
                 } else {
