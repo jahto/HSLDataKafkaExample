@@ -558,18 +558,14 @@ public class SerializerImplementations {
         boolean oneByteYear = false;
         boolean twoByteYear = false;
         boolean threeByteYear = false;
-        boolean negativeYear = y < 0;
-        if (negativeYear) {
-            m |= 0b00010000;
-            y = ~y;
-        }
-        if (y < 128) {
+
+        if (y >= -128 && y < 128) {
             oneByteYear = true;
             m |= 0b00100000;
-        } else if (y < 32768) {
+        } else if (y >= -32768 && y < 32768) {
             twoByteYear = true;
             m |= 0b01000000;
-        } else if (y < 8388608) {
+        } else if (y >= -8388608 && y < 8388608) {
             threeByteYear = true;
             m |= 0b10000000;
         }
@@ -590,7 +586,6 @@ public class SerializerImplementations {
     public static Object deserializeYearMonth(FSTObjectInput in) throws IOException {
         int y;
         byte m = in.readByte();
-        boolean negativeYear = (m & 0b00010000) != 0;
         boolean oneByteYear = (m & 0b00100000) != 0;
         boolean twoByteYear = (m & 0b01000000) != 0;
         boolean threeByteYear = (m & 0b10000000) != 0;
@@ -606,12 +601,7 @@ public class SerializerImplementations {
             y = readInt(in);
             //y = in.readInt();
         }
-        if (negativeYear) {
-            y -= YEAR_ADJUST;
-            y = ~y;
-        } else {
-            y += YEAR_ADJUST;
-        }
+        y += YEAR_ADJUST;
         YearMonth res = YearMonth.of(y, m);
         return res;
     }
