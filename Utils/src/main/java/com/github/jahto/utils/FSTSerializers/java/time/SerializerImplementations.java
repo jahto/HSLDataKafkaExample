@@ -84,7 +84,7 @@ public class SerializerImplementations {
         }
         // Nanos always in range 0...999999999, and a strong reason to suspect that
         // the distribution is quite even. So write always exactly 4 bytes, instead
-        // of sligtly over 3% being able to be compressed down to 3 bytes, but the
+        // of sligtly over 0,003% being able to be compressed down to 3 bytes, but the
         // rest needing 5.
         if (hasNanos) {
             writeInt(ld.getNano(), out);
