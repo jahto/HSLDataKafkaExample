@@ -16,11 +16,13 @@
 package com.github.jahto.utils.FSTSerializers.java.time;
 
 import java.io.IOException;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.MonthDay;
 import java.time.OffsetDateTime;
 import java.time.Period;
@@ -617,6 +619,28 @@ public class SerializerImplementations {
         byte m = in.readByte();
         byte d = in.readByte();
         MonthDay res = MonthDay.of(m, d);
+        return res;
+    }
+
+    public static void serializeMonth(Object toWrite, FSTObjectOutput out) throws IOException {
+        Month m = (Month) toWrite;
+        out.writeByte(m.getValue());
+    }
+
+    public static Object deserializeMonth(FSTObjectInput in) throws IOException {
+        byte m = in.readByte();
+        Month res = Month.of(m);
+        return res;
+    }
+
+    public static void serializeDayOfWeek(Object toWrite, FSTObjectOutput out) throws IOException {
+        DayOfWeek dow = (DayOfWeek) toWrite;
+        out.writeByte(dow.getValue());
+    }
+
+    public static Object deserializeDayOfWeek(FSTObjectInput in) throws IOException {
+        byte dow = in.readByte();
+        DayOfWeek res = DayOfWeek.of(dow);
         return res;
     }
 
