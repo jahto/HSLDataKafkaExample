@@ -82,7 +82,7 @@ public class VehicleActivityTransformer {
     public KStream<String, VehicleActivity> kStream(StreamsBuilder builder) {
         LOG.debug("Constructing stream from data-by-vehicleid");
         final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
-        final FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
+        final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
         final FSTSerde<VehicleHistorySet> fstvhsetserde = new FSTSerde<>(VehicleHistorySet.class, conf);
 
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
@@ -90,7 +90,7 @@ public class VehicleActivityTransformer {
 
         // final KryoSerde<VehicleActivity> kryoserde = new KryoSerde<>(VehicleActivity.class);
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
-        // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstserde));
+        // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstvaserde));
 
         Kryo kryo = new Kryo();
         kryo.register(VehicleActivity.class);
@@ -106,7 +106,7 @@ public class VehicleActivityTransformer {
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
-        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstserde, "vehicle-transformer-extended");
+        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
@@ -146,9 +146,9 @@ public class VehicleActivityTransformer {
                                 .withValueSerde(fstvhsetserde)
                 );
 
-        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), vhsetserde));
+        vehiclehistory.toStream().to("vehicle-history", Produced.with(Serdes.String(), fstvhsetserde));
 
-        transformed.to("vehicles", Produced.with(Serdes.String(), vaserde));
+        transformed.to("vehicles", Produced.with(Serdes.String(), fstvaserde));
 
         KStream<String, VehicleActivity> tolines
                 = transformed
@@ -157,7 +157,7 @@ public class VehicleActivityTransformer {
                                 -> KeyValue.pair(value.getInternalLineId(), value));
 
         // tolines.to("data-by-lineid", Produced.with(Serdes.String(), vaserde));
-        tolines.to("data-by-lineid", Produced.with(Serdes.String(), fstserde));
+        tolines.to("data-by-lineid", Produced.with(Serdes.String(), fstvaserde));
 
         /* Seems not to be needed, but leaving still here just in case...
         KStream<String, VehicleActivity> tochanges  = 

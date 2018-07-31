@@ -278,7 +278,7 @@ public class LineTransformer {
 
         //lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), fstvaflistserde));
-        stopchanges.to("changes-by-stopid", Produced.with(Serdes.String(), vasserde));
+        stopchanges.to("changes-by-stopid", Produced.with(Serdes.String(), fstvasserde));
         return streamin;
     }
 

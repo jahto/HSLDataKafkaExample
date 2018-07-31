@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.web.server;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -29,6 +30,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer {
 
+    @Value("${BROKER_HOST:localhost}")
+    private String brokerHost;
+    @Value("${BROKER_PORT:61616}")
+    private int brokerPort;
+    
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/subscribe").withSockJS();
@@ -37,6 +43,9 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.setApplicationDestinationPrefixes("/app");
-        config.enableSimpleBroker("/rt");
+        // config.enableSimpleBroker("/rt");
+        config.enableStompBrokerRelay(".rt");
+        //        .setRelayHost(brokerHost)
+        //        .setRelayPort(brokerPort);
     }
 }

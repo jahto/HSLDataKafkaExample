@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.github.jahto.utils.CommonFSTConfiguration;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +33,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,5 +104,10 @@ public class KafkaConfiguration {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
+    }
+    @Bean
+    public FSTConfiguration getFSTConfiguration() {
+        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+        return conf;
     }
 }

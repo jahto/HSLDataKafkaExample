@@ -113,24 +113,6 @@ public class SiriDataPoller {
     public void putDataToQueues(List<VehicleActivity> data) {
         for (VehicleActivity vaf : data) {
             kafkaTemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            if (vaf.getLineId().equals("12")) {
-                try {
-                    FileOutputStream fos = new FileOutputStream("12.json", true);
-                    ObjectWriter wr = objectMapper.writerWithDefaultPrettyPrinter();
-                    objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-                    // String val = objectMapper.writeValueAsString(vaf);
-                    String val = wr.writeValueAsString(vaf);
-                    fos.write(val.getBytes());
-                    fos.close();
-                } catch (JsonProcessingException ex) {
-                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (FileNotFoundException ex) {
-                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (IOException ex) {
-                    java.util.logging.Logger.getLogger(SiriDataPoller.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-            }
         }
     }
 

@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.stop.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
@@ -32,6 +33,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +53,15 @@ public class StopTransformer {
     @Autowired
     private ObjectMapper objectMapper;
     
+    @Autowired
+    private FSTConfiguration conf;
+
     @Bean
     public KStream<String, VehicleAtStop> kStream(StreamsBuilder builder) {
         LOG.info("Constructing stream from changes-by-stopid");
-        final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
+        final FSTSerde<VehicleAtStop> vasserde = new FSTSerde<>(VehicleAtStop.class, conf);
         final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, objectMapper);
-        final JsonSerde<Arrivals> arrserde = new JsonSerde<>(Arrivals.class, objectMapper);
+        final FSTSerde<Arrivals> arrserde = new FSTSerde<>(Arrivals.class, conf);
         
         KStream<String, VehicleAtStop> streamin = builder.stream("changes-by-stopid", Consumed.with(Serdes.String(), vasserde));
 
@@ -84,17 +89,6 @@ public class StopTransformer {
                                 .withValueSerde(arrserde)
                 );
 
-        /*
-        KStream<String, StopData> stopstream = streamin
-                .leftJoin(stops,
-                        (String key, VehicleAtStop value) -> {
-                            return key;
-                        },
-                        (VehicleAtStop left, StopData right) -> {
-                            return adjustStopTimes(left, right);
-                        }
-                );
-        */
         vehiclesarriving.toStream().to("vehicles-arriving-to-stop", Produced.with(Serdes.String(), arrserde));
         return streamin;
     }

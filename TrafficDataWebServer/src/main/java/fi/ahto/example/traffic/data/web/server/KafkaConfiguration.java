@@ -25,6 +25,8 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import java.util.HashMap;
 import java.util.Map;
+import javax.jms.ConnectionFactory;
+import org.apache.activemq.spring.ActiveMQConnectionFactory;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
@@ -49,6 +51,7 @@ import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 @EnableKafka
 @EnableKafkaStreams
 public class KafkaConfiguration {
+
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConfiguration.class);
 
     @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
@@ -64,9 +67,9 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         return new StreamsConfig(props);
     }
-    
+
     @Bean
-    @Qualifier( "json")
+    @Qualifier("json")
     @Primary
     public ObjectMapper customizedObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -82,7 +85,7 @@ public class KafkaConfiguration {
     }
 
     @Bean
-    @Qualifier( "binary")
+    @Qualifier("binary")
     public ObjectMapper customizedSmileMapper() {
         ObjectMapper mapper = new ObjectMapper(new SmileFactory());
         mapper.registerModule(new AfterburnerModule());
@@ -95,12 +98,12 @@ public class KafkaConfiguration {
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
     }
+
     @Bean
     public FSTConfiguration getFSTConfiguration() {
-        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
-        return conf;
+        return CommonFSTConfiguration.getCommonFSTConfiguration();
     }
-    
+
     @Autowired
     private FSTConfiguration conf;
 
@@ -118,5 +121,5 @@ public class KafkaConfiguration {
             jacksonObjectMapperBuilder.modulesToInstall(new JavaTimeModule());
         };
     }
-    */
+     */
 }

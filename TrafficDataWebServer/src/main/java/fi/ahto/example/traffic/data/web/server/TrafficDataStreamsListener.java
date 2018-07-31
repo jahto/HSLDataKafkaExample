@@ -62,9 +62,6 @@ public class TrafficDataStreamsListener {
     @Autowired
     private FSTConfiguration conf;
 
-    @Autowired
-    private LineDataProcessorSupplier lineProcessorSupplier;
-
     @Bean
     public GlobalKTable<String, VehicleDataList> constructLineDataTable(StreamsBuilder streamBuilder) {
         // final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, smileMapper);
@@ -79,22 +76,24 @@ public class TrafficDataStreamsListener {
 
     @Bean
     public GlobalKTable<String, VehicleActivity> constructVehicleDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<VehicleActivity> vaflistserde = new JsonSerde<>(VehicleActivity.class, smileMapper);
+        // final JsonSerde<VehicleActivity> vaflistserde = new JsonSerde<>(VehicleActivity.class, smileMapper);
+        final FSTSerde<VehicleActivity> fstvaflistserde = new FSTSerde<>(VehicleActivity.class, conf);
         LOG.debug("Constructing " + StaticData.VEHICLE_STORE + " with StreamsBuilder");
         GlobalKTable<String, VehicleActivity> table
                 = streamBuilder.globalTable(StaticData.VEHICLE_STREAM,
-                        Consumed.with(Serdes.String(), vaflistserde),
+                        Consumed.with(Serdes.String(), fstvaflistserde),
                         Materialized.<String, VehicleActivity, KeyValueStore<Bytes, byte[]>>as(StaticData.VEHICLE_STORE));
         return table;
     }
 
     @Bean
     public GlobalKTable<String, VehicleHistorySet> constructVehicleHistoryDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<VehicleHistorySet> vaflistserde = new JsonSerde<>(VehicleHistorySet.class, smileMapper);
+        // final JsonSerde<VehicleHistorySet> vaflistserde = new JsonSerde<>(VehicleHistorySet.class, smileMapper);
+        final FSTSerde<VehicleHistorySet> fstvaflistserde = new FSTSerde<>(VehicleHistorySet.class, conf);
         LOG.debug("Constructing " + StaticData.VEHICLE_HISTORY_STORE + " with StreamsBuilder");
         GlobalKTable<String, VehicleHistorySet> table
                 = streamBuilder.globalTable(StaticData.VEHICLE_HISTORY_STREAM,
-                        Consumed.with(Serdes.String(), vaflistserde),
+                        Consumed.with(Serdes.String(), fstvaflistserde),
                         Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as(StaticData.VEHICLE_HISTORY_STORE));
         return table;
     }
@@ -134,11 +133,12 @@ public class TrafficDataStreamsListener {
 
     @Bean
     public GlobalKTable<String, Arrivals> constructStopChangesDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<Arrivals> shapeserde = new JsonSerde<>(Arrivals.class, smileMapper);
+        //final JsonSerde<Arrivals> shapeserde = new JsonSerde<>(Arrivals.class, smileMapper);
+        final FSTSerde<Arrivals> fstshapeserde = new FSTSerde<>(Arrivals.class, conf);
         LOG.debug("Constructing " + StaticData.STOP_CHANGES_STORE + " with StreamsBuilder");
         GlobalKTable<String, Arrivals> table
                 = streamBuilder.globalTable(StaticData.STOP_CHANGES_STREAM,
-                        Consumed.with(Serdes.String(), shapeserde),
+                        Consumed.with(Serdes.String(), fstshapeserde),
                         Materialized.<String, Arrivals, KeyValueStore<Bytes, byte[]>>as(StaticData.STOP_CHANGES_STORE));
         return table;
     }
