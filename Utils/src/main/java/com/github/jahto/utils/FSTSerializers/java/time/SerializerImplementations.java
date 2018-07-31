@@ -16,6 +16,8 @@
 package com.github.jahto.utils.FSTSerializers.java.time;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +35,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.nustaq.serialization.FSTDecoder;
 import org.nustaq.serialization.FSTEncoder;
 import org.nustaq.serialization.FSTObjectInput;
@@ -43,12 +47,13 @@ import org.nustaq.serialization.FSTObjectOutput;
  * @author Jouni Ahto
  */
 public class SerializerImplementations {
-    
+
     // For internal use only.
     static class InstantOrDuration {
+
         public final long seconds;
         public final int nanos;
-        
+
         InstantOrDuration(long s, int n) {
             this.seconds = s;
             this.nanos = n;
@@ -57,6 +62,13 @@ public class SerializerImplementations {
 
     private static final int YEAR_ADJUST = 2018;
     private static final byte NEGATIVE_FILLER = (byte) (((byte) -1 + 256) & 0xFF);
+
+    private static final Class ZONEREGION_CLASS;
+    private static final Method ZONEREGION_READ;
+
+    public static Class getZoneRegionClass() {
+        return ZONEREGION_CLASS;
+    }
 
     public static void serializeLocalTime(Object toWrite, FSTObjectOutput out) throws IOException {
         LocalTime ld = (LocalTime) toWrite;
@@ -328,12 +340,12 @@ public class SerializerImplementations {
                 out.writeByte(m);
             } else if (twoByteMonth) {
                 writeShort(m, out);
-                //out.writeShort(m);
+                //out.writeShort(read);
             } else if (threeByteMonth) {
                 writeThreeByteInt(m, out);
             } else if (fourByteMonth) {
                 writeInt(m, out);
-                //out.writeInt(m);
+                //out.writeInt(read);
             }
         }
         if (hasDays || hasEverything) {
@@ -371,8 +383,8 @@ public class SerializerImplementations {
             } else if ((codec & 0b00110000) == 0b00100000) {
                 y = readThreeByteInt(in);
             } else if ((codec & 0b00110000) == 0b00110000) {
-               y = readInt(in);
-               //y = in.readInt();
+                y = readInt(in);
+                //y = in.readInt();
             }
         }
         if (hasMonthsOnly || hasEverything) {
@@ -532,7 +544,7 @@ public class SerializerImplementations {
             n = readInt(in);
             // n = in.readInt();
         }
-        
+
         InstantOrDuration res = new InstantOrDuration(s, n);
         return res;
     }
@@ -650,7 +662,8 @@ public class SerializerImplementations {
         // being created. At least the prefix Europe/ will be compressed. Another thing
         // is what happens if the deserializing side hasn't been updated and doesn't
         // know anything about the new zone... This implementation will throw an exception,
-        // Java deserialization can handle even that case.
+        // Java deserialization can handle even that case. Not true anymore, we can handle
+        // even non-existent zones now.
         ZoneId zoneid = (ZoneId) toWrite;
         String id = zoneid.getId();
         // Implementation 1.
@@ -730,22 +743,26 @@ public class SerializerImplementations {
         ZoneId zone = ZoneId.of(id);
          */
         // Implementation 2.
+        String zid = null;
         short s = readShort(in);
         // short s = in.readShort();
         if (s > 255) {
-            String zid = SHORT_TO_ZONE.get(s);
-            ZoneId zone = ZoneId.of(zid);
-            return zone;
+            zid = SHORT_TO_ZONE.get(s);
         }
-        if (s > 0) {
+        else if (s > 0) {
             String prefix = BYTE_TO_PREFIX.get((byte) s);
             String id = in.readUTF();
-            String zid = prefix + id;
-            ZoneId zone = ZoneId.of(zid);
-            return zone;
+            zid = prefix + id;
         }
-        String id = in.readUTF();
-        ZoneId zone = ZoneId.of(id);
+        else {
+            zid = in.readUTF();
+        }
+        ZoneId zone;
+        try {
+            zone = (ZoneId) ZONEREGION_READ.invoke(null, zid, false);
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            zone = ZoneId.of(zid);
+        }
         return zone;
     }
 
@@ -779,7 +796,9 @@ public class SerializerImplementations {
         byte[] buf = new byte[2];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
-        enc.writeRawBytes(buf, 0, 2);
+        enc.writeFByte(buf[0]);
+        enc.writeFByte(buf[1]);
+        // enc.writeRawBytes(buf, 0, 2);
         //out.write(buf, 0, 2);
     }
 
@@ -791,14 +810,14 @@ public class SerializerImplementations {
         short res = (short) ((ch2 << 8) + (ch1 << 0));
         return res;
     }
-    
+
     public static final void writeThreeByteInt(final int val, final FSTObjectOutput out) throws IOException {
         final FSTEncoder enc = out.getCodec();
         final byte[] buf = new byte[3];
         buf[0] = (byte) ((val) & 0xFF);
         buf[1] = (byte) ((val >>> 8) & 0xFF);
         buf[2] = (byte) ((val >>> 16) & 0xFF);
-        
+
         // For some reason, writing byte-by-byte seems to be the fastest alternative.
         // Maybe because there's no System.arraycopy? Which should be quite optimized,
         // but probably still takes some. Now if we just could get access to the encoders'
@@ -879,12 +898,12 @@ public class SerializerImplementations {
         if (buf[4] < 0) {
             ch6 = ((byte) -1 + 256) & 0xFF;
             ch7 = ((byte) -1 + 256) & 0xFF;
-            ch8 =  ((byte) -1 + 256) & 0xFF;
+            ch8 = ((byte) -1 + 256) & 0xFF;
         }
         long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
         return res;
     }
-    
+
     public static void writeSixByteLong(long val, FSTObjectOutput out) throws IOException {
         FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[8];
@@ -913,12 +932,12 @@ public class SerializerImplementations {
         long ch8 = 0;
         if (buf[5] < 0) {
             ch7 = ((byte) -1 + 256) & 0xFF;
-            ch8 =  ((byte) -1 + 256) & 0xFF;
+            ch8 = ((byte) -1 + 256) & 0xFF;
         }
         long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
         return res;
     }
-    
+
     public static void writeSevenByteLong(long val, FSTObjectOutput out) throws IOException {
         FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[7];
@@ -945,7 +964,7 @@ public class SerializerImplementations {
         long ch7 = (buf[6] + 256) & 0xFF;
         long ch8 = 0;
         if (buf[6] < 0) {
-            ch8 =  ((byte) -1 + 256) & 0xFF;
+            ch8 = ((byte) -1 + 256) & 0xFF;
         }
         long res = ((ch8 << 56) + (ch7 << 48) + (ch6 << 40) + (ch5 << 32) + (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
         return res;
@@ -989,6 +1008,19 @@ public class SerializerImplementations {
     private static final Map<String, Short> ZONE_TO_SHORT = new HashMap<>();
 
     static {
+        // There's a hint here to where the author lives... 
+        ZoneId z = ZoneId.of("Europe/Helsinki");
+        // z is actually a ZoneRegion, which is not a public class.
+        ZONEREGION_CLASS = z.getClass();
+        Method read = null;
+        try {
+            read = ZONEREGION_CLASS.getDeclaredMethod("ofId", String.class, boolean.class);
+            read.setAccessible(true);
+        } catch (NoSuchMethodException | SecurityException ex) {
+        }
+        // It's a static method, not instance, so saving a refencere to it should be safe.
+        ZONEREGION_READ = read;
+
         PREFIX_TO_BYTE.put("Africa", (byte) 1);
         PREFIX_TO_BYTE.put("America", (byte) 2);
         PREFIX_TO_BYTE.put("America/Argentina", (byte) 3);

@@ -11,13 +11,16 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTPeriodSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
+import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneIdSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.Period;
 import java.time.Year;
 import java.time.YearMonth;
@@ -34,6 +37,37 @@ import org.nustaq.serialization.FSTObjectOutput;
  * @author Jouni Ahto
  */
 public class FSTSerializerTests {
+    @Test
+    public void aa() throws Exception {
+        ZoneId z = ZoneId.of("Europe/Helsinki");
+        Class c = z.getClass();
+        Method m = c.getDeclaredMethod("ofId", String.class, boolean.class);
+        m.setAccessible(true);
+        Object o = m.invoke(null, "Europe/Barcelona", false);
+        int i = 0;
+    }
+    
+    @Test
+    public void test_ZoneId() throws Exception {
+        final FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+        Class zrc = SerializerImplementations.getZoneRegionClass();
+        conf.registerSerializer(zrc, new FSTZoneIdSerializer(), false);
+        conf.registerClass(zrc);
+        FSTSerde<ZoneId> serde = new FSTSerde<>(ZoneId.class, conf);
+        ZoneId in = ZoneId.of("Europe/Helsinki");
+        byte[] ser = serde.serializer().serialize("foo", in);
+        ZoneId out = serde.deserializer().deserialize("foo", ser);
+        assertThat(out, is(in));
+        
+        // Check with a ZoneId that doesn't exist (yet...)
+        Method m = zrc.getDeclaredMethod("ofId", String.class, boolean.class);
+        m.setAccessible(true);
+        in = (ZoneId) m.invoke(null, "Europe/Barcelona", false);
+        ser = serde.serializer().serialize("foo", in);
+        out = serde.deserializer().deserialize("foo", ser);
+        assertThat(out, is(in));
+    }
+    
     @Test
     public void test_ThreeByteInt() throws IOException {
         final FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
@@ -205,6 +239,7 @@ public class FSTSerializerTests {
     public void test_Instant() {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         conf.registerSerializer(Instant.class, new FSTInstantSerializer(), false);
+        conf.registerClass(Instant.class);
         FSTSerde<Instant> serde = new FSTSerde<>(Instant.class, conf);
         byte[] ser = serde.serializer().serialize("foo", Instant.MAX);
         Instant max = serde.deserializer().deserialize("foobar", ser);
@@ -218,6 +253,7 @@ public class FSTSerializerTests {
     public void test_ZonedDateTime() {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         conf.registerSerializer(ZonedDateTime.class, new FSTZonedDateTimeSerializer(), false);
+        conf.registerClass(ZonedDateTime.class);
         FSTSerde<ZonedDateTime> serde = new FSTSerde<>(ZonedDateTime.class, conf);
         byte[] ser = serde.serializer().serialize("foo", ZonedDateTime.now());
         ZonedDateTime now = serde.deserializer().deserialize("foobar", ser);
