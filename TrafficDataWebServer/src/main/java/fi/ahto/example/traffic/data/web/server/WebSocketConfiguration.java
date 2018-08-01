@@ -32,9 +32,9 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
     @Value("${BROKER_HOST:localhost}")
     private String brokerHost;
-    @Value("${BROKER_PORT:61616}")
+    @Value("${BROKER_PORT:61613}")
     private int brokerPort;
-    
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/subscribe").withSockJS();
@@ -43,9 +43,8 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.setApplicationDestinationPrefixes("/app");
-        // config.enableSimpleBroker("/rt");
-        config.enableStompBrokerRelay(".rt");
-        //        .setRelayHost(brokerHost)
-        //        .setRelayPort(brokerPort);
+        config.enableStompBrokerRelay("/topic")
+                .setRelayHost(brokerHost)
+                .setRelayPort(brokerPort);
     }
 }

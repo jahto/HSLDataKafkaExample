@@ -99,6 +99,7 @@ public class StopTransformer {
             agg.remove(vas.vehicleId);
         }
         else {
+            LOG.info("Removing vehicle {} from stop {}", vas.vehicleId, key);
             agg.put(vas.vehicleId, vas);
         }
         return agg;
