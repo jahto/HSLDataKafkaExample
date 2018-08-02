@@ -95,11 +95,11 @@ public class StopTransformer {
     
     Arrivals adjustStopTimes(String key, VehicleAtStop vas, Arrivals agg) {
         if (vas.remove) {
-            LOG.info("Removing vehicle {} from stop {}", vas.vehicleId, key);
+            LOG.info("Removing vehicle {} from stop {} at {}", vas.vehicleId, key, vas.arrivalTime);
             agg.remove(vas.vehicleId);
         }
         else {
-            LOG.info("Removing vehicle {} from stop {}", vas.vehicleId, key);
+            LOG.info("Adding vehicle {} to stop {} at {}", vas.vehicleId, key, vas.arrivalTime);
             agg.put(vas.vehicleId, vas);
         }
         return agg;

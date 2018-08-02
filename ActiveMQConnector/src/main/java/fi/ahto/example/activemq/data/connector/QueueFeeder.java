@@ -19,15 +19,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
-import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
-import java.util.logging.Level;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import org.apache.kafka.common.serialization.Serdes;
@@ -43,7 +37,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
 
 /**
  *
@@ -79,10 +72,15 @@ public class QueueFeeder {
         KStream<String, VehicleActivity> vehiclesstream = builder.stream("vehicles", Consumed.with(Serdes.String(), vaserde));
         KStream<String, VehicleHistorySet> vehiclehistorystream = builder.stream("vehicle-history", Consumed.with(Serdes.String(), vhsetserde));
 
+        final JsonSerde<VehicleActivity> smilevaserde = new JsonSerde<>(VehicleActivity.class, smileMapper);
+        KStream<String, VehicleActivity> debugvehiclesstream = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), smilevaserde));
+
         arrivalsstream.foreach((key, value) -> handleArrivals(key, value));
         linesstream.foreach((key, value) -> handleLines(key, value));
         vehiclesstream.foreach((key, value) -> handleVehicles(key, value));
         vehiclehistorystream.foreach((key, value) -> handleVehicleHistory(key, value));
+
+        debugvehiclesstream.foreach((key, value) -> debugIncoming(key, value));
 
         return arrivalsstream;
     }
@@ -134,6 +132,20 @@ public class QueueFeeder {
             String[] splitted = key.split(":", 3);
             String topic = "rt.vehiclehistory." + splitted[0] + "." + splitted[1] + "." + splitted[2];
             String message = objectMapper.writeValueAsString(arr);
+            
+            jmsTemplate.send(topic, (Session session) -> {
+                TextMessage textMessage = session.createTextMessage(message);
+                return textMessage;
+            });
+        } catch (JsonProcessingException ex) {
+        }
+    }
+    
+    private void debugIncoming(String key, Object o) {
+        try {
+            String[] splitted = key.split(":", 3);
+            String topic = "debug." + splitted[0] + "." + splitted[1] + "." + splitted[2];
+            String message = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
             
             jmsTemplate.send(topic, (Session session) -> {
                 TextMessage textMessage = session.createTextMessage(message);

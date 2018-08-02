@@ -177,6 +177,11 @@ public class SiriDataPoller {
             vaf.setDelay((int) dur.getSeconds());
         }
 
+        // Use Siri and GTFS-RT definition of the meaning of delay.
+        if (vaf.getDelay() != null) {
+            vaf.setDelay(0 - vaf.getDelay());
+        }
+
         vaf.setDirection(jrn.path("directionRef").asText());
 
         vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());
@@ -185,12 +190,12 @@ public class SiriDataPoller {
         // Good enough for TKL until tram traffic starts there.
         vaf.setTransitType(TransitType.BUS);
         vaf.setVehicleId(PREFIX + jrn.path("vehicleRef").asText());
-        vaf.setBearing(jrn.path("bearing").floatValue());
-        vaf.setSpeed(jrn.path("speed").floatValue());
+        vaf.setBearing((float)jrn.path("bearing").asDouble());
+        vaf.setSpeed((float)jrn.path("speed").asDouble());
 
         JsonNode loc = jrn.path("vehicleLocation");
-        vaf.setLatitude(loc.path("latitude").floatValue());
-        vaf.setLongitude(loc.path("longitude").floatValue());
+        vaf.setLatitude((float)loc.path("latitude").asDouble());
+        vaf.setLongitude((float)loc.path("longitude").asDouble());
 
         // What does this field refer to?
         /*

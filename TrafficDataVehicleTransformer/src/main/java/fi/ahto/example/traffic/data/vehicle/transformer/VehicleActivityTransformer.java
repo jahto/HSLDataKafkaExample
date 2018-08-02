@@ -209,6 +209,7 @@ public class VehicleActivityTransformer {
             // Won't cover the last minute, but good enough for testing samples 
             // over one hour.
             Instant now = Instant.EPOCH; // Must initialise to something...
+            Instant previousnow = Instant.EPOCH; // Must initialise to something...
 
             @Override
             public void init(ProcessorContext context) {
@@ -233,7 +234,19 @@ public class VehicleActivityTransformer {
                         if (!TESTING) {
                             now = Instant.ofEpochMilli(timestamp);
                         }
-
+                        // Make sure that "now" gets incremented even after
+                        // test data ends, so the remaining data gets removed.
+                        /*
+                        if (TESTING) {
+                            if (previousnow.equals(Instant.EPOCH)) {
+                                previousnow = now;
+                            }
+                            if (previousnow.equals(now)) {
+                                now = now.plusSeconds(20);
+                                previousnow = now;
+                            }
+                        }
+                        */
                         if (va.getRecordTime().plusSeconds(20).isBefore(now)) {
                             // Have to be on some line...
                             if (!(va.getLineId() == null || va.getLineId().isEmpty())) {

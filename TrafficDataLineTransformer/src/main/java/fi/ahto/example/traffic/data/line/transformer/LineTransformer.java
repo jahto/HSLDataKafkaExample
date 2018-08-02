@@ -153,9 +153,6 @@ public class LineTransformer {
                             } else {
                                 LOG.debug("Found correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             }
-                            if (value.getInternalLineId().equals("FI:TKL:71K")) {
-                                int i = 0;
-                            }
                             VehicleActivity rval = findPossibleServices(value, right);
                             return rval;
                         });
@@ -396,10 +393,6 @@ public class LineTransformer {
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
-        if (left.getVehicleId().equals(("FI:FOLI:60095"))) {
-            int i = 0;
-        }
-        
         if (right == null) {
             return left;
         }
@@ -420,7 +413,8 @@ public class LineTransformer {
 
         if (missing != null && missing.size() > 0) {
             for (TripStop miss : missing) {
-                LocalTime newtime = miss.arrivalTime.minusSeconds(left.getDelay());
+                // Use Siri and GTFS-RT definition of the meaning of delay.
+                LocalTime newtime = miss.arrivalTime.plusSeconds(left.getDelay());
                 TripStop toadd = new TripStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;
@@ -431,9 +425,6 @@ public class LineTransformer {
             LOG.debug("Added missing stops.");
         }
 
-        if (left.getOnwardCalls().isEmpty()) {
-            int i = 0;
-        }
         return left;
     }
 
@@ -504,6 +495,7 @@ public class LineTransformer {
                         vas.remove = true;
                         vas.vehicleId = previous.getVehicleId();
                         vas.lineId = previous.getLineId();
+                        vas.arrivalTime = ss.arrivalTime;
                         context.forward(ss.stopid, vas);
                     }
                     return null;
@@ -553,6 +545,7 @@ public class LineTransformer {
                             vas.remove = true;
                             vas.vehicleId = current.getVehicleId();
                             vas.lineId = current.getLineId();
+                            vas.arrivalTime = ss.arrivalTime;
                             context.forward(ss.stopid, vas);
                         }
                     }
