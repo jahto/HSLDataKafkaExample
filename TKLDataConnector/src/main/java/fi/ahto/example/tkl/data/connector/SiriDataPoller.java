@@ -177,11 +177,6 @@ public class SiriDataPoller {
             vaf.setDelay((int) dur.getSeconds());
         }
 
-        // Use Siri and GTFS-RT definition of the meaning of delay.
-        if (vaf.getDelay() != null) {
-            vaf.setDelay(0 - vaf.getDelay());
-        }
-
         vaf.setDirection(jrn.path("directionRef").asText());
 
         vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());

@@ -130,8 +130,8 @@ public class SiriDataPoller {
                 VehicleActivity vaf = flattenVehicleActivity(node);
                 if (vaf != null) {
                     vehicleActivities.add(vaf);
-                } else {
-                    LOG.error("Problem with node: " + node.asText());
+                // } else {
+                //    LOG.error("Problem with node: " + node.asText());
                 }
             } catch (Exception ex) {
                 LOG.error(node.asText(), ex);
@@ -175,6 +175,7 @@ public class SiriDataPoller {
          */
 
         Instant start = Instant.ofEpochSecond(node.path("originaimeddeparturetime").asLong());
+        
         ZonedDateTime zdt = ZonedDateTime.ofInstant(start, zone);
 
         vaf.setTripStart(zdt);
@@ -185,6 +186,19 @@ public class SiriDataPoller {
         vaf.setNextStopName(node.path("next_stoppointname").asText());
         vaf.setBlockId(PREFIX + node.path("blockref").asText());
 
+        // Check for erroneous records where the start time is too far in the future.
+        // Guessing it could be either the driver making a mistake, or the feed trying
+        // to inform us about future trips, or something else. Anyway, it messes badly
+        // with the further steps down the processing pipeline. And there will be some
+        // day a time-table prefiller.
+        // Allow to start at most 2 minutes before the scheduled time.
+        Instant cmp = vaf.getRecordTime().plusSeconds(120);
+        if (start.isAfter(cmp)) {
+            return null;
+        }
+        /* This data does not seem to be trustworthy... the times can be in past
+           and stop sequence does not match with GTSF data, have to check if there's
+           at least any consistency, like substracting 1.
         JsonNode onwardcalls = node.path("onwardcalls");
 
         if (onwardcalls.isMissingNode() == false && onwardcalls.isArray()) {
@@ -201,7 +215,7 @@ public class SiriDataPoller {
                 set.add(stop);
             }
         }
-
+        */
         return vaf;
     }
 }

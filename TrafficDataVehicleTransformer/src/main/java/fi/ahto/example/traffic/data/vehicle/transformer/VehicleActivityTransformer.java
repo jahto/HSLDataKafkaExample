@@ -23,7 +23,6 @@ import com.github.jahto.utils.KryoSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
-import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistoryRecord;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
@@ -32,14 +31,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Aggregator;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -309,6 +307,9 @@ public class VehicleActivityTransformer {
                     int i = 0;
                 }
 
+                if (current.getInternalLineId().equals("FI:FOLI:53") && current.getVehicleId().equals("FI:FOLI:80025")) {
+                    int i = 0;
+                }
                 boolean calculate = true;
 
                 // Always copy first last history addition
@@ -466,12 +467,6 @@ public class VehicleActivityTransformer {
                     bearingdegrees = 360 + bearingdegrees;
                 }
                 current.setBearing((float) bearingdegrees);
-            }
-
-            @Override
-            public KeyValue<String, VehicleActivity> punctuate(long timestamp) {
-                // Not needed and also deprecated.
-                return null;
             }
 
             @Override

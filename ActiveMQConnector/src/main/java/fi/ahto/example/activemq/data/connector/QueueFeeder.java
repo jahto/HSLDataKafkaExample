@@ -25,8 +25,8 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.Consumed;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
-import org.springframework.jms.core.JmsTemplate;
 
 /**
  *
