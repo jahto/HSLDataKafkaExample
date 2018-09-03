@@ -14,6 +14,7 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTYearMonthSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZoneIdSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.SerializerImplementations;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.time.Duration;

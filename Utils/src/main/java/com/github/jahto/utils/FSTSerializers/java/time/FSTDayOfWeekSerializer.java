@@ -38,7 +38,7 @@ public class FSTDayOfWeekSerializer extends FSTBasicObjectSerializer {
         return true;
     }
 
-    @Override
+	@Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws Exception {
         return SerializerImplementations.deserializeDayOfWeek(in);
     }

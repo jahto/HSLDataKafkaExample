@@ -44,7 +44,7 @@ import org.apache.kafka.common.utils.Utils;
 public class CustomPartitioner implements Partitioner {
 
     private final ConcurrentMap<String, AtomicInteger> topicCounterMap = new ConcurrentHashMap<>();
-    private static final Class PARTITIONABLE = Partitionable.class;
+    private static final Class<Partitionable> PARTITIONABLE = Partitionable.class;
 
     @Override
     public void configure(Map<String, ?> configs) {
