@@ -45,6 +45,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
+import org.springframework.kafka.config.KafkaStreamsConfiguration;
 import org.springframework.kafka.support.serializer.JsonSerde;
 
 /**
@@ -66,7 +67,7 @@ public class KafkaConfiguration {
 
     // Using Kafka Streams
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
-    public StreamsConfig streamsConfig() {
+    public KafkaStreamsConfiguration streamsConfig() {
         final JsonSerde<Object> jsonSerde = new JsonSerde<>(objectMapper);
 
         Map<String, Object> props = new HashMap<>();
@@ -75,13 +76,13 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, jsonSerde.getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
-        props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
+        // props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
         props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1");
         // props.put(StreamsConfig.PARTITION_GROUPER_CLASS_CONFIG, "fi.ahto.example.traffic.data.contracts.internal.CustomPartitioner");
         // Try some different tuning parameters
         // props.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 100 * 1024 * 1024L);
-        return new StreamsConfig(props);
+        return new KafkaStreamsConfiguration(props);
     }
 
     @Bean

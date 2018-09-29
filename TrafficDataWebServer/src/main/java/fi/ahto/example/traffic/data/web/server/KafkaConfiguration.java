@@ -25,8 +25,6 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import java.util.HashMap;
 import java.util.Map;
-import javax.jms.ConnectionFactory;
-import org.apache.activemq.spring.ActiveMQConnectionFactory;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
@@ -42,6 +40,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
+import org.springframework.kafka.config.KafkaStreamsConfiguration;
 
 /**
  *
@@ -59,13 +58,13 @@ public class KafkaConfiguration {
 
     // Using Kafka Streams
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
-    public StreamsConfig kStreamsConfigs() {
+    public KafkaStreamsConfiguration kStreamsConfigs() {
         Map<String, Object> props = new HashMap<>();
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-webserver");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
-        return new StreamsConfig(props);
+        return new KafkaStreamsConfiguration(props);
     }
 
     @Bean
