@@ -26,6 +26,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistoryRecord;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
+import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -104,7 +105,8 @@ public class VehicleActivityTransformer {
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
-        VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
+        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
+        VehicleTransformerSupplier transformer = new VehicleTransformerSupplier(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
         // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
@@ -173,27 +175,18 @@ public class VehicleActivityTransformer {
         return streamin;
     }
 
-    class VehicleTransformer
-            implements TransformerSupplier<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
+    class VehicleTransformerSupplier
+            extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
-        final protected String storeName;
-
-        public VehicleTransformer(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
-            StoreBuilder<KeyValueStore<String, VehicleActivity>> store
-                    = Stores.keyValueStoreBuilder(Stores.persistentKeyValueStore(storeName),
-                            keyserde,
-                            valserde)
-                            .withCachingEnabled();
-
-            builder.addStateStore(store);
-            this.storeName = storeName;
+        public VehicleTransformerSupplier(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
+            super(builder, keyserde, valserde, storeName);
         }
 
         @Override
         public Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> get() {
             return new TransformerImpl();
         }
-
+        
         class TransformerImpl implements Transformer<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
             protected KeyValueStore<String, VehicleActivity> store;
@@ -475,5 +468,5 @@ public class VehicleActivityTransformer {
                 // The Kafka Streams API will automatically close stores when necessary.
             }
         }
-    }
+    } 
 }
