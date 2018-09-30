@@ -17,14 +17,18 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  *
  * @author Jouni Ahto
  */
 public class RouteData implements Serializable {
+
     private static final long serialVersionUID = -1109210000681896888L;
     @JsonProperty("RouteId")
     public String routeid;
@@ -34,5 +38,49 @@ public class RouteData implements Serializable {
     public String longname;
     @JsonProperty("TransitType")
     public TransitType type;
-    public Map<String, ServiceTrips> services = new HashMap<>();
+    // Not used currently or anymore...
+    // @JsonProperty("Services")
+    // public Map<String, ServiceTrips> services = new HashMap<>();
+    
+    @JsonProperty("Stops")
+    public List<RouteStop> stops = new ArrayList<>();
+    
+    public static class RouteStop implements Serializable {
+
+        public RouteStop() {}
+        
+        public RouteStop(String id) {
+            this.stopid = id;
+        }
+        
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 61 * hash + Objects.hashCode(this.stopid);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final RouteStop other = (RouteStop) obj;
+            if (!Objects.equals(this.stopid, other.stopid)) {
+                return false;
+            }
+            return true;
+        }
+
+        private static final long serialVersionUID = -3579965916298485253L;
+
+        @JsonProperty("StopId")
+        public String stopid;
+    }
 }

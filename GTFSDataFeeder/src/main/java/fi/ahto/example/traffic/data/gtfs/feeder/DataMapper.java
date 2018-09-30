@@ -105,15 +105,18 @@ public class DataMapper {
         String key = prefix + sct.getServiceId().getId();
         key = compressedId(key);
         ServiceDataExt sd = services.get(key);
-        if (sd != null) {
-            ServiceDate sdt = sct.getDate();
-            LocalDate dt = LocalDate.of(sdt.getYear(), sdt.getMonth(), sdt.getDay());
-            if (sct.getExceptionType() == 2) {
-                sd.notinuse.add(dt);
-            }
-            if (sct.getExceptionType() == 1) {
-                sd.inuse.add(dt);
-            }
+        if (sd == null) {
+            LOG.warn("Service not found " + sct.getServiceId().getId());
+            return;
+        }
+
+        ServiceDate sdt = sct.getDate();
+        LocalDate dt = LocalDate.of(sdt.getYear(), sdt.getMonth(), sdt.getDay());
+        if (sct.getExceptionType() == 2) {
+            sd.notinuse.add(dt);
+        }
+        if (sct.getExceptionType() == 1) {
+            sd.inuse.add(dt);
         }
     }
 
@@ -183,7 +186,12 @@ public class DataMapper {
             routes.put(routeid, route);
             LOG.debug("Added route " + routeid);
         }
-
+        
+        RouteData.RouteStop rst = new RouteData.RouteStop(stopid);
+        if (route.stops.contains(rst) == false) {
+            route.stops.add(rst);
+        }
+        
         ServiceTrips servicetripmap = servicetrips.get(servicetripid);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
