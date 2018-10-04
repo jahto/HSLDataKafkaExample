@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * @author Jouni Ahto
  */
-public enum TransitType implements Serializable {
+public enum RouteTypeDeprecated implements Serializable {
     UNKNOWN(-1),
     TRAM(0),
     METRO(1),
@@ -43,19 +43,19 @@ public enum TransitType implements Serializable {
     
     private static final long serialVersionUID = -2254522655930255127L;
     private final int value;
-    private static final Map<Integer, TransitType> map = new HashMap<>();
+    private static final Map<Integer, RouteTypeDeprecated> map = new HashMap<>();
     
-    private TransitType(int val) {
+    private RouteTypeDeprecated(int val) {
         value = val;
     }
     
     static {
-        for (TransitType type : TransitType.values()) {
+        for (RouteTypeDeprecated type : RouteTypeDeprecated.values()) {
             map.put(type.value, type);
         }
     }
     
-    public static TransitType from(int val) {
+    public static RouteTypeDeprecated from(int val) {
         return map.getOrDefault(val, UNKNOWN);
     }
 }

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
@@ -199,12 +198,13 @@ public class SiriDataPoller {
         // with the same VehicleRef operated by different companies.
         String[] splitted = mvh.getLineRef().getValue().split(":");
         String prefix = PREFIX + splitted[0] + ":";
-        
+
         vaf.setInternalLineId(PREFIX + mvh.getLineRef().getValue());
         vaf.setLineId(mvh.getPublishedLineNames().get(0).getValue());
 
-        // How to get the right value?.
-        vaf.setTransitType(decodeTransitType(mvh));
+        // How to get the right value?
+        // We set it later from the route data...
+        // vaf.setTransitType(decodeTransitType(mvh));
         vaf.setVehicleId(prefix + mvh.getVehicleRef().getValue());
         if (mvh.getBearing() != null) {
             vaf.setBearing(mvh.getBearing().floatValue());
@@ -216,14 +216,13 @@ public class SiriDataPoller {
             vaf.setOperatingDate(mvh.getOriginAimedDepartureTime().toLocalDate());
             vaf.setStartTime(mvh.getOriginAimedDepartureTime().toLocalTime());
         }
-        
+
         // What does this field refer to?
         /*
         if (va.getMonitoredVehicleJourney().getMonitoredCall() != null) {
             vaf.setStopPoint(va.getMonitoredVehicleJourney().getMonitoredCall().getStopPointRef());
         }
          */
-
         MonitoredCallStructure mc = mvh.getMonitoredCall();
         OnwardCallsStructure oc = mvh.getOnwardCalls();
         List<OnwardCallStructure> list = null;
@@ -257,10 +256,10 @@ public class SiriDataPoller {
                 vaf.setNextStopName(mc.getStopPointNames().get(0).getValue());
             }
         }
-        
+
         if (list != null && list.size() > 0) {
             TripStopSet set = vaf.getOnwardCalls();
-            
+
             for (OnwardCallStructure ocs : list) {
                 TripStop stop = new TripStop();
                 stop.stopid = PREFIX + ocs.getStopPointRef().getValue();
@@ -270,37 +269,38 @@ public class SiriDataPoller {
                 set.add(stop);
             }
         }
-        
+
         return vaf;
     }
     
-        public TransitType decodeTransitType(MonitoredVehicleJourney data) throws IllegalArgumentException {
-            // Check Oslo trams
-            if (data.getLineRef().getValue().startsWith("RUT:")) {
-                if (data.getPublishedLineNames().get(0).getValue().equals("11")) {
-                    return TransitType.TRAM;
-                }
-                if (data.getPublishedLineNames().get(0).getValue().equals("12")) {
-                    return TransitType.TRAM;
-                }
-                if (data.getPublishedLineNames().get(0).getValue().equals("13")) {
-                    return TransitType.TRAM;
-                }
-                if (data.getPublishedLineNames().get(0).getValue().equals("17")) {
-                    return TransitType.TRAM;
-                }
-                if (data.getPublishedLineNames().get(0).getValue().equals("18")) {
-                    return TransitType.TRAM;
-                }
-                if (data.getPublishedLineNames().get(0).getValue().equals("19")) {
-                    return TransitType.TRAM;
-                }
-                
+    /* Not used anymore.
+    public RouteType decodeTransitType(MonitoredVehicleJourney data) throws IllegalArgumentException {
+        // Check Oslo trams
+        if (data.getLineRef().getValue().startsWith("RUT:")) {
+            if (data.getPublishedLineNames().get(0).getValue().equals("11")) {
+                return RouteType.TRAM;
             }
-            // Check Oslo metro, how?
-            
-            // Otherwise, assume it's a bus.
-            return TransitType.BUS;
-        }
+            if (data.getPublishedLineNames().get(0).getValue().equals("12")) {
+                return RouteType.TRAM;
+            }
+            if (data.getPublishedLineNames().get(0).getValue().equals("13")) {
+                return RouteType.TRAM;
+            }
+            if (data.getPublishedLineNames().get(0).getValue().equals("17")) {
+                return RouteType.TRAM;
+            }
+            if (data.getPublishedLineNames().get(0).getValue().equals("18")) {
+                return RouteType.TRAM;
+            }
+            if (data.getPublishedLineNames().get(0).getValue().equals("19")) {
+                return RouteType.TRAM;
+            }
 
+        }
+        // Check Oslo metro, how?
+
+        // Otherwise, assume it's a bus.
+        return RouteType.BUS;
+    }
+    */
 }

@@ -20,7 +20,7 @@ import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -51,16 +51,19 @@ public class DataMapper {
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
 
-    private static final Map<Integer, Integer> routeFixes = new HashMap<>();
 
     private static final long MURMUR_SEED = 0x7f3a21eaL;
 
+    // Not needed after switching to GTFS extended route types.
+    // private static final Map<Integer, Integer> routeFixes = new HashMap<>();
+    /*
     static {
         routeFixes.put(109, 2);
         routeFixes.put(700, 3);
         routeFixes.put(701, 3);
         routeFixes.put(704, 3);
     }
+    */
     final Map<String, ServiceList> routeservices = new HashMap<>();
 
     public void add(String prefix, ServiceCalendar sc) {
@@ -182,7 +185,7 @@ public class DataMapper {
             route.routeid = routeid;
             route.longname = rt.getLongName();
             route.shortname = rt.getShortName();
-            route.type = TransitType.from(rt.getType());
+            route.type = RouteTypeExtended.from(rt.getType());
             routes.put(routeid, route);
             LOG.debug("Added route " + routeid);
         }
@@ -270,6 +273,7 @@ public class DataMapper {
             tr.add(ts);
         }
     }
+    
     // Fix some observed anomalies or deviations from the standard.
 
     private void dataFixer(String prefix, StopTime st) {
@@ -280,19 +284,19 @@ public class DataMapper {
         }
 
         Route route = st.getTrip().getRoute();
-        // Unknown codes in HSL data
         if ("FI:HSL:".equals(prefix)) {
-            route.setType(routeFixes.getOrDefault(route.getType(), route.getType()));
         }
         // FOLI realtime feed identifies the line with shortname, not with the route id in routes.txt
         if ("FI:FOLI:".equals(prefix)) {
             route.getId().setId(route.getShortName());
         }
         if ("FI:TKL:".equals(prefix)) {
-            // TODO: TKL maybe needs special handling also.
         }
         if ("NO:".equals(prefix)) {
-            // TODO: So could Norway...
+        }
+        if ("DE:VBB".equals(prefix)) {
+        }
+        if ("HU:BKK".equals(prefix)) {
         }
     }
 }

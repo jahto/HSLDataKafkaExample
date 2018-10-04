@@ -37,7 +37,7 @@ public class RouteData implements Serializable {
     @JsonProperty("LongName")
     public String longname;
     @JsonProperty("TransitType")
-    public TransitType type;
+    public RouteTypeExtended type = RouteTypeExtended.UNKNOWN;
     // Not used currently or anymore...
     // @JsonProperty("Services")
     // public Map<String, ServiceTrips> services = new HashMap<>();

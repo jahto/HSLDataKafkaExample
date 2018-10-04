@@ -149,7 +149,7 @@ public class VehicleHistoryRecord implements Serializable {
         this.recordTime = recordTime;
     }
 
-    public void setTransitType(TransitType transitType) {
+    public void setTransitType(RouteTypeExtended transitType) {
         this.transitType = transitType;
     }
 
@@ -218,7 +218,7 @@ public class VehicleHistoryRecord implements Serializable {
     @JsonProperty("RecordTime")
     private Instant recordTime;
     @JsonProperty("TransitType")
-    private TransitType transitType;
+    private RouteTypeExtended transitType;
     /*
     @JsonProperty("DelayChange")
     private Integer delayChange;

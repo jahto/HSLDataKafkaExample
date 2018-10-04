@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.hsl.data.connector.KafkaConfiguration;
 import fi.ahto.example.hsl.data.connector.SiriDataPoller;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+// import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -79,13 +79,13 @@ public class SimpleTests {
     public void testDecodeLineNumber() {
         SiriDataPoller.LineInfo line = siriDataPoller.decodeLineNumber("1006T");
         assertEquals(line.getLine(), "6T");
-        assertEquals(line.getType(), TransitType.TRAM);
+        // assertEquals(line.getType(), RouteType.TRAM);
         line = siriDataPoller.decodeLineNumber("1010");
         assertEquals(line.getLine(), "10");
-        assertEquals(line.getType(), TransitType.TRAM);
+        // assertEquals(line.getType(), RouteType.TRAM);
         line = siriDataPoller.decodeLineNumber("1010X");
         assertEquals(line.getLine(), "10X");
-        assertEquals(line.getType(), TransitType.BUS);
+        // assertEquals(line.getType(), RouteType.BUS);
     }
 
     public static final String testdata = "{\n"

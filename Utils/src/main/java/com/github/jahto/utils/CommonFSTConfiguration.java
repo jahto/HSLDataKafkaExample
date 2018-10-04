@@ -17,7 +17,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSetComparator;
@@ -66,7 +66,7 @@ public class CommonFSTConfiguration {
         conf.registerClass(ServiceData.class);
         conf.registerClass(ServiceTrips.class);
         conf.registerClass(VehicleDataList.class);
-        conf.registerClass(TransitType.class);
+        conf.registerClass(RouteType.class);
         conf.registerClass(VehicleHistoryRecord.class);
         // Not obvious, but was found during debugging
         conf.registerClass(SerializedLambda.class);

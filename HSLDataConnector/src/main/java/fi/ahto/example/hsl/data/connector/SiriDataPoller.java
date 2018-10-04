@@ -18,7 +18,7 @@ package fi.ahto.example.hsl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+// import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -169,7 +169,8 @@ public class SiriDataPoller {
         vaf.setInternalLineId(PREFIX + jrn.path("LineRef").path("value").asText());
         vaf.setLineId(line.getLine());
 
-        vaf.setTransitType(line.getType());
+        // We set it later from the route data...
+        // vaf.setTransitType(line.getType());
         vaf.setVehicleId(PREFIX + jrn.path("VehicleRef").path("value").asText());
         // Feed does not contain these fields yet.
         // vaf.setBearing(jrn.path("bearing").asDouble());
@@ -244,44 +245,44 @@ public class SiriDataPoller {
         // Buses - this is the first test, because it matches too many cases,
         // but possible errors will be corrected in the later tests.
         if (line.matches("^[1245679].*")) {
-            rval.setType(TransitType.BUS);
+            // rval.setType(RouteType.BUS);
             rval.setLine(line.substring(1).replaceFirst("^0", ""));
         }
 
         // Suomenlinna ferry
         if (line.equals("1019")) {
-            rval.setType(TransitType.FERRY);
+            // rval.setType(RouteType.FERRY);
             rval.setLine("19");
         }
 
         // Metro
         if (line.startsWith("130")) {
-            rval.setType(TransitType.METRO);
+            // rval.setType(RouteType.METRO);
             rval.setLine("M" + line.substring(4));
         }
 
         // Train
         if (line.startsWith("300")) {
-            rval.setType(TransitType.TRAIN);
+            // rval.setType(RouteType.TRAIN);
             rval.setLine(line.substring(4));
         }
 
         // Helsinki trams 1-9
         if (line.startsWith("100")) {
-            rval.setType(TransitType.TRAM);
+            // rval.setType(RouteType.TRAM);
             rval.setLine(line.substring(3));
         }
 
         // Helsinki tram line 10
         if (line.startsWith("1010")) {
-            rval.setType(TransitType.TRAM);
+            // rval.setType(RouteType.TRAM);
             rval.setLine(line.substring(2));
         }
 
         // Occasional bus replacing tram
-        if (rval.getType() == TransitType.TRAM && rval.getLine().endsWith("X")) {
-            rval.setType(TransitType.BUS);
-        }
+        // if (rval.getType() == RouteType.TRAM && rval.getLine().endsWith("X")) {
+        // rval.setType(RouteType.BUS);
+        //}
 
         return rval;
     }
@@ -295,16 +296,16 @@ public class SiriDataPoller {
         public void setLine(String line) {
             this.line = line;
         }
-
-        public TransitType getType() {
+        /*
+        public RouteType getType() {
             return type;
         }
 
-        public void setType(TransitType type) {
+        public void setType(RouteType type) {
             this.type = type;
         }
-
+        */
         private String line = null;
-        private TransitType type = TransitType.UNKNOWN;
+        // private RouteType type = RouteType.UNKNOWN;
     }
 }

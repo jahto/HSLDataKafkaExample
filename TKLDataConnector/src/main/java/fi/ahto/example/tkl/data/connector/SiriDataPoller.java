@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+// import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.IOException;
@@ -183,7 +183,8 @@ public class SiriDataPoller {
         vaf.setLineId(jrn.path("lineRef").asText());
 
         // Good enough for TKL until tram traffic starts there.
-        vaf.setTransitType(TransitType.BUS);
+        // We set it later from the route data...
+        // vaf.setTransitType(RouteType.BUS);
         vaf.setVehicleId(PREFIX + jrn.path("vehicleRef").asText());
         vaf.setBearing((float)jrn.path("bearing").asDouble());
         vaf.setSpeed((float)jrn.path("speed").asDouble());

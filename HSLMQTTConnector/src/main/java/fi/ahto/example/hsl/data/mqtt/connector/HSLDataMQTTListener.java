@@ -18,7 +18,7 @@ package fi.ahto.example.hsl.data.mqtt.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.TransitType;
+// import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -144,7 +144,8 @@ public class HSLDataMQTTListener {
         vaf.setSource(SOURCE);
         vaf.setInternalLineId(PREFIX + info.getInternal());
         vaf.setLineId(info.getLine());
-        vaf.setTransitType(info.getType());
+        // We set it later from the route data...
+        // vaf.setTransitType(info.getType());
         vaf.setVehicleId(PREFIX + vehicle);
 
         vaf.setDelay(vp.path("dl").asInt());
@@ -190,45 +191,46 @@ public class HSLDataMQTTListener {
         // Buses - this is the first test, because it matches too many cases,
         // but possible errors will be corrected in the later tests.
         if (line.matches("^[1245679].*")) {
-            rval.setType(TransitType.BUS);
+            // rval.setType(RouteType.BUS);
             rval.setLine(line.substring(1).replaceFirst("^0", ""));
         }
 
         // Suomenlinna ferry
         if (line.equals("1019")) {
-            rval.setType(TransitType.FERRY);
+            // rval.setType(RouteType.FERRY);
             rval.setLine("19");
         }
 
         // Metro
         if (line.startsWith("130")) {
-            rval.setType(TransitType.METRO);
+            // rval.setType(RouteType.METRO);
             rval.setLine("M" + line.substring(4));
         }
 
         // Train
         if (line.startsWith("300")) {
-            rval.setType(TransitType.TRAIN);
+            // rval.setType(RouteType.TRAIN);
             rval.setLine(line.substring(4));
         }
 
         // Helsinki trams 1-9
         if (line.startsWith("100")) {
-            rval.setType(TransitType.TRAM);
+            // rval.setType(RouteType.TRAM);
             rval.setLine(line.substring(3));
         }
 
         // Helsinki tram line 10
         if (line.startsWith("1010")) {
-            rval.setType(TransitType.TRAM);
+            // rval.setType(RouteType.TRAM);
             rval.setLine(line.substring(2));
         }
 
         // Occasional bus replacing tram
-        if (rval.getType() == TransitType.TRAM && rval.getLine().endsWith("X")) {
-            rval.setType(TransitType.BUS);
+        /*
+        if (rval.getType() == RouteType.TRAM && rval.getLine().endsWith("X")) {
+            rval.setType(RouteType.BUS);
         }
-
+        */
         // Observed anomalies
         if (line.equals("3001Z3")) {
             // Without the ending "3" in GTFS data, seems to be just an extended version
@@ -273,17 +275,17 @@ public class HSLDataMQTTListener {
         public void setLine(String line) {
             this.line = line;
         }
-
-        public TransitType getType() {
+        /*
+        public RouteType getType() {
             return type;
         }
 
-        public void setType(TransitType type) {
+        public void setType(RouteType type) {
             this.type = type;
         }
-
+        */
         private String line = null;
         private String internal = null;
-        private TransitType type = TransitType.UNKNOWN;
+        // private RouteType type = RouteType.UNKNOWN;
     }
 }

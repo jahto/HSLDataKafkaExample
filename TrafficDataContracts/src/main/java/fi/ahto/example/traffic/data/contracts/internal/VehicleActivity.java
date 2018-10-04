@@ -282,11 +282,11 @@ public class VehicleActivity implements Serializable {
         this.internalLineId = internalLineId;
     }
 
-    public TransitType getTransitType() {
+    public RouteTypeExtended getTransitType() {
         return transitType;
     }
 
-    public void setTransitType(TransitType transitType) {
+    public void setTransitType(RouteTypeExtended transitType) {
         this.transitType = transitType;
     }
 
@@ -357,7 +357,7 @@ public class VehicleActivity implements Serializable {
     @JsonProperty("RecordTime")
     private Instant recordTime;
     @JsonProperty("TransitType")
-    private TransitType transitType;
+    private RouteTypeExtended transitType;
     @JsonProperty("TripStart")
     private ZonedDateTime tripStart;
     @JsonProperty("DelayChange")
