@@ -17,7 +17,7 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
-import fi.ahto.example.traffic.data.contracts.internal.RouteType;
+import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSetComparator;
@@ -66,11 +66,11 @@ public class CommonFSTConfiguration {
         conf.registerClass(ServiceData.class);
         conf.registerClass(ServiceTrips.class);
         conf.registerClass(VehicleDataList.class);
-        conf.registerClass(RouteType.class);
+        conf.registerClass(RouteTypeExtended.class);
         conf.registerClass(VehicleHistoryRecord.class);
         // Not obvious, but was found during debugging
         conf.registerClass(SerializedLambda.class);
-        // We rarely ever anything that could be shared, so don't bother even checking.
+        // We rarely have anything that could be shared, so don't bother even checking.
         // Shaves off a load of processing cycles.
         conf.setShareReferences(false);
         // Must test with both true and false. Speedier serialization comes with the price
