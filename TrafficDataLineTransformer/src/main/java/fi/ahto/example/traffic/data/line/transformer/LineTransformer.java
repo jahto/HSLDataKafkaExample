@@ -20,7 +20,6 @@ import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
@@ -30,11 +29,8 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -84,11 +80,6 @@ public class LineTransformer {
         LOG.debug("Constructing stream from data-by-lineid");
         FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
         final JsonSerde<VehicleActivity> vafserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
-        final JsonSerde<VehicleDataList> vaflistserde = new JsonSerde<>(VehicleDataList.class, objectMapper);
-        final JsonSerde<TripStopSet> tripsserde = new JsonSerde<>(TripStopSet.class, objectMapper);
-        final JsonSerde<ServiceTrips> serviceserde = new JsonSerde<>(ServiceTrips.class, objectMapper);
-        final JsonSerde<ServiceList> jsonServiceListSerde = new JsonSerde<>(ServiceList.class, objectMapper);
-        final JsonSerde<VehicleAtStop> vasserde = new JsonSerde<>(VehicleAtStop.class, objectMapper);
 
         final FSTSerde<VehicleActivity> fstvafserde = new FSTSerde<>(VehicleActivity.class, conf);
         final FSTSerde<VehicleDataList> fstvaflistserde = new FSTSerde<>(VehicleDataList.class, conf);
@@ -97,43 +88,24 @@ public class LineTransformer {
         final FSTSerde<ServiceTrips> fstserviceserde = new FSTSerde<>(ServiceTrips.class, conf);
         final FSTSerde<VehicleAtStop> fstvasserde = new FSTSerde<>(VehicleAtStop.class, conf);
 
-        // KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), vafserde));
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), fstvafserde));
 
         GlobalKTable<String, ServiceList> routesToServices
                 = builder.globalTable("routes-to-services",
-                        //Consumed.with(Serdes.String(), jsonServiceListSerde),
                         Consumed.with(Serdes.String(), fstServiceListSerde),
                         Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
-                //.withKeySerde(Serdes.String())
-                //.withValueSerde(fstServiceListSerde)
                 );
 
-        /*
-        KTable<String, ServiceList> routesToServices = builder
-                .stream("routes-to-services", Consumed.with(Serdes.String(), jsonServiceListSerde))
-                .groupByKey()
-                .reduce((foo, value) -> value,
-                        Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
-                                .withKeySerde(Serdes.String())
-                                .withValueSerde(fstServiceListSerde));
-         */
         GlobalKTable<String, ServiceTrips> serviceToTrips
                 = builder.globalTable("services-to-trips",
-                        //Consumed.with(Serdes.String(), serviceserde),
                         Consumed.with(Serdes.String(), fstserviceserde),
                         Materialized.<String, ServiceTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips-store")
-                //.withKeySerde(Serdes.String())
-                //.withValueSerde(fstserviceserde)
                 );
 
         GlobalKTable<String, TripStopSet> trips
                 = builder.globalTable("trips",
-                        //Consumed.with(Serdes.String(), tripsserde),
                         Consumed.with(Serdes.String(), fsttripsserde),
                         Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("fsttrips")
-                //.withKeySerde(Serdes.String())
-                //.withValueSerde(fsttripsserde)
                 );
 
         // Map to correct trip id in several steps, another approach.
@@ -162,9 +134,7 @@ public class LineTransformer {
 
         KStream<String, VehicleActivity> hasNoIdSecondStep = hasNoId
                 .flatMapValues((k, v) -> {
-                    //.flatMap((k, v) -> {
                     List<VehicleActivity> rval = new ArrayList<>();
-                    //List<KeyValue<String, VehicleActivity>> rval = new ArrayList<>();
                     if (v == null) {
                         // Happens when I forget to feed static GTFS-data, must check later...
                         return rval;
@@ -174,7 +144,6 @@ public class LineTransformer {
                         va.setServiceID(s);
                         String key = va.getServiceID();// + ":" + va.getInternalLineId();
                         rval.add(va);
-                        //rval.add(KeyValue.pair(key, va));
                     }
                     return rval;
                 });
@@ -273,7 +242,6 @@ public class LineTransformer {
                                 .withValueSerde(fstvaflistserde)
                 );
 
-        //lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), vaflistserde));
         lines.toStream().to("data-by-lineid-enhanced", Produced.with(Serdes.String(), fstvaflistserde));
         stopchanges.to("changes-by-stopid", Produced.with(Serdes.String(), fstvasserde));
         return streamin;
@@ -408,19 +376,6 @@ public class LineTransformer {
         }
 
         NavigableSet<TripStop> missing = null;
-        /*
-        if (left.getOnwardCalls().isEmpty()) {
-            TripStop stop = findStopByName(left.getNextStopId(), right);
-            if (stop != null) {
-                missing = right.tailSet(stop, true);
-            }
-        } else {
-            TripStop stop = findStopByName(left.getOnwardCalls().last().stopid, right); // -> false
-            if (stop != null) {
-                missing = right.tailSet(stop, false);
-            }
-        }
-        */
         TripStop stop = findStopByName(left.getNextStopId(), right);
         if (stop != null) {
             missing = right.tailSet(stop, true);
@@ -533,11 +488,6 @@ public class LineTransformer {
                         vas.vehicleId = current.getVehicleId();
                         vas.lineId = current.getLineId();
                         vas.arrivalTime = curstop.arrivalTime;
-                        
-                        if(curstop.stopid.equals("FI:FOLI:100") && vas.lineId.equals("53") && current.getVehicleId().equals("FI:FOLI:80025")) {
-                            int i = 0;
-                        }
-
                         context.forward(curstop.stopid, vas);
                     }
                     return null;
@@ -580,9 +530,6 @@ public class LineTransformer {
                             vas.lineId = current.getLineId();
                             vas.arrivalTime = curstop.arrivalTime;
                             context.forward(curstop.stopid, vas);
-                        if(curstop.stopid.equals("FI:FOLI:100") && vas.lineId.equals("53") && current.getVehicleId().equals("FI:FOLI:80025")) {
-                            int i = 0;
-                        }
                             fixed = true;
                         }
                     }
@@ -594,11 +541,6 @@ public class LineTransformer {
 
                 if (curstop != null) {
                     NavigableSet<TripStop> remove = previous.getOnwardCalls().headSet(curstop, false);
-                    if (current.getVehicleId().equals("FI:FOLI:80025")) {
-                        if (current.LineHasChanged()) {
-                            int i = 0;
-                        }
-                    }
                     if (remove != null && remove.size() > 0) {
                         // Vehicle has gone past these stops, so will not be arriving
                         // to them anymore. Push the information to some queue.
