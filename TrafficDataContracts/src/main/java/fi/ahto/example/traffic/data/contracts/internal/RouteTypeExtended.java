@@ -195,12 +195,12 @@ public enum RouteTypeExtended implements Serializable {
         }
     }
 
-    public static RouteTypeExtended getMainCategory(RouteTypeExtended val) {
+    public static RouteTypeExtended mainCategory(RouteTypeExtended val) {
         int intval = val.value;
-        intval = intval / 10 * 10;
+        intval = (intval / 100) * 100;
         if (intval == 800) {
             return RouteTypeExtended.ALL_BUS_SERVICES;
         } 
-        return map.getOrDefault(val, UNKNOWN);
+        return map.getOrDefault(intval, UNKNOWN);
     }
 }
