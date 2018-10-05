@@ -18,8 +18,11 @@ package fi.ahto.example.traffic.data.gtfs.feeder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.FSTSerde;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.BufferedReader;
@@ -77,6 +80,15 @@ public class GTFSDataReader implements ApplicationRunner {
     @Autowired
     private FSTSerde<TripStopSet> fsttsserde;
 
+    @Autowired
+    private FSTSerde<StopData> fstsdserde;
+
+    @Autowired
+    private FSTSerde<RouteData> fstrdserde;
+
+    @Autowired
+    private FSTSerde<ShapeSet> fstshapeserde;
+
     public static void main(String[] args) {
         SpringApplication.run(GTFSDataReader.class, args);
     }
@@ -107,6 +119,27 @@ public class GTFSDataReader implements ApplicationRunner {
 
     void sendRecord(String topic, String key, TripStopSet value) {
         Serializer ser = fsttsserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
+
+    void sendRecord(String topic, String key, StopData value) {
+        Serializer ser = fststserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
+
+    void sendRecord(String topic, String key, RouteData value) {
+        Serializer ser = fstrdserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
+
+    void sendRecord(String topic, String key, ShapeSet value) {
+        Serializer ser = fstshapeserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
@@ -244,14 +277,16 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending stops");
         mapper.stops.forEach(
                 (k, v) -> {
-                    sendJsonRecord("stops", k, v);
+                    // sendJsonRecord("stops", k, v);
+                    sendRecord("stops", k, v);
                 }
         );
 
         LOG.debug("Sending routes");
         mapper.routes.forEach(
                 (k, v) -> {
-                    sendJsonRecord("routes", k, v);
+                    // sendJsonRecord("routes", k, v);
+                    sendRecord("routes", k, v);
                 }
         );
 
@@ -265,7 +300,8 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending shapes");
         collector.shapes.forEach(
                 (k, v) -> {
-                    sendJsonRecord("shapes", k, v);
+                    // sendJsonRecord("shapes", k, v);
+                    sendRecord("shapes", k, v);
                 }
         );
 

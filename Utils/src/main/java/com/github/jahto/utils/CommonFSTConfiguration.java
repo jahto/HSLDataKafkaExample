@@ -11,6 +11,8 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.ServiceStopSerializer;
 import com.github.jahto.utils.FSTSerializers.TripStopSerializer;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData.RouteStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
@@ -18,6 +20,9 @@ import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeData;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSetComparator;
@@ -68,6 +73,11 @@ public class CommonFSTConfiguration {
         conf.registerClass(VehicleDataList.class);
         conf.registerClass(RouteTypeExtended.class);
         conf.registerClass(VehicleHistoryRecord.class);
+        conf.registerClass(StopData.class);
+        conf.registerClass(RouteData.class);
+        conf.registerClass(RouteStop.class);
+        conf.registerClass(ShapeSet.class);
+        conf.registerClass(ShapeData.class);
         // Not obvious, but was found during debugging
         conf.registerClass(SerializedLambda.class);
         // We rarely have anything that could be shared, so don't bother even checking.

@@ -98,7 +98,8 @@ public class TrafficDataStreamsListener {
 
     @Bean
     public GlobalKTable<String, RouteData> constructRouteDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<RouteData> serde = new JsonSerde<>(RouteData.class, smileMapper);
+        // final JsonSerde<RouteData> serde = new JsonSerde<>(RouteData.class, smileMapper);
+        final FSTSerde<RouteData> serde = new FSTSerde<>(RouteData.class, conf);
         LOG.debug("Constructing " + StaticData.ROUTE_STORE + " with StreamsBuilder");
         GlobalKTable<String, RouteData> table
                 = streamBuilder.globalTable(StaticData.ROUTE_STREAM,
@@ -109,7 +110,8 @@ public class TrafficDataStreamsListener {
 
     @Bean
     public GlobalKTable<String, StopData> constructStopDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<StopData> serde = new JsonSerde<>(StopData.class, smileMapper);
+        // final JsonSerde<StopData> serde = new JsonSerde<>(StopData.class, smileMapper);
+        final FSTSerde<StopData> serde = new FSTSerde<>(StopData.class, conf);
         LOG.debug("Constructing " + StaticData.STOP_STORE + " with StreamsBuilder");
         GlobalKTable<String, StopData> table
                 = streamBuilder.globalTable(StaticData.STOP_STREAM,
@@ -120,7 +122,8 @@ public class TrafficDataStreamsListener {
 
     @Bean
     public GlobalKTable<String, ShapeSet> constructShapeDataTable(StreamsBuilder streamBuilder) {
-        final JsonSerde<ShapeSet> serde = new JsonSerde<>(ShapeSet.class, smileMapper);
+        // final JsonSerde<ShapeSet> serde = new JsonSerde<>(ShapeSet.class, smileMapper);
+        final FSTSerde<ShapeSet> serde = new FSTSerde<>(ShapeSet.class, conf);
         LOG.debug("Constructing " + StaticData.SHAPE_STORE + " with StreamsBuilder");
         GlobalKTable<String, ShapeSet> table
                 = streamBuilder.globalTable(StaticData.SHAPE_STREAM,

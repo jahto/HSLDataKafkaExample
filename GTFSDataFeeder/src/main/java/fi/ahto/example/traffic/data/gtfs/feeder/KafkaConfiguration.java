@@ -24,8 +24,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -143,5 +146,18 @@ public class KafkaConfiguration {
     @Bean
     FSTSerde<TripStopSet> fsttsserde() {
         return new FSTSerde<>(TripStopSet.class, conf);
+    }
+
+    @Bean
+    FSTSerde<StopData> fstsdserde() {
+        return new FSTSerde<>(StopData.class, conf);
+    }
+    @Bean
+    FSTSerde<RouteData> fstrtserde() {
+        return new FSTSerde<>(RouteData.class, conf);
+    }
+    @Bean
+    FSTSerde<ShapeSet> fstshapeserde() {
+        return new FSTSerde<>(ShapeSet.class, conf);
     }
 }
