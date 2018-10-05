@@ -26,16 +26,12 @@ import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleAtStop;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
-import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
-import fi.ahto.kafka.streams.state.utils.TransformerWithStore;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
@@ -49,7 +45,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Serialized;
-import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
@@ -381,12 +376,6 @@ public class LineTransformer {
             missing = right.tailSet(stop, true);
         }
         
-            if (left.getVehicleId().equals("FI:TKL:TKL_48")) {
-                int i = 0;
-            }
-            if (left.getOnwardCalls().size() == 0) {
-                int i = 0;
-            }
         if (missing != null && missing.size() > 0) {
             // Assume that the vehicle's driver will try to keep the timetable and
             // will try to adjust driving speed accordingly, so we add or subtract
@@ -423,142 +412,5 @@ public class LineTransformer {
             }
         }
         return null;
-    }
-
-    static class TimeTableComparerSupplier extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>> {
-
-        public TimeTableComparerSupplier(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
-            super(builder, keyserde, valserde, storeName);
-        }
-
-        @Override
-        public Transformer<String, VehicleActivity, KeyValue<String, VehicleAtStop>> get() {
-            return new TransformerImpl() {
-                @Override
-                public KeyValue<String, VehicleAtStop> transform(String key, VehicleActivity previous, VehicleActivity current) {
-                    return compareTimeTables(previous, current);
-                }
-            };
-        }
-
-        protected class TransformerImpl
-                extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>>.TransformerImpl
-                implements TransformerWithStore<String, VehicleActivity, KeyValue<String, VehicleAtStop>> {
-
-            @Override
-            public KeyValue<String, VehicleAtStop> transform(String key, VehicleActivity previous, VehicleActivity current) {
-                return compareTimeTables(previous, current);
-            }
-
-            KeyValue<String, VehicleAtStop> compareTimeTables(VehicleActivity previous, VehicleActivity current) {
-                boolean fixed = false;
-
-                if (current.getVehicleId().equals("FI:FOLI:80025")) {
-                    if (current.LineHasChanged() || current.getNextStopId().equals("FI:FOLI:101")) {
-                        int i = 0;
-                    }
-                }
-                LOG.debug("Comparing timetables.");
-                if (current.getOnwardCalls().isEmpty()) {
-                    // There's still a rare strange problem with the logic for FOLI.
-                    // Vehicles that have changed line or direction, but not any
-                    // stop information, so we haven't any list of stops the vehicle
-                    // should be removed from.-
-                    LOG.info("There should be onwardcalls now, vehicle {}, line {}",
-                            current.getVehicleId(), current.getInternalLineId());
-                }
-                // This to skip some oddities at least in FI:TKL data,
-                // maybe others too. Have to move elsewhere...
-                /*
-                LocalDate ld = left.getOperatingDate();
-                LocalTime lt = left.getStartTime();
-                ZoneId lz = left.getTripStart().getZone();
-                ZonedDateTime zdt = ZonedDateTime.of(ld, lt, lz);
-                Instant cmp = zdt.toInstant();
-                if (cmp.isBefore(left.getRecordTime())) {
-                    int i = 0;
-                }
-                */
-                if (previous == null) {
-                    LOG.debug("Adding stop times first time.");
-                    Iterator<TripStop> iter = current.getOnwardCalls().descendingIterator();
-                    while (iter.hasNext()) {
-                        TripStop curstop = iter.next();
-                        VehicleAtStop vas = new VehicleAtStop();
-                        vas.vehicleId = current.getVehicleId();
-                        vas.lineId = current.getLineId();
-                        vas.arrivalTime = curstop.arrivalTime;
-                        context.forward(curstop.stopid, vas);
-                    }
-                    return null;
-                }
-
-                if (current.LineHasChanged()) {
-                    LOG.debug("Removing all remaining stops for vehicle {}", current.getVehicleId());
-                    for (TripStop ss : previous.getOnwardCalls()) {
-                        LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
-                        VehicleAtStop vas = new VehicleAtStop();
-                        vas.remove = true;
-                        vas.vehicleId = previous.getVehicleId();
-                        vas.lineId = previous.getLineId();
-                        vas.arrivalTime = ss.arrivalTime;
-                        context.forward(ss.stopid, vas);
-                    }
-                    return null;
-                }
-
-                Iterator<TripStop> iter = current.getOnwardCalls().descendingIterator();
-                TripStop curstop = null;
-                while (iter.hasNext()) {
-                    curstop = iter.next();
-                    TripStop prevstop = previous.getOnwardCalls().floor(curstop);
-                    if (prevstop != null) {
-                        // Just skip until the reason has been found...
-                        if (curstop.arrivalTime == null) {
-                            LOG.info("Current arrival time is null for stop {}", curstop.stopid);
-                            continue;
-                        }
-                        if (prevstop.arrivalTime == null) {
-                            LOG.info("Previous arrival time is null for stop {}", curstop.stopid);
-                            continue;
-                        }
-                        if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
-                            // Vehicle's estimated arriving time to these stops has changed.
-                            // Push the information to some queue.
-                            VehicleAtStop vas = new VehicleAtStop();
-                            vas.vehicleId = current.getVehicleId();
-                            vas.lineId = current.getLineId();
-                            vas.arrivalTime = curstop.arrivalTime;
-                            context.forward(curstop.stopid, vas);
-                            fixed = true;
-                        }
-                    }
-                }
-
-                if (fixed) {
-                    LOG.debug("Fixed estimated arrival times.");
-                }
-
-                if (curstop != null) {
-                    NavigableSet<TripStop> remove = previous.getOnwardCalls().headSet(curstop, false);
-                    if (remove != null && remove.size() > 0) {
-                        // Vehicle has gone past these stops, so will not be arriving
-                        // to them anymore. Push the information to some queue.
-                        LOG.debug("Removing stops.");
-                        for (TripStop ss : remove) {
-                            LOG.info("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
-                            VehicleAtStop vas = new VehicleAtStop();
-                            vas.remove = true;
-                            vas.vehicleId = current.getVehicleId();
-                            vas.lineId = current.getLineId();
-                            vas.arrivalTime = ss.arrivalTime;
-                            context.forward(ss.stopid, vas);
-                        }
-                    }
-                }
-
-                return null;
-            }
-        }
     }
 }
