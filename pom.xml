@@ -82,6 +82,7 @@
         <module>TrafficDataStopTransformer</module>
         <module>ActiveMQConnector</module>
         <module>Utils</module>
+        <module>GTFSRTMapper</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

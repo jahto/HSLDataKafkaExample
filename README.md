@@ -28,6 +28,7 @@ come available on Maven central before the end of April 2018.
 Very simple. Just polls the endpoint (http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json)
 and pushes received list of JSON-data from HSL real-time feed to a Kafka stream as separate messages. More connectors
 could be added later. Consider switching to MQTT feed instead, this feed is not working reliably since April 2018.
+Obsoleted and removed.
 
 ### HSLDataMQTTConnector
 
@@ -56,6 +57,11 @@ routes, stops and shapes. (Not true anymore.)
 
 Note: uses a lot of memory. You might have to increase -Xms and -Xmx. Check with -verbose:gc if you have problems.
 
+### GTFSDataMapper
+
+Will some day become a general utility to map GTFS-RT data to this projects format. Some
+of the code has already been written in subproject VilkkuDataConnector
+
 ### TrafficDataVehicleTransformer
 
 - Adds some data to vehicle information. Difference of delay since last suitable sample, the length of time the difference
@@ -73,7 +79,7 @@ was calculated in, and vehicles approximaty bearing. Also the next stop, if miss
 ### ActiveMQConnector
 
 - Feeds the transformed and enhanced data to ActiveMQ queues, so the webserver can serve real-time data to clients over
-WebSockets/STOMP. To be written.
+WebSockets/STOMP. Partially written.
 
 
 ### TrafficDataWebServer
