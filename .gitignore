@@ -12,3 +12,4 @@
 /TrafficDataWebServer.NET/**/obj
 /TrafficDataWebServer.NET/**/bin
 /testdata/*.mqtt
+/testdata/**/*.data

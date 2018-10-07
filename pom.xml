@@ -69,7 +69,6 @@
     </dependencies>
     <modules>
         <module>../KafkaStreamsStateUtils</module>
-        <module>HSLDataConnector</module>
         <module>TKLDataConnector</module>
         <module>FOLIDataConnector</module>
         <module>HSLMQTTConnector</module>
