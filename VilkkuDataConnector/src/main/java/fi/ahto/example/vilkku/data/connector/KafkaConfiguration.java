@@ -97,10 +97,8 @@ public class KafkaConfiguration {
     }
 
     // To keep the tests happy...
-    /*
     @Bean
-    public SiriDataPoller siriDataPoller() {
-        return new SiriDataPoller();
+    public GtfsRTDataPoller getPoller() {
+        return new GtfsRTDataPoller();
     }
-    */
 }
