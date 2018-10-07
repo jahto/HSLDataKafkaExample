@@ -1,7 +1,17 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
@@ -21,13 +31,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author jah
+ * @author Jouni Ahto
  */
 public class VehicleTransformerSupplier
         extends TransformerSupplierWithStore<String, VehicleActivity, KeyValue<String, VehicleActivity>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(VehicleTransformerSupplier.class);
-    
+
     public VehicleTransformerSupplier(StreamsBuilder builder, Serde<String> keyserde, Serde<VehicleActivity> valserde, String storeName) {
         super(builder, keyserde, valserde, storeName);
     }
@@ -129,11 +139,17 @@ public class VehicleTransformerSupplier
                 now = current.getRecordTime();
             }
 
+            // Dont' bother with the vehicle until it's on some line. At least
+            // FOLI sends data with no line information while the vehicle is changing
+            // line, or staying at route end, or not operating anymore (I'd guess).
+            // And some other observed cases too.
+            if (current.getLineId() == null
+                    || current.getLineId().isEmpty()
+                    || current.getTripStart().toInstant().equals(Instant.EPOCH)) {
+                return null;
+            }
+
             if (previous == null) {
-                // Dont' bother with the vehicle until it's on some line. 
-                if (current.getLineId() == null || current.getLineId().isEmpty()) {
-                    return null;
-                }
                 if (current.isAtRouteEnd()) {
                     LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
                 }
@@ -141,11 +157,8 @@ public class VehicleTransformerSupplier
                 current.setLastAddedToHistory(current.getRecordTime());
                 return current;
             }
-
-            if (current.getLineId() == null || current.getLineId().isEmpty()) {
-                int i = 0;
-            }
-
+            /* There was something odd with FOLI data, don't remember anymore.
+            Have to check it again, it' probably not solved yet.
             if (previous.getLineId() == null || previous.getLineId().isEmpty()) {
                 int i = 0;
             }
@@ -153,6 +166,7 @@ public class VehicleTransformerSupplier
             if (current.getInternalLineId().equals("FI:FOLI:53") && current.getVehicleId().equals("FI:FOLI:80025")) {
                 int i = 0;
             }
+            // */
             boolean calculate = true;
 
             // Always copy first last history addition
@@ -163,8 +177,19 @@ public class VehicleTransformerSupplier
                 return recordIsLate(previous, current);
             }
 
-            // We get duplicates quite often...
+            // We get also duplicates quite often...
             if (current.getRecordTime().equals(previous.getRecordTime())) {
+                return null;
+            }
+
+            // At least TKL seems to inform us in a funny way that a vehicle
+            // is not currently operating on any line. It switches to a trip
+            // that has a starting time *far before* what was in the previous
+            // sample, which is somewhat impossible. But the vehicle still
+            // keeps on sending data, not moving much and being many hours late.
+            if (current.getTripStart().isBefore(previous.getTripStart())) {
+                LOG.debug("Anomaly detected on line {}, vehicle {}, trip start time {} is before {}",
+                        current.getInternalLineId(), current.getVehicleId(), current.getTripStart(), previous.getTripStart());
                 return null;
             }
 

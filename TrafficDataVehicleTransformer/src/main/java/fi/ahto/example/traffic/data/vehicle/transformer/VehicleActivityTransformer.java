@@ -15,21 +15,12 @@
  */
 package fi.ahto.example.traffic.data.vehicle.transformer;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
-import com.github.jahto.utils.KryoSerde;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSetComparator;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistoryRecord;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -78,27 +69,8 @@ public class VehicleActivityTransformer {
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
 
-        // final KryoSerde<VehicleActivity> kryoserde = new KryoSerde<>(VehicleActivity.class);
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
-        // KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstvaserde));
-
-        Kryo kryo = new Kryo();
-        kryo.register(VehicleActivity.class);
-        kryo.register(ServiceStopSetComparator.class);
-        kryo.register(ServiceStopSet.class);
-        kryo.register(ServiceStop.class);
-        kryo.register(LocalDate.class);
-        kryo.register(LocalTime.class);
-        kryo.register(Instant.class);
-        kryo.register(ZonedDateTime.class);
-        kryo.setRegistrationRequired(false);
-        final KryoSerde<VehicleActivity> kryovaserde = new KryoSerde<>(VehicleActivity.class, kryo);
-        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
-
-        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), vaserde, "vehicle-transformer-extended");
-        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
         VehicleTransformerSupplier transformer = new VehicleTransformerSupplier(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
-        // VehicleTransformer transformer = new VehicleTransformer(builder, Serdes.String(), kryovaserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
 
