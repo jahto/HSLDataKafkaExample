@@ -125,7 +125,7 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     void sendRecord(String topic, String key, StopData value) {
-        Serializer ser = fststserde.serializer();
+        Serializer ser = fstsdserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
