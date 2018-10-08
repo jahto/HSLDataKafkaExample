@@ -34,6 +34,8 @@ import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -225,6 +227,13 @@ public class SimpleTests {
                         String date = td.getStartDate();
                         va.setOperatingDate(LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE));
                     }
+                    /*
+                    if (time.isBefore(cutoff)) {
+                        date = date.plusDays(1);
+                    }
+                    */
+                    va.setTripStart(ZonedDateTime.of(va.getOperatingDate(), va.getStartTime(), ZoneId.of("Europe/Helsinki")));
+
                 }
             }
             vehiclelist.put(va.getVehicleId(), va);

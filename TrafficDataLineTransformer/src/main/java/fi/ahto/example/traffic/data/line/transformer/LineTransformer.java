@@ -196,8 +196,7 @@ public class LineTransformer {
         // trip and timetable.
         KStream<String, VehicleActivity> hasTripId = streamin
                 .filter((k, v)
-                        -> v.getBlockId() != null && !v.getBlockId().isEmpty()
-                && (v.getTripID() == null || v.getTripID().isEmpty())
+                        -> v.getTripID() != null && !v.getTripID().isEmpty()
                 );
         // Add possibly missing remaining stops 
         KStream<String, VehicleActivity> finaltripstopstream = hasNoIdThirdStep.merge(hasBlockId).merge(hasTripId);
@@ -350,22 +349,26 @@ public class LineTransformer {
         if (value.LineHasChanged() == false) {
             list.add(value);
         } else {
+            /*
             if (value.getVehicleId().equals("FI:FOLI:80025")) {
                 if (value.LineHasChanged()) {
                     int i = 0;
                 }
             }
+            */
             LOG.info("Removed vehicle {} from line {}", value.getVehicleId(), key);
         }
         return aggregate;
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
+        /*
         if (left.getVehicleId().equals("FI:FOLI:80025")) {
             if (left.LineHasChanged() || left.getNextStopId().equals("FI:FOLI:101")) {
                 int i = 0;
             }
         }
+        */
         if (right == null) {
             return left;
         }
@@ -380,6 +383,10 @@ public class LineTransformer {
             // Assume that the vehicle's driver will try to keep the timetable and
             // will try to adjust driving speed accordingly, so we add or subtract
             // a moderate amount, max +-10 seconds per stop pair along the route.
+            if (left.getDelay() == null) {
+                // Quick fix. In reality, we could calculate it ourselves.
+                left.setDelay(0);
+            }
             int delay = left.getDelay();
             int adjust = delay / missing.size();
             if (adjust < -10) {
