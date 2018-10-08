@@ -66,6 +66,7 @@ public class SiriDataPoller {
     private static final Lock LOCK = new ReentrantLock();
     private static final String SOURCE = "FI:TKL";
     private static final String PREFIX = SOURCE + ":";
+    private static final LocalTime cutoff = LocalTime.of(4, 30); // Check!!!
 
     @Autowired
     @Qualifier( "json")
@@ -208,9 +209,12 @@ public class SiriDataPoller {
         Integer hour = Integer.parseInt(timestr.substring(0, 2));
         Integer minute = Integer.parseInt(timestr.substring(2));
         LocalTime time = LocalTime.of(hour, minute);
-        vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
         vaf.setOperatingDate(date);
         vaf.setStartTime(time);
+        if (time.isBefore(cutoff)) {
+            date = date.plusDays(1);
+        }
+        vaf.setTripStart(ZonedDateTime.of(date, time, ZoneId.of("Europe/Helsinki")));
         
         // In the hope that the first stop in onwardCalls is the next stop.
         JsonNode stops = jrn.path("onwardCalls");

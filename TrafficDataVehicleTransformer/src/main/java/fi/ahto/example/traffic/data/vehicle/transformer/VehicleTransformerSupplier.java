@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.vehicle.transformer;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import java.time.Instant;
+import java.time.ZoneId;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -145,7 +146,7 @@ public class VehicleTransformerSupplier
             // And some other observed cases too.
             if (current.getLineId() == null
                     || current.getLineId().isEmpty()
-                    || current.getTripStart().toInstant().equals(Instant.EPOCH)) {
+                    || (current.getTripStart() != null && current.getTripStart().toInstant().equals(Instant.EPOCH))) {
                 return null;
             }
 
@@ -182,14 +183,32 @@ public class VehicleTransformerSupplier
                 return null;
             }
 
+            // Is the test in the right place at all? And refactor it into a method.
             // At least TKL seems to inform us in a funny way that a vehicle
             // is not currently operating on any line. It switches to a trip
             // that has a starting time *far before* what was in the previous
             // sample, which is somewhat impossible. But the vehicle still
             // keeps on sending data, not moving much and being many hours late.
-            if (current.getTripStart().isBefore(previous.getTripStart())) {
-                LOG.debug("Anomaly detected on line {}, vehicle {}, trip start time {} is before {}",
-                        current.getInternalLineId(), current.getVehicleId(), current.getTripStart(), previous.getTripStart());
+            if (current.getTripStart() != null && current.getTripStart().isBefore(previous.getTripStart())) {
+                LOG.info("Anomaly detected on line {}, vehicle {}, trip start time {} is before {}, recorded at {} and {}",
+                        current.getInternalLineId(), current.getVehicleId(), current.getTripStart(),
+                        previous.getTripStart(), current.getRecordTime().atZone(ZoneId.of("Z")), previous.getRecordTime().atZone(ZoneId.of("Z")));
+                // Oh hell, there's incorrect data in  HSL feed and this interacted badly with it. A few vehicles
+                // perhaps by mistake, first stamped to a later trip and a few seconds later corrected to the right
+                // one, which happens to be before the previous, mess ready...
+                // Ok, we'll go with the assumption that if the record timestamp is before trip start,
+                // it's a correction to a previous mistake.
+                if (current.getRecordTime().isBefore(current.getTripStart().toInstant())) {
+                    LOG.info("Assumed that the anomaly on line {}, vehicle {}, was caused by mistake and corrected the situation.",
+                            current.getInternalLineId(), current.getVehicleId());
+                    // Removes the incorrect information.
+                    previous.setLineHasChanged(true);
+                    if (!(previous.getLineId() == null || previous.getLineId().isEmpty())) {
+                        context.forward(previous.getVehicleId(), previous);
+                    }
+                    return current;
+                }
+                // Should we do something else too?
                 return null;
             }
 

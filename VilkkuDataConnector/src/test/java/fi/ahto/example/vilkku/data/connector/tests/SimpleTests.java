@@ -38,7 +38,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -75,7 +74,7 @@ public class SimpleTests {
         GtfsRealtime.FeedMessage vehiclefeed = null;
         String dir = "../testdata/kuopio/";
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 951; i++) {
             String postfix = Integer.toString(i) + ".data";
             File vehicles = new File(dir + "vehicles-" + postfix);
             File trips = new File(dir + "trips-" + postfix);

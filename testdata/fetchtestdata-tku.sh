@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # --compressed http://data.foli.fi/siri/vm
 for num in {0..999};
 do

@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # old http://data.itsfactory.fi/siriaccess/vm/json
 # new http://data.itsfactory.fi/journeys/api/1/vehicle-activity
 for num in {0..999};

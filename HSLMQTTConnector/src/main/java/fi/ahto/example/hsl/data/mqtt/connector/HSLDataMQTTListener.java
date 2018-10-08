@@ -54,7 +54,8 @@ public class HSLDataMQTTListener {
     private static final Logger LOG = LoggerFactory.getLogger(HSLDataMQTTListener.class);
     private static final String SOURCE = "FI:HSL";
     private static final String PREFIX = SOURCE + ":";
-
+    private static final LocalTime cutoff = LocalTime.of(4, 30); // Check!!!
+    
     @Autowired
     @Qualifier( "json")
     private ObjectMapper objectMapper;
@@ -158,6 +159,11 @@ public class HSLDataMQTTListener {
 
         LocalDate operday = LocalDate.parse(vp.path("oday").asText());
         LocalTime start = LocalTime.parse(vp.path("start").asText());
+        vaf.setOperatingDate(operday);
+        vaf.setStartTime(start);
+        if (start.isBefore(cutoff)) {
+            operday = operday.plusDays(1);
+        }
         ZonedDateTime zdt = ZonedDateTime.of(operday, start, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop
@@ -169,8 +175,6 @@ public class HSLDataMQTTListener {
         // New data available.
         vaf.setBearing((float)vp.path("hdg").asDouble());
         vaf.setSpeed((float)vp.path("spd").asDouble());
-        vaf.setOperatingDate(operday);
-        vaf.setStartTime(start);
         return vaf;
     }
 
