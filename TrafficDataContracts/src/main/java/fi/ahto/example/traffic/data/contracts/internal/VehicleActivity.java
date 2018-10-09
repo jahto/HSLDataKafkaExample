@@ -29,6 +29,7 @@ import java.util.Objects;
  * @author Jouni Ahto
  */
 public class VehicleActivity implements Serializable {
+
     private static final long serialVersionUID = 2224272976594814200L;
 
     /**
@@ -177,7 +178,7 @@ public class VehicleActivity implements Serializable {
     public void setAtRouteEnd(boolean atRouteEnd) {
         this.atRouteEnd = atRouteEnd;
     }
-    
+
     public String getNextStopId() {
         return nextStopId;
     }
@@ -337,7 +338,7 @@ public class VehicleActivity implements Serializable {
     public void setDelay(Integer delay) {
         this.delay = delay;
     }
-    
+
     @JsonProperty("VehicleId")
     private String vehicleId;
     @JsonProperty("LineId")
@@ -398,15 +399,15 @@ public class VehicleActivity implements Serializable {
     private String blockId;
     private List<String> possibilities;
 
-
     public TripStopSet getOnwardCalls() {
         return onwardCalls;
     }
+
     /*
     public void setOnwardCalls(ServiceStopSet onwardCalls) {
         this.onwardCalls = onwardCalls;
     }
-    */
+     */
 
     public String getTripID() {
         return tripID;
@@ -436,5 +437,40 @@ public class VehicleActivity implements Serializable {
      */
     public void setServicePossibilities(List<String> possibilities) {
         this.possibilities = possibilities;
+    }
+
+    // Does it have enough data so we can fill in the missing pieces later?
+    public boolean validateHasEnoughData() {
+        // Must have timestamp
+        if (this.recordTime == null) {
+            return false;
+        }
+        // Must have vehicleid
+        if (this.vehicleId == null || this.vehicleId.isEmpty()) {
+            return false;
+        }
+
+        if (this.tripID != null && !this.tripID.isEmpty()) {
+            // Should check here for frequency base trips, maybe not possible,
+            // perhaps in validatePost()? Anything else can be filled later
+            // from trip data.
+            return true;
+        }
+
+        if (this.internalLineId != null && !this.internalLineId.isEmpty()
+                && this.direction != null && !this.direction.isEmpty()
+                && this.operatingDate != null && this.startTime != null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // Does it have enough data so we can actually process it?
+    public boolean validateAbleToProcess() {
+        if (!validateHasEnoughData()) {
+            return false;
+        }
+        return true;
     }
 }

@@ -199,7 +199,7 @@ public enum RouteTypeExtended implements Serializable {
         int intval = val.value;
         intval = (intval / 100) * 100;
         if (intval == 800) {
-            return RouteTypeExtended.ALL_BUS_SERVICES;
+            return RouteTypeExtended.BUS_SERVICE;
         } 
         return map.getOrDefault(intval, UNKNOWN);
     }
