@@ -1,0 +1,12 @@
+services:
+    vehicletransformer:
+        image:
+    linetransformer:
+        image:
+    stoptransformer:
+        image:
+    activemqfeeder:
+        image:
+    trafficdatawebserver:
+        image:
+        
