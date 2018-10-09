@@ -37,6 +37,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import fi.ahto.example.traffic.data.gtfsrt.mapper.GTFSTRMapper;
 
 /**
  *
@@ -63,83 +65,137 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class SimpleTests {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTests.class);
-    Map<String, VehicleActivity> vehiclelist = new HashMap<>();
+    // Map<String, VehicleActivity> vehicles = new HashMap<>();
 
     @Autowired
     private GtfsRTDataPoller poller;
 
-    private final static String prefix = "FI:VLK:";
+    private final static String source = "FI:VLK";
+    private final static String prefix = source + ":";
+    private final static ZoneId zone = ZoneId.of("Europe/Helsinki");
+    private final static LocalTime cutoff = LocalTime.of(0, 0);
 
     @Test
     public void testReadData() throws IOException {
-        GtfsRealtime.FeedMessage tripfeed = null;
-        GtfsRealtime.FeedMessage vehiclefeed = null;
+        GTFSTRMapper mapper = new GTFSTRMapper(source, zone, cutoff);
         String dir = "../testdata/kuopio/";
 
         for (int i = 0; i < 951; i++) {
+            // vehicles.clear();
+            List<GtfsRealtime.VehiclePosition> poslist = new ArrayList<>();   
+            List<GtfsRealtime.TripUpdate> triplist = new ArrayList<>();
+            
             String postfix = Integer.toString(i) + ".data";
             File vehicles = new File(dir + "vehicles-" + postfix);
             File trips = new File(dir + "trips-" + postfix);
+            
             try (InputStream stream = new FileInputStream(vehicles)) {
-                vehiclefeed = GtfsRealtime.FeedMessage.parseFrom(stream);
+                GtfsRealtime.FeedMessage vehiclefeed = GtfsRealtime.FeedMessage.parseFrom(stream);
                 List<FeedEntity> list = vehiclefeed.getEntityList();
                 for (FeedEntity ent : list) {
                     if (ent.hasVehicle()) {
-                        parseVehicle(ent.getVehicle(), prefix);
+                        poslist.add(ent.getVehicle());
                     }
                 }
             } catch (IOException ex) {
                 LOG.debug("Problem with file", ex);
             }
             try (InputStream stream = new FileInputStream(trips)) {
-                tripfeed = GtfsRealtime.FeedMessage.parseFrom(stream);
+                GtfsRealtime.FeedMessage tripfeed = GtfsRealtime.FeedMessage.parseFrom(stream);
                 List<FeedEntity> list = tripfeed.getEntityList();
                 for (FeedEntity ent : list) {
                     if (ent.hasTripUpdate()) {
-                        parseTripUpdate(ent.getTripUpdate(), vehiclelist, prefix);
+                        triplist.add(ent.getTripUpdate());
                     }
                 }
             } catch (IOException ex) {
                 LOG.debug("Problem with file", ex);
             }
-            poller.putDataToQueue(vehiclelist.values());
+            
+            List<VehicleActivity> result = mapper.combineData(poslist, triplist);
+            poller.putDataToQueue(result);
         }
     }
+    /*
+    public List<VehicleActivity> combineData(List<GtfsRealtime.VehiclePosition> positions,
+                                             List<GtfsRealtime.TripUpdate> trips) {
+        for (VehiclePosition vp : positions) {
+            parseVehiclePosition(vp);
+        }
+        
+        for (TripUpdate tu : trips) {
+            parseTripUpdate(tu);
+        }
+        
+        List<VehicleActivity> ret = new ArrayList<>();
+        for (VehicleActivity va : vehicles.values()) {
+            if (va.validateHasEnoughData()) {
+                ret.add(va);
+            }
+        }
+        
+        return ret;
+    }
 
-    public void parseTripUpdate(TripUpdate tu, Map<String, VehicleActivity> map, String prefix) {
+    public VehicleActivity getVehicle(TripUpdate tu) {
+        if (!tu.hasVehicle()) {
+            return null;
+        }
+        
+        VehicleDescriptor vd = tu.getVehicle();
+        if (!vd.hasId()) {
+            return null;
+        }
+
+        VehicleActivity va = vehicles.get(prefix + vd.getId());
+        if (va == null) {
+            va = new VehicleActivity();
+            String id = vd.getId();
+            va.setVehicleId(prefix + id);
+            va.setSource(source);
+            vehicles.put(prefix + id, va);
+        }
+        
+        if (tu.hasTrip()) {
+            parseTripDescriptor(tu.getTrip(), va);
+        }
+        
+        if (tu.hasDelay()) {
+            va.setDelay(tu.getDelay());
+        }
+
+        if (va.getRecordTime() == null && tu.hasTimestamp()) {
+            va.setRecordTime(Instant.ofEpochSecond(tu.getTimestamp()));
+        }
+                
+        return va;
+    }
+
+    public void parseTripUpdate(TripUpdate tu) {
         // We handle currently only scheduled trips.
         if (tu.getTrip().getScheduleRelationship() != ScheduleRelationship.SCHEDULED) {
             return;
         }
 
-        if (!tu.hasVehicle()) {
-            return;
-        }
-
-        VehicleDescriptor vd = tu.getVehicle();
-        if (!vd.hasId()) {
-            return;
-        }
-
-        VehicleActivity va = map.get(prefix + vd.getId());
+        VehicleActivity va = getVehicle(tu);
         if (va == null) {
-            // Currently, just return. Although we could also check if there's
-            // enough information available to construct a new VehicleActivity
-            // instance. Perhaps later.
+            // We don't currently handle trip updates not associated with a vehicle. Maybe later.-
             return;
         }
 
-        if (tu.hasDelay()) {
-            va.setDelay(tu.getDelay());
+        if (va.getNextStopId() == null) {
+            addStopId(tu, va);
         }
+    }
 
+    public void addStopId(TripUpdate tu, VehicleActivity va) {
         // Find the first StopTimeUpdate not in the past.
         StopTimeUpdate first = null;
         if (!(tu.getStopTimeUpdateList() == null || tu.getStopTimeUpdateList().isEmpty())) {
             long cmp = va.getRecordTime().getEpochSecond();
 
-            // What happens if go to the end of list of list without ever
-            // breaking? Is that acually possible?
+            // What happens if we go to the end of list of list
+            // without ever breaking? Is that actually possible?
             for (int j = 0; j < tu.getStopTimeUpdateList().size(); j++) {
                 long cur = 0;
                 first = tu.getStopTimeUpdateList().get(j);
@@ -158,85 +214,94 @@ public class SimpleTests {
         if (first != null) {
             String stid = first.getStopId();
             va.setNextStopId(prefix + stid);
-            if (!tu.hasDelay()) {
+            if (va.getDelay() == null) {
                 if (first.hasArrival() && first.getArrival().hasDelay()) {
                     va.setDelay(first.getArrival().getDelay());
                 } else if (first.hasDeparture() && first.getDeparture().hasDelay()) {
                     va.setDelay(first.getDeparture().getDelay());
                 }
             }
-            int i = 0;
         }
+        // Could fill onwarcalls here, if they are reliable.
+        // Must add a flag for that, they often aren't.
+    }
+    
+    public void parseVehiclePosition(VehiclePosition vp) {
+        if (!vp.hasVehicle()) {
+            return;
+        }
+
+        VehicleDescriptor vd = vp.getVehicle();
+        // No use for a vehicle we can't identify
+        if (!vd.hasId() || vd.getId().isEmpty()) {
+            return;
+        }
+
+        VehicleActivity va = new VehicleActivity();
+        String id = vd.getId();
+        va.setVehicleId(prefix + id);
+        va.setSource(source);
+
+        if (vp.hasTimestamp()) {
+            va.setRecordTime(Instant.ofEpochSecond(vp.getTimestamp()));
+        } else {
+            va.setRecordTime(Instant.now());
+        }
+
+        if (vp.hasStopId()) {
+            va.setNextStopId(vp.getStopId());
+        }
+
+        if (vp.hasPosition()) {
+            parsePosition(vp.getPosition(), va);
+        }
+        if (vp.hasTrip()) {
+            parseTripDescriptor(vp.getTrip(), va);
+
+        }
+
+        vehicles.put(va.getVehicleId(), va);
     }
 
-    public void parseVehicle(VehiclePosition vp, String prefix) {
-        if (vp.hasVehicle()) {
-            VehicleActivity va = new VehicleActivity();
-            VehicleDescriptor vd = vp.getVehicle();
-            if (vd.hasId()) {
-                String id = vd.getId();
-                if (id == null) {
-                    // No use for a vehicle we can't identify
-                    return;
-                }
-                va.setVehicleId(prefix + id);
-
-                if (vp.hasTimestamp()) {
-                    va.setRecordTime(Instant.ofEpochSecond(vp.getTimestamp()));
-                } else {
-                    va.setRecordTime(Instant.now());
-                }
-
-                if (vp.hasPosition()) {
-                    Position pos = vp.getPosition();
-                    va.setLatitude(pos.getLatitude());
-                    va.setLongitude(pos.getLongitude());
-                    if (pos.hasBearing()) {
-                        va.setBearing(pos.getBearing());
-                    }
-                    if (pos.hasSpeed()) {
-                        va.setSpeed(pos.getSpeed());
-                    }
-                }
-                if (vp.hasTrip()) {
-                    TripDescriptor td = vp.getTrip();
-                    if (!td.hasTripId()) {
-                        if (!(td.hasRouteId()
-                                && td.hasDirectionId()
-                                && td.hasStartTime()
-                                && td.hasStartDate())) {
-                            return;
-                        }
-                    }
-                    if (td.hasTripId()) {
-                        va.setTripID(prefix + td.getTripId());
-                    }
-                    if (td.hasRouteId()) {
-                        va.setInternalLineId(prefix + td.getRouteId());
-                        va.setLineId(td.getRouteId());
-                    }
-                    if (td.hasDirectionId()) {
-                        int dir = td.getDirectionId() + 1;
-                        va.setDirection(Integer.toString(dir));
-                    }
-                    if (td.hasStartTime()) {
-                        String time = td.getStartTime();
-                        va.setStartTime(LocalTime.parse(time));
-                    }
-                    if (td.hasStartDate()) {
-                        String date = td.getStartDate();
-                        va.setOperatingDate(LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE));
-                    }
-                    /*
-                    if (time.isBefore(cutoff)) {
-                        date = date.plusDays(1);
-                    }
-                    */
-                    va.setTripStart(ZonedDateTime.of(va.getOperatingDate(), va.getStartTime(), ZoneId.of("Europe/Helsinki")));
-
-                }
+    public void parseTripDescriptor(TripDescriptor td, VehicleActivity va) {
+        if (va.getTripID() == null && td.hasTripId()) {
+            va.setTripID(prefix + td.getTripId());
+        }
+        if (va.getInternalLineId() == null && td.hasRouteId()) {
+            va.setInternalLineId(prefix + td.getRouteId());
+            va.setLineId(td.getRouteId());
+        }
+        if (va.getDirection() == null && td.hasDirectionId()) {
+            int dir = td.getDirectionId() + 1;
+            va.setDirection(Integer.toString(dir));
+        }
+        if (va.getStartTime() == null && td.hasStartTime()) {
+            String time = td.getStartTime();
+            va.setStartTime(LocalTime.parse(time));
+        }
+        if (va.getOperatingDate() == null && td.hasStartDate()) {
+            String date = td.getStartDate();
+            va.setOperatingDate(LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE));
+        }
+        if (va.getOperatingDate() != null && va.getStartTime() != null && va.getTripStart() == null) {
+            LocalDate date = va.getOperatingDate();
+            LocalTime time = va.getStartTime();
+            if (time.isBefore(cutoff)) {
+                date = date.plusDays(1);
             }
-            vehiclelist.put(va.getVehicleId(), va);
+            va.setTripStart(ZonedDateTime.of(date, time, zone));
         }
     }
+
+    public void parsePosition(Position pos, VehicleActivity va) {
+        va.setLatitude(pos.getLatitude());
+        va.setLongitude(pos.getLongitude());
+        if (pos.hasBearing()) {
+            va.setBearing(pos.getBearing());
+        }
+        if (pos.hasSpeed()) {
+            va.setSpeed(pos.getSpeed());
+        }
+    }
+    */
 }
