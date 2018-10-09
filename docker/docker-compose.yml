@@ -1,4 +1,10 @@
 services:
+    zookeeper:
+        image: wurstmeister/zookeeper
+    kafka:
+        image:
+    activemq:
+        image:
     vehicletransformer:
         image:
     linetransformer:
