@@ -4,5 +4,5 @@ RUN mkdir /app
 RUN mkdir /app/lib
 ADD run-app.sh /app
 RUN chmod a+x /app/run-app.sh
-ADD target/LineStreamTransformer.jar /app/lib/app.jar
+ADD target/ActiveMQConnector.jar /app/lib/app.jar
 CMD ["/app/run-app.sh"]

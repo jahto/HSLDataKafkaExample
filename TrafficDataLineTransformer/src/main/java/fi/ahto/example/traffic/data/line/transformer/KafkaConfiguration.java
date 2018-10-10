@@ -78,6 +78,8 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         // props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
         props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1");
+        props.put(StreamsConfig.RETRY_BACKOFF_MS_CONFIG, "1000");
+        props.put(StreamsConfig.RETRIES_CONFIG, "10");
         // props.put(StreamsConfig.PARTITION_GROUPER_CLASS_CONFIG, "fi.ahto.example.traffic.data.contracts.internal.CustomPartitioner");
         // Try some different tuning parameters
         // props.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);

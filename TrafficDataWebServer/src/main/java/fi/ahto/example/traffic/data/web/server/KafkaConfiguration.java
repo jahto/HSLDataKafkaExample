@@ -31,7 +31,7 @@ import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -64,6 +64,8 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-test-webserver");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
+        props.put(StreamsConfig.RETRY_BACKOFF_MS_CONFIG, "1000");
+        props.put(StreamsConfig.RETRIES_CONFIG, "10");
         return new KafkaStreamsConfiguration(props);
     }
 
@@ -103,8 +105,8 @@ public class KafkaConfiguration {
         return CommonFSTConfiguration.getCommonFSTConfiguration();
     }
 
-    @Autowired
-    private FSTConfiguration conf;
+    // @Autowired
+    // private FSTConfiguration conf;
 
     /*
     @Bean

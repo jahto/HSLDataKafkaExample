@@ -39,8 +39,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <fork>true</fork>
-                    <mainClass>fi.ahto.example.traffic.data.line.transformer.LineStreamTransformer</mainClass>
-                    <finalName>LineStreamTransformer</finalName>
+                    <mainClass>fi.ahto.example.traffic.data.stop.transformer.StopStreamTransformer</mainClass>
+                    <finalName>StopStreamTransformer</finalName>
                 </configuration>
                 <executions>
                     <execution>
