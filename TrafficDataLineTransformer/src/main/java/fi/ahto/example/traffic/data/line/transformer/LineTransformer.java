@@ -108,15 +108,14 @@ public class LineTransformer {
         // and exact trip, so we'll have to find it based on other information
         // available.
         KStream<String, VehicleActivity> hasNoId = streamin
-                .filter((k, v)
-                        -> (v.getBlockId() == null || v.getBlockId().isEmpty())
-                && (v.getTripID() == null || v.getTripID().isEmpty())
-                )
+                .filter((k, v) -> {
+                    return (v.getBlockId() == null || v.getBlockId().isEmpty())
+                            && (v.getTripID() == null || v.getTripID().isEmpty());
+                })
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 // .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
-                        // .leftJoin(routesToServices,
                         (VehicleActivity value, ServiceList right) -> {
                             if (right == null) {
                                 LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
@@ -144,10 +143,11 @@ public class LineTransformer {
                 });
 
         KStream<String, VehicleActivity> hasNoIdThirdStep = hasNoIdSecondStep
-                .leftJoin(serviceToTrips, (String key, VehicleActivity value) -> {
-                    String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
-                    return newkey;
-                },
+                .leftJoin(serviceToTrips,
+                        (String key, VehicleActivity value) -> {
+                            String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
+                            return newkey;
+                        },
                         (VehicleActivity value, ServiceTrips right) -> {
                             String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                             if (right == null) {
@@ -168,18 +168,18 @@ public class LineTransformer {
                                     value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                             return value;
                         }
-                ).filter((k, v) -> v != null);
-
-        // Some feeds do have some information that helps finding the correct
-        // trip and timetable.
-        KStream<String, VehicleActivity> hasBlockId = streamin
-                .filter((k, v)
-                        -> v.getBlockId() != null && !v.getBlockId().isEmpty()
-                && (v.getTripID() == null || v.getTripID().isEmpty())
                 )
+                .filter((k, v) -> v != null);
+
+        // Some feeds do have some information that helps finding the correct trip and timetable.
+        KStream<String, VehicleActivity> hasBlockId = streamin
+                .filter((k, v) -> {
+                    return v.getBlockId() != null && !v.getBlockId().isEmpty()
+                            && (v.getTripID() == null || v.getTripID().isEmpty());
+                })
                 //.filterNot((k, v) -> v.LineHasChanged())
-                .leftJoin(serviceToTrips, (String key, VehicleActivity value)
-                        -> value.getBlockId() + ":" + value.getInternalLineId(), // + ":" + value.getDirection(),
+                .leftJoin(serviceToTrips,
+                        (String key, VehicleActivity value) -> value.getBlockId() + ":" + value.getInternalLineId(), // + ":" + value.getDirection(),
                         (VehicleActivity value, ServiceTrips right) -> {
                             if (right == null) {
                                 LOG.info("Didn't find correct block {} for route {}, line {}, dir {}",
@@ -192,22 +192,18 @@ public class LineTransformer {
                             return value;
                         });
 
-        // And them, some feeds already have a reference to the correct
-        // trip and timetable.
+        // And them, some feeds already have a reference to the correct trip and timetable.
         KStream<String, VehicleActivity> hasTripId = streamin
-                .filter((k, v)
-                        -> v.getTripID() != null && !v.getTripID().isEmpty()
-                );
-        // Add possibly missing remaining stops 
+                .filter((k, v) -> v.getTripID() != null && !v.getTripID().isEmpty());
+        
+        // Merge the streams.
         KStream<String, VehicleActivity> finaltripstopstream = hasNoIdThirdStep.merge(hasBlockId).merge(hasTripId);
+
+        // Add possibly missing remaining stops 
         KStream<String, VehicleActivity> reallyfinaltripstopstream = finaltripstopstream
                 .leftJoin(trips,
-                        (String key, VehicleActivity value) -> {
-                            return value.getTripID();
-                        },
-                        (VehicleActivity left, TripStopSet right) -> {
-                            return addMissingStopTimes(left, right);
-                        }
+                        (String key, VehicleActivity value) -> value.getTripID(),
+                        (VehicleActivity left, TripStopSet right) -> addMissingStopTimes(left, right)
                 );
 
         // Compare current and previous estimated stop times, react if they differ
@@ -232,7 +228,6 @@ public class LineTransformer {
                 .aggregate(lineinitializer, lineaggregator,
                         Materialized.<String, VehicleDataList, KeyValueStore<Bytes, byte[]>>as("line-aggregation-store")
                                 .withKeySerde(Serdes.String())
-                                // .withValueSerde(vaflistserde)
                                 .withValueSerde(fstvaflistserde)
                 );
 
@@ -355,7 +350,7 @@ public class LineTransformer {
                     int i = 0;
                 }
             }
-            */
+             */
             LOG.info("Removed vehicle {} from line {}", value.getVehicleId(), key);
         }
         return aggregate;
@@ -368,7 +363,7 @@ public class LineTransformer {
                 int i = 0;
             }
         }
-        */
+         */
         if (right == null) {
             return left;
         }
@@ -378,7 +373,7 @@ public class LineTransformer {
         if (stop != null) {
             missing = right.tailSet(stop, true);
         }
-        
+
         if (missing != null && missing.size() > 0) {
             // Assume that the vehicle's driver will try to keep the timetable and
             // will try to adjust driving speed accordingly, so we add or subtract
