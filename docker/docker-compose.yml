@@ -1,18 +1,63 @@
+version: '3'
 services:
     zookeeper:
         image: wurstmeister/zookeeper
+        ports:
+            - "2181:2181"
     kafka:
-        image:
+        image: wurstmeister/kafka
+        depends_on:
+            - zookeeper
+        ports:
+            - "9092:9092"
+        environment:
+            KAFKA_ADVERTISED_HOST_NAME: kafkabroker
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_CREATE_TOPICS: "data-by-vehicleid:4:1,data-by-lineid:4:1,data-by-lineid-enhanced:4:1,vehicle-history:4:1:compact,services-to-trips:4:1:compact,trips:4:1:compact,routes-to-services:4:1:compact,shapes:4:1:compact,routes:4:1:compact,stops:4:1:compact"
     activemq:
-        image:
+        image: webcenter/activemq
+        environment:
+            ACTIVEMQ_CONFIG_MINMEMORY: 512
+            ACTIVEMQ_CONFIG_MAXMEMORY: 2048
     vehicletransformer:
-        image:
+        build: ../TrafficDataVehicleTransformer
+        image: vehicletransformer:latest
+        depends_on:
+            - kafka
+        environment:
+            BOOTSTRAP_SERVERS: kafka:9092
     linetransformer:
-        image:
+        build: ../TrafficDataLineTransformer
+        image: linetransformer:latest
+        depends_on:
+            - kafka
+        environment:
+            BOOTSTRAP_SERVERS: kafka:9092
     stoptransformer:
-        image:
-    activemqfeeder:
-        image:
+        build: ../TrafficDataStopTransformer
+        image: stoptransformer:latest
+        depends_on:
+            - kafka
+        environment:
+            BOOTSTRAP_SERVERS: kafka:9092
+    activemqconnector:
+        build: ../ActiveMQConnector
+        image: connector:latest
+        depends_on:
+            - kafka
+            - activemq
+        environment:
+            AMQ_BROKER_URL: tcp://activemq:61616
+            BOOTSTRAP_SERVERS: kafka:9092
     trafficdatawebserver:
-        image:
+        build: ../TrafficDataWebServer
+        image: trafficdatawebserver:latest
+        depends_on:
+            - kafka
+            - activemq
+        ports:
+            - "8080:8080"
+        environment:
+            BROKER_HOST: activemq
+            BOOTSTRAP_SERVERS: kafka:9092
         
