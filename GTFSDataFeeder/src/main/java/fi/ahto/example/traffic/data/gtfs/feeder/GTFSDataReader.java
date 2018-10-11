@@ -35,6 +35,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.onebusaway.csv_entities.EntityHandler;
+import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
 import org.onebusaway.gtfs.model.ShapePoint;
@@ -335,6 +336,11 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof ShapePoint) {
                 ShapePoint shape = (ShapePoint) bean;
                 collector.add(prefix, shape);
+            }
+            
+            if (bean instanceof Frequency) {
+                Frequency freq = (Frequency) bean;
+                mapper.add(prefix, freq);
             }
         }
     }

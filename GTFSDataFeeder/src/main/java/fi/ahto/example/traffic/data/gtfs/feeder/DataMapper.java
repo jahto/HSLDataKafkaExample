@@ -28,6 +28,7 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
+import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
@@ -136,6 +137,10 @@ public class DataMapper {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(x);
         return buffer.array();
+    }
+
+    public void add(String prefix, Frequency freq) {
+        int i = 0;
     }
 
     public void add(String prefix, StopTime st) {
