@@ -51,7 +51,7 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 public class KafkaConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConfiguration.class);
 
-    @Value("${BOOTSTRAP_SERVERS:172.17.0.1:9092}")
+    @Value("${BOOTSTRAP_SERVERS:localhost:9092}")
     private String bootstrapServers;
 
     @Autowired
