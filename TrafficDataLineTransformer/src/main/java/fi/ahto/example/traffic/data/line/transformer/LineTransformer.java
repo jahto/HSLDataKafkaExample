@@ -369,7 +369,7 @@ public class LineTransformer {
         }
 
         NavigableSet<TripStop> missing = null;
-        TripStop stop = findStopByName(left.getNextStopId(), right);
+        TripStop stop = findNextStop(left.getNextStopId(), left.getNextStopSequence(), right);
         if (stop != null) {
             missing = right.tailSet(stop, true);
         }
@@ -407,9 +407,14 @@ public class LineTransformer {
         return left;
     }
 
-    TripStop findStopByName(String name, TripStopSet set) {
+    TripStop findNextStop(String name, Integer seq, TripStopSet set) {
         for (TripStop stop : set) {
-            if (stop.stopid.equals(name)) {
+            if (seq != null) {
+                if (seq.equals(stop.seq)) {
+                    return stop;
+                }
+            }
+            else if (stop.stopid.equals(name)) {
                 return stop;
             }
         }

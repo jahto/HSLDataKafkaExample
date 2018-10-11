@@ -96,6 +96,7 @@ public class VehicleActivity implements Serializable {
         this.speed = other.speed;
         this.source = other.source;
         this.nextStopId = other.nextStopId;
+        this.nextStopId = other.nextStopId;
         this.nextStopName = other.nextStopName;
         this.onwardCalls = other.onwardCalls;
         this.atRouteStart = other.atRouteStart;
@@ -127,6 +128,7 @@ public class VehicleActivity implements Serializable {
         this.bearing = other.bearing;
         this.speed = other.speed;
         this.source = other.source;
+        this.nextStopId = other.nextStopId;
         this.nextStopId = other.nextStopId;
         this.nextStopName = other.nextStopName;
         this.onwardCalls.addAll(other.onwardCalls);
@@ -377,6 +379,8 @@ public class VehicleActivity implements Serializable {
     private Float speed;
     @JsonProperty("Source")
     private String source;
+    @JsonProperty("NextStopSequence")
+    private Integer nextStopSequence;
     @JsonProperty("NextStopId")
     private String nextStopId;
     @JsonProperty("NextStopName")
@@ -472,5 +476,13 @@ public class VehicleActivity implements Serializable {
             return false;
         }
         return true;
+    }
+
+    public Integer getNextStopSequence() {
+        return nextStopSequence;
+    }
+
+    public void setNextStopSequence(Integer nextStopSequence) {
+        this.nextStopSequence = nextStopSequence;
     }
 }

@@ -144,8 +144,12 @@ public class GTFSTRMapper {
         }
 
         if (first != null) {
-            String stid = first.getStopId();
-            va.setNextStopId(prefix + stid);
+            if (va.getNextStopSequence() == null && first.hasStopSequence()) {
+                va.setNextStopSequence(first.getStopSequence());
+            } 
+            if (va.getNextStopId() == null && first.hasStopId()) {
+                va.setNextStopId(prefix + first.getStopId());
+            } 
             if (va.getDelay() == null) {
                 if (first.hasArrival() && first.getArrival().hasDelay()) {
                     va.setDelay(first.getArrival().getDelay());
@@ -179,17 +183,17 @@ public class GTFSTRMapper {
         } else {
             va.setRecordTime(Instant.now());
         }
-
-        if (vp.hasStopId()) {
-            va.setNextStopId(vp.getStopId());
+        if (vp.hasCurrentStopSequence()) {
+            va.setNextStopSequence(vp.getCurrentStopSequence());
         }
-
+        if (vp.hasStopId()) {
+            va.setNextStopId(prefix + vp.getStopId());
+        }
         if (vp.hasPosition()) {
             parsePosition(vp.getPosition(), va);
         }
         if (vp.hasTrip()) {
             parseTripDescriptor(vp.getTrip(), va);
-
         }
 
         vehicles.put(va.getVehicleId(), va);
