@@ -1,0 +1,1 @@
+Data from http://karttapalvelu.kuopio.fi/google_transit/google_transit.zip.

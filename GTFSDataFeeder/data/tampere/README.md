@@ -1,1 +1,1 @@
-Data from 
+Data from http://data.itsfactory.fi/journeys/files/gtfs/latest/extended_gtfs_tampere.zip.

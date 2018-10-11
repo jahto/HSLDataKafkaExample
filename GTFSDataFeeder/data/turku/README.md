@@ -1,0 +1,1 @@
+Data from http://data.foli.fi/gtfs/gtfs.zip.

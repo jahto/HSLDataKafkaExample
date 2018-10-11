@@ -1,0 +1,1 @@
+Data from https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_norway-aggregated-gtfs.zip.
