@@ -195,6 +195,10 @@ public enum RouteTypeExtended implements Serializable {
         }
     }
 
+    public RouteTypeExtended mainCategory() {
+        return mainCategory(this);
+    }
+    
     public static RouteTypeExtended mainCategory(RouteTypeExtended val) {
         int intval = val.value;
         intval = (intval / 100) * 100;
