@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal.tests;
 
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -49,4 +50,36 @@ public class SimpleTests {
         rt = RouteTypeExtended.mainCategory(RouteTypeExtended.UNKNOWN);
         assertThat(rt, is(RouteTypeExtended.UNKNOWN));
     }
+
+    @Test
+    public void GTFSLocalTimeCompareTo() {
+        // Write the test cases and asserts...
+    }
+
+    @Test
+    public void GTFSLocalTimeValidStringFormats() {
+        // Write the test cases and asserts...
+        GTFSLocalTime t = new GTFSLocalTime("22:22");
+        t = new GTFSLocalTime("2:22:22");
+        t = new GTFSLocalTime("50:22:22");
+        int i = 0;
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void GTFSLocalTimeInValidValueMinutes() {
+        GTFSLocalTime t = new GTFSLocalTime("22:77");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void GTFSLocalTimeInValidValueSeconds() {
+        GTFSLocalTime t = new GTFSLocalTime("22:33:77");
+    
+    }
+    
+    /*
+    @Test(expected = IllegalArgumentException.class)
+    public void GTFSLocalTimeInValidFormat() {
+        // Write the test cases and asserts...
+    }
+    */
 }
