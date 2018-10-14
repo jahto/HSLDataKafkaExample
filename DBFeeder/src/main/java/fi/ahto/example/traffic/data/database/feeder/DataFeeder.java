@@ -15,19 +15,14 @@
  */
 package fi.ahto.example.traffic.data.database.feeder;
 
-import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.database.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRouteSQLImpl;
-import fi.ahto.example.traffic.data.contracts.internal.Arrivals;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleDataList;
-import fi.ahto.example.traffic.data.contracts.internal.VehicleHistorySet;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteRepository;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
-import org.nustaq.serialization.FSTConfiguration;
 import org.onebusaway.gtfs.model.Route;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +31,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
-import fi.ahto.example.traffic.data.contracts.database.DBRoute;
 
 /**
  *
@@ -64,6 +58,8 @@ public class DataFeeder {
     }
 
     private void handleRoute(String key, Route rt) {
+        // Must implement a factory that returns the correct implementation
+        // based on database type. Same for repository.
         DBRoute dbrt = new DBRouteSQLImpl(key, rt);
         routeRepository.save(dbrt);
         int i = 0;
