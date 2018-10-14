@@ -13,17 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.database.base;
+package fi.ahto.example.traffic.data.contracts.database.utils;
 
-import java.time.LocalDate;
-import org.onebusaway.gtfs.model.calendar.ServiceDate;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class Helpers {
-    public static LocalDate from(ServiceDate src) {
-        return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
+@Converter
+public class GTFSLocalTimeConverter implements AttributeConverter<GTFSLocalTime, Integer> {
+
+    @Override
+    public Integer convertToDatabaseColumn(GTFSLocalTime x) {
+        return x.getSecs();
+    }
+
+    @Override
+    public GTFSLocalTime convertToEntityAttribute(Integer y) {
+        if (y == null) {
+            return null;
+        }
+        return new GTFSLocalTime(y.intValue());
     }
 }

@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.base;
 
+import fi.ahto.example.traffic.data.contracts.database.utils.Helpers;
 import java.io.Serializable;
 import java.time.LocalDate;
 import javax.persistence.*;

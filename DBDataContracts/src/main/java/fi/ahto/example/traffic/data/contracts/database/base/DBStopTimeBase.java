@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.base;
 
+import fi.ahto.example.traffic.data.contracts.database.utils.GTFSLocalTimeConverter;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import java.io.Serializable;
 import javax.persistence.*;
@@ -33,7 +34,9 @@ public class DBStopTimeBase implements Serializable {
     private int stopSequence;
     private String stopId;
     private String headSign;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime arrival;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime departure;
     private short pickupType;
     private short dropOffType;

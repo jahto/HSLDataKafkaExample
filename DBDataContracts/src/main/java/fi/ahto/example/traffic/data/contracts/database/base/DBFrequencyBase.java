@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.base;
 
+import fi.ahto.example.traffic.data.contracts.database.utils.GTFSLocalTimeConverter;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import java.io.Serializable;
 import javax.persistence.*;
@@ -30,7 +31,9 @@ public class DBFrequencyBase implements Serializable {
     private static final long serialVersionUID = 598721321515940744L;
 
     private String tripId;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime startTime;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime endTime;
     private short headwaySecs;
     private short exactTimes; // TODO: Check if this actually boolean.
