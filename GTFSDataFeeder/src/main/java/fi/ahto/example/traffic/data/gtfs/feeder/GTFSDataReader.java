@@ -36,10 +36,13 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.model.Frequency;
+import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
 import org.onebusaway.gtfs.model.ServiceCalendarDate;
 import org.onebusaway.gtfs.model.ShapePoint;
+import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.StopTime;
+import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -309,7 +312,8 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     @Component
-    private static class GtfsEntityHandler implements EntityHandler {
+    private class GtfsEntityHandler implements EntityHandler {
+    // private static class GtfsEntityHandler implements EntityHandler {
 
         @Override
         public void handleEntity(Object bean) {
@@ -321,16 +325,18 @@ public class GTFSDataReader implements ApplicationRunner {
                 } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
-
+                sendJsonRecord("dbqueue-calendar", prefix, stoptime);
             }
 
             if (bean instanceof ServiceCalendar) {
                 ServiceCalendar sc = (ServiceCalendar) bean;
                 mapper.add(prefix, sc);
+                sendJsonRecord("dbqueue-calendar", prefix, sc);
             }
             if (bean instanceof ServiceCalendarDate) {
                 ServiceCalendarDate scd = (ServiceCalendarDate) bean;
                 mapper.add(prefix, scd);
+                sendJsonRecord("dbqueue-calendardate", prefix, scd);
             }
 
             if (bean instanceof ShapePoint) {
@@ -341,6 +347,22 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
+                sendJsonRecord("dbqueue-frecuency", prefix, freq);
+            }
+            
+            if (bean instanceof Route) {
+                Route rt = (Route) bean;
+                sendJsonRecord("dbqueue-route", prefix, rt);
+            }
+            
+            if (bean instanceof Stop) {
+                Stop st = (Stop) bean;
+                sendJsonRecord("dbqueue-stop", prefix, st);
+            }
+            
+            if (bean instanceof Trip) {
+                Trip tr = (Trip) bean;
+                sendJsonRecord("dbqueue-trip", prefix, tr);
             }
         }
     }
