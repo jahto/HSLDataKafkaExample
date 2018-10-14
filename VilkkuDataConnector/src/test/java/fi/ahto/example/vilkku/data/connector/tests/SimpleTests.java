@@ -18,7 +18,7 @@ package fi.ahto.example.vilkku.data.connector.tests;
 import com.google.transit.realtime.GtfsRealtime;
 import com.google.transit.realtime.GtfsRealtime.FeedEntity;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-import fi.ahto.example.traffic.data.gtfsrt.mapper.GTFSTRMapper;
+import fi.ahto.example.traffic.data.gtfsrt.mapper.GTFSRTMapper;
 import fi.ahto.example.vilkku.data.connector.GtfsRTDataPoller;
 import fi.ahto.example.vilkku.data.connector.KafkaConfiguration;
 import java.io.File;
@@ -63,7 +63,7 @@ public class SimpleTests {
 
     @Test
     public void testReadData() throws IOException {
-        GTFSTRMapper mapper = new GTFSTRMapper(source, zone, cutoff);
+        GTFSRTMapper mapper = new GTFSRTMapper(source, zone, cutoff);
         String dir = "../testdata/kuopio/";
 
         for (int i = 0; i < 951; i++) {
