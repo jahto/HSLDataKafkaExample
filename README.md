@@ -48,7 +48,7 @@ For norwegian feed, whole Norway. (http://api.entur.org/anshar/1.0/rest/vm)
 
 ### VilkkuDataConnector
 
-For Kuopio are feed, to be written. They use GTFS-RT format fata.
+For Kuopio are feed, half-way written. They use GTFS-RT format fata.
 
 ### GTFSDataFeeder
 
@@ -57,10 +57,10 @@ routes, stops and shapes. (Not true anymore.)
 
 Note: uses a lot of memory. You might have to increase -Xms and -Xmx. Check with -verbose:gc if you have problems.
 
-### GTFSDataMapper
+### GTFSRTMapper
 
 Will some day become a general utility to map GTFS-RT data to this projects format. Some
-of the code has already been written in subproject VilkkuDataConnector
+of the code has already been written in subproject VilkkuDataConnector.
 
 ### TrafficDataVehicleTransformer
 
@@ -96,6 +96,15 @@ next version to be released first. (It has been released!)
 ### TrafficDataContracts
 
 The name in itself should be quite self-explaining.
+
+### DBDataContracts
+
+Separate sub-project because the classes and interfaces contain annotations that would require
+setting up a database url and other properties, even if they are not needed.
+
+### DBFeeder
+
+Just reads static GTFS data from queues and saves it to any kind of database available.
 
 ## To do
 - Test Avro as the internal serialization format instead of JSON. Just for the fun of it,
