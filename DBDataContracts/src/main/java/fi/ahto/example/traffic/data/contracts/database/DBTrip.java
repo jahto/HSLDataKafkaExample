@@ -24,7 +24,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public interface DBTrip extends Serializable {
     @Id
     @Column(name = "generated_id")

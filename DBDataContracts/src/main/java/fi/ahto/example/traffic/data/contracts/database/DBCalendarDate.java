@@ -25,7 +25,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public interface DBCalendarDate extends Serializable {
     @Id
     @Column(name = "generated_id")

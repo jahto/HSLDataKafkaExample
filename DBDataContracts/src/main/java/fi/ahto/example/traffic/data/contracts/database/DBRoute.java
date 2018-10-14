@@ -26,8 +26,7 @@ import javax.persistence.Table;
  *
  * @author Jouni Ahto
  */
-@Entity
-// @Table(name = "dbroute")
+// @Entity
 public interface DBRoute extends Serializable {
     @Id
     @Column(name = "generated_id")
