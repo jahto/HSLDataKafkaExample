@@ -26,12 +26,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  *
  * @author Jouni Ahto
  */
-@Configuration
+@SpringBootApplication
+@ComponentScan
 @EnableAutoConfiguration
 @EntityScan("fi.ahto.example.traffic.data.contracts.database")
-@ComponentScan
-@SpringBootApplication
-@EnableJpaRepositories
+// @EnableJpaRepositories
+@EnableJpaRepositories("fi.ahto.example.traffic.data.database.repositories.sql")
 public class DBFeeder {
 
     public static void main(String[] args) {

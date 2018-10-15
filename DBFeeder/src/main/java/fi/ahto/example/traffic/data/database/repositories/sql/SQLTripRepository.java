@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.database.repositories.mongo;
+package fi.ahto.example.traffic.data.database.repositories.sql;
 
-import fi.ahto.example.traffic.data.contracts.database.DBRoute;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import fi.ahto.example.traffic.data.contracts.database.DBTrip;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 /**
  *
  * @author Jouni Ahto
  */
-public interface MongoRouteRepository extends MongoRepository<DBRoute, String> {
+@Repository
+public interface SQLTripRepository extends CrudRepository<DBTrip, String> {
     
 }

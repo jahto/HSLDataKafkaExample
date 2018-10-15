@@ -15,7 +15,7 @@
  */
 package fi.ahto.example.traffic.data.database.repositories.sql;
 
-import fi.ahto.example.traffic.data.contracts.database.DBRoute;
+import fi.ahto.example.traffic.data.contracts.database.DBStopTime;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 /**
@@ -23,6 +23,6 @@ import org.springframework.stereotype.Repository;
  * @author Jouni Ahto
  */
 @Repository
-public interface SQLRouteRepository extends CrudRepository<DBRoute, String> {
+public interface SQLStopTimeRepository extends CrudRepository<DBStopTime, String> {
     
 }
