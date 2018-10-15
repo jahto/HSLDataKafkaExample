@@ -37,7 +37,7 @@ public class DBCalendarDateBase implements Serializable {
     protected DBCalendarDateBase() {}
     
     public DBCalendarDateBase(String prefix, ServiceCalendarDate src) {
-        this.serviceId = prefix + src.getServiceId();
+        this.serviceId = prefix + src.getServiceId().getId();
         this.exceptionDate = Helpers.from(src.getDate());
         this.exceptionType = (short) src.getExceptionType();
     }

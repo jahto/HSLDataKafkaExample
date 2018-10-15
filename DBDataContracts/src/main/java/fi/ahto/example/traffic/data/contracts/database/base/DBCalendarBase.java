@@ -49,7 +49,7 @@ public class DBCalendarBase implements Serializable {
     }
 
     public DBCalendarBase(String prefix, ServiceCalendar src) {
-        this.serviceId = prefix + src.getServiceId();
+        this.serviceId = prefix + src.getServiceId().getId();
         this.validFrom = Helpers.from(src.getStartDate());
         this.validUntil = Helpers.from(src.getEndDate());
         this.monday = src.getMonday() == 1;
