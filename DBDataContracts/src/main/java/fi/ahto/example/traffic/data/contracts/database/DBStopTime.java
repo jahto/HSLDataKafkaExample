@@ -15,17 +15,21 @@
  */
 package fi.ahto.example.traffic.data.contracts.database;
 
+import fi.ahto.example.traffic.data.contracts.database.utils.GTFSLocalTimeConverter;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import java.io.Serializable;
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  *
  * @author Jouni Ahto
  */
-// @Entity
+@Entity
+@Table(name = "stop_times")
 public interface DBStopTime extends Serializable {
     @Id
     @Column(name = "generated_id")
@@ -34,8 +38,12 @@ public interface DBStopTime extends Serializable {
 
     void setGeneratedId(String generatedId);
 
+    @Column(name = "arrival")
+    @Convert(converter = GTFSLocalTimeConverter.class)
     GTFSLocalTime getArrival();
 
+    @Column(name = "departure")
+    @Convert(converter = GTFSLocalTimeConverter.class)
     GTFSLocalTime getDeparture();
 
     float getDistTraveled();

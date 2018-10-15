@@ -23,6 +23,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import org.onebusaway.gtfs.model.Route;
+import org.onebusaway.gtfs.model.ServiceCalendarDate;
 
 /**
  *
@@ -33,6 +35,14 @@ import javax.persistence.Table;
 public class DBCalendarDateSQLImpl extends DBCalendarDateBase implements DBCalendarDate, Serializable {
     
     private static final long serialVersionUID = 6654124796109003909L;
+    
+    public DBCalendarDateSQLImpl() {
+        super();
+    }
+    
+    public DBCalendarDateSQLImpl(String prefix, ServiceCalendarDate src) {
+        super(prefix, src);
+    }
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

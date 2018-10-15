@@ -27,7 +27,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public class DBRouteDocImpl extends DBRouteBase implements DBRoute, Serializable {
     
     private static final long serialVersionUID = -2270804828378376338L;

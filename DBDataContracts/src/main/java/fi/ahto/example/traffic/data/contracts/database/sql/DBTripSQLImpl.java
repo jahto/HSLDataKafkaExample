@@ -23,6 +23,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import org.onebusaway.gtfs.model.StopTime;
+import org.onebusaway.gtfs.model.Trip;
 
 /**
  *
@@ -33,6 +35,14 @@ import javax.persistence.Table;
 public class DBTripSQLImpl extends DBTripBase implements DBTrip, Serializable {
     
     private static final long serialVersionUID = -6220659450187487422L;
+    
+    public DBTripSQLImpl() {
+        super();
+    }
+    
+    public DBTripSQLImpl(String prefix, Trip src) {
+        super(prefix, src);
+    }
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

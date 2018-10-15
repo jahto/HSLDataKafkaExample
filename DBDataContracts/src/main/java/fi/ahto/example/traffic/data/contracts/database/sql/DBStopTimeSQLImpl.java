@@ -23,6 +23,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import org.onebusaway.gtfs.model.Stop;
+import org.onebusaway.gtfs.model.StopTime;
 
 /**
  *
@@ -33,6 +35,14 @@ import javax.persistence.Table;
 public class DBStopTimeSQLImpl extends DBStopTimeBase implements DBStopTime, Serializable {
     
     private static final long serialVersionUID = 2288198998602399130L;
+    
+    public DBStopTimeSQLImpl() {
+        super();
+    }
+    
+    public DBStopTimeSQLImpl(String prefix, StopTime src) {
+        super(prefix, src);
+    }
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

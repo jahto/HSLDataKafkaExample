@@ -23,7 +23,13 @@ import org.onebusaway.gtfs.model.calendar.ServiceDate;
  * @author Jouni Ahto
  */
 public class Helpers {
+
     public static LocalDate from(ServiceDate src) {
-        return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
+        try {
+            return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
+        } catch (NullPointerException ne) {
+            int i = 0;
+        }
+        return null;
     }
 }

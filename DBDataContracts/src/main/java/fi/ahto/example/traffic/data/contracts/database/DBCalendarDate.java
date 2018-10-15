@@ -20,12 +20,14 @@ import java.time.LocalDate;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  *
  * @author Jouni Ahto
  */
-// @Entity
+@Entity
+@Table(name = "calendar_dates")
 public interface DBCalendarDate extends Serializable {
     @Id
     @Column(name = "generated_id")

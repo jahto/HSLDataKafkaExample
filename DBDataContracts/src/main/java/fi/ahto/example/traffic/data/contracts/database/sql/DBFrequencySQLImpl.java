@@ -23,6 +23,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import org.onebusaway.gtfs.model.Frequency;
+import org.onebusaway.gtfs.model.ServiceCalendar;
 
 /**
  *
@@ -30,9 +32,17 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "frequencies")
-public class DBFrecuencySQLImpl extends DBFrequencyBase implements DBFrequency, Serializable {
+public class DBFrequencySQLImpl extends DBFrequencyBase implements DBFrequency, Serializable {
     
     private static final long serialVersionUID = -2593403070543829944L;
+    
+    public DBFrequencySQLImpl() {
+        super();
+    }
+    
+    public DBFrequencySQLImpl(String prefix, Frequency src) {
+        super(prefix, src);
+    }
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

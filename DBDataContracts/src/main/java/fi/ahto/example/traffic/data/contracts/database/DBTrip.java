@@ -19,12 +19,14 @@ import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  *
  * @author Jouni Ahto
  */
-// @Entity
+@Entity
+@Table(name = "trips")
 public interface DBTrip extends Serializable {
     @Id
     @Column(name = "generated_id")

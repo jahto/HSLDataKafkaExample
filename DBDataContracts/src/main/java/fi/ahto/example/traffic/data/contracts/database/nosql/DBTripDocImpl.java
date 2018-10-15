@@ -27,7 +27,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public class DBTripDocImpl extends DBTripBase implements DBTrip, Serializable {
     
     private static final long serialVersionUID = -8393721546130810379L;

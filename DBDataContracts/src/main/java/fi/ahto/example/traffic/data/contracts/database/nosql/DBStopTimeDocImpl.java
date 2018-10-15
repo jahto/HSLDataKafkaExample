@@ -27,7 +27,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public class DBStopTimeDocImpl extends DBStopTimeBase implements DBStopTime, Serializable {
     
     private static final long serialVersionUID = 8453315254137020444L;

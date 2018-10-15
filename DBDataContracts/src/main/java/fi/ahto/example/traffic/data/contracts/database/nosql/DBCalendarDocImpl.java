@@ -27,7 +27,7 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
+// @Entity
 public class DBCalendarDocImpl extends DBCalendarBase implements DBCalendar, Serializable {
     
     private static final long serialVersionUID = 5876383846245540882L;

@@ -27,8 +27,8 @@ import javax.persistence.Id;
  *
  * @author Jouni Ahto
  */
-@Entity
-public class DBFrecuencyDocImpl extends DBFrequencyBase implements DBFrequency, Serializable {
+// @Entity
+public class DBFrequencyDocImpl extends DBFrequencyBase implements DBFrequency, Serializable {
     
     private static final long serialVersionUID = -1451366010813362143L;
     

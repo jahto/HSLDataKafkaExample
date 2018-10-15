@@ -20,12 +20,14 @@ import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  *
  * @author Jouni Ahto
  */
-// @Entity
+@Entity
+@Table(name = "frequencies")
 public interface DBFrequency extends Serializable {
     @Id
     @Column(name = "generated_id")
