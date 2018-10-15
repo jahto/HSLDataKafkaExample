@@ -111,7 +111,7 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
     private void convert(int secs) {
         this.secs = secs;
 
-        while (secs > 83699) {
+        while (secs > 86399) {
             secs -= 86400;
             this.daysForward++;
         }
