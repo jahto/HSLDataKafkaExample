@@ -30,9 +30,11 @@ import org.hibernate.annotations.NaturalId;
  */
 @Entity
 @Table(name = "routes",
-        uniqueConstraints
-        = @UniqueConstraint(name = "routes_route_id_idx", columnNames = {"route_id"})
+        uniqueConstraints =  {
+            @UniqueConstraint(name = "routes_route_id_idx", columnNames = {"route_id"})
+        }
 )
+
 public interface DBRoute extends Serializable {
     @Id
     @Column(name = "generated_id")

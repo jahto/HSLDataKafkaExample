@@ -22,14 +22,22 @@ import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 /**
  *
  * @author Jouni Ahto
  */
 @Entity
-@Table(name = "frequencies")
+@Table(name = "frequencies",
+        uniqueConstraints =  {
+            @UniqueConstraint(name = "frequencies_trip_id_start_time_idx", columnNames = {"trip_id", "start_time"})
+        },
+        indexes = {
+            @Index(columnList = ("trip_id"), name = "frequencies_trip_id_idx")
+        })
 public interface DBFrequency extends Serializable {
     @Id
     @Column(name = "generated_id")

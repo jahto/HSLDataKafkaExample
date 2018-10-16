@@ -19,6 +19,7 @@ import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import org.hibernate.annotations.NaturalId;
@@ -29,9 +30,15 @@ import org.hibernate.annotations.NaturalId;
  */
 @Entity
 @Table(name = "trips",
-        uniqueConstraints
-        = @UniqueConstraint(name = "trips_trip_id_idx", columnNames = {"trip_id"})
-)
+        uniqueConstraints = {
+            @UniqueConstraint(name = "trips_trip_id_idx", columnNames = {"trip_id"})
+        },
+        indexes = {
+            @Index(columnList = ("block_id"), name = "trips_block_id_idx"),
+            @Index(columnList = ("route_id"), name = "trips_route_id_idx"),
+            @Index(columnList = ("service_id"), name = "trips_service_id_idx")
+        })
+
 public interface DBTrip extends Serializable {
 
     @Id

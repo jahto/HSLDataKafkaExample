@@ -20,14 +20,24 @@ import java.time.LocalDate;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 /**
  *
  * @author Jouni Ahto
  */
 @Entity
-@Table(name = "calendar_dates")
+@Table(name = "calendar_dates",
+        uniqueConstraints =  {
+            @UniqueConstraint(name = "calendar_dates_service_id_exception_date_idx", columnNames = {"service_id", "exception_date"})
+        },
+        indexes = {
+            @Index(columnList = ("exception_date"), name = "calendar_dates_exception_date_idx"),
+            @Index(columnList = ("service_id"), name = "calendar_dates_service_id_idx")
+        })
+
 public interface DBCalendarDate extends Serializable {
     @Id
     @Column(name = "generated_id")

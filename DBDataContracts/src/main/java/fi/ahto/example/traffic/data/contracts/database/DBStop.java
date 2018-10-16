@@ -29,8 +29,9 @@ import org.hibernate.annotations.NaturalId;
  */
 @Entity
 @Table(name = "stops",
-        uniqueConstraints
-        = @UniqueConstraint(name = "stops_stop_id_idx", columnNames = {"stop_id"})
+        uniqueConstraints = {
+            @UniqueConstraint(name = "stops_stop_id_idx", columnNames = {"stop_id"})
+        }
 )
 public interface DBStop extends Serializable {
     @Id

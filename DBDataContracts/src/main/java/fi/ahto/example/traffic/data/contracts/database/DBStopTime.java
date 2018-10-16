@@ -22,14 +22,24 @@ import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 /**
  *
  * @author Jouni Ahto
  */
 @Entity
-@Table(name = "stop_times")
+@Table(name = "stop_times",
+        uniqueConstraints = {
+            @UniqueConstraint(name = "stop_times_trip_id_stop_id_arrival_idx", columnNames = {"trip_id", "stop_id", "arrival"})
+        },
+        indexes = {
+            @Index(columnList = ("arrival"), name = "stop_times_arrival_idx"),
+            @Index(columnList = ("stop_sequence"), name = "stop_times_stop_sequence_idx"),
+            @Index(columnList = ("trip_id"), name = "stop_times_trip_id_idx")
+        })
 public interface DBStopTime extends Serializable {
     @Id
     @Column(name = "generated_id")
