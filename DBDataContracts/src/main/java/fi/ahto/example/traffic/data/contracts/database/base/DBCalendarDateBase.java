@@ -30,8 +30,11 @@ public class DBCalendarDateBase implements Serializable {
     
     private static final long serialVersionUID = 6416239279270803561L;
 
+    @Column(name = "service_id")
     private String serviceId;
+    @Column(name = "exception_date")
     private LocalDate exceptionDate;
+    @Column(name = "exception_type")
     private short exceptionType;
     
     protected DBCalendarDateBase() {}
@@ -42,30 +45,26 @@ public class DBCalendarDateBase implements Serializable {
         this.exceptionType = (short) src.getExceptionType();
     }
 
-    public static long getSerialVersionUID() {
-        return serialVersionUID;
-    }
-
+    //@Column(name = "service_id")
     public String getServiceId() {
         return serviceId;
     }
-
     public void setServiceId(String serviceId) {
         this.serviceId = serviceId;
     }
 
+    //@Column(name = "exception_date")
     public LocalDate getExceptionDate() {
         return exceptionDate;
     }
-
     public void setExceptionDate(LocalDate exceptionDate) {
         this.exceptionDate = exceptionDate;
     }
 
+    //@Column(name = "exception_type")
     public short getExceptionType() {
         return exceptionType;
     }
-
     public void setExceptionType(short exceptionType) {
         this.exceptionType = exceptionType;
     }

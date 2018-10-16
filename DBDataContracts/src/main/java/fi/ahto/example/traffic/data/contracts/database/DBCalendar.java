@@ -27,53 +27,50 @@ import javax.persistence.Table;
  * @author Jouni Ahto
  */
 @Entity
-@Table(name = "calendar")
+@Table(name = "calendars")
 public interface DBCalendar extends Serializable {
     @Id
     @Column(name = "generated_id")
-
     String getGeneratedId();
-
     void setGeneratedId(String generatedId);
 
+    @Column(name = "service_id", nullable = false)
     String getServiceId();
-
-    LocalDate getValidFrom();
-
-    LocalDate getValidUntil();
-
-    boolean isFriday();
-
-    boolean isMonday();
-
-    boolean isSaturday();
-
-    boolean isSunday();
-
-    boolean isThursday();
-
-    boolean isTuesday();
-
-    boolean isWednesday();
-
-    void setFriday(boolean friday);
-
-    void setMonday(boolean monday);
-
-    void setSaturday(boolean saturday);
-
     void setServiceId(String serviceId);
 
-    void setSunday(boolean sunday);
-
-    void setThursday(boolean thursday);
-
-    void setTuesday(boolean tuesday);
-
+    @Column(name = "valid_from", nullable = false)
+    LocalDate getValidFrom();
     void setValidFrom(LocalDate validFrom);
 
+    @Column(name = "valid_until", nullable = false)
+    LocalDate getValidUntil();
     void setValidUntil(LocalDate validUntil);
 
+    @Column(name = "monday", nullable = false)
+    boolean isMonday();
+    void setMonday(boolean monday);
+
+    @Column(name = "tuesday", nullable = false)
+    boolean isTuesday();
+    void setTuesday(boolean tuesday);
+
+    @Column(name = "wednesday", nullable = false)
+    boolean isWednesday();
     void setWednesday(boolean wednesday);
-    
+
+    @Column(name = "thursday", nullable = false)
+    boolean isThursday();
+    void setThursday(boolean thursday);
+
+    @Column(name = "friday", nullable = false)
+    boolean isFriday();
+    void setFriday(boolean friday);
+
+    @Column(name = "saturday", nullable = false)
+    boolean isSaturday();
+    void setSaturday(boolean saturday);
+
+    @Column(name = "sunday", nullable = false)
+    boolean isSunday();
+    void setSunday(boolean sunday);
 }

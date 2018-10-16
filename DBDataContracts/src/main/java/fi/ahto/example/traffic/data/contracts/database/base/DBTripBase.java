@@ -28,14 +28,23 @@ public class DBTripBase implements Serializable {
     
     private static final long serialVersionUID = 4713983106084304945L;
     
+    @Column(name = "route_id")
     private String routeId;
+    @Column(name = "service_id")
     private String serviceId;
+    @Column(name = "trip_id")
     private String tripId;
-    private String headSign;
+    @Column(name = "headsign")
+    private String headsign;
+    @Column(name = "direction")
     private short direction;
+    @Column(name = "shape_id")
     private String shapeId;
+    @Column(name = "block_id")
     private String blockId;
-    private short wheelChairAccessible;
+    @Column(name = "wheelchair_accessible")
+    private short wheelchairAccessible;
+    @Column(name = "bikes_allowed")
     private short bikesAllowed;
     
     protected DBTripBase() {}
@@ -44,11 +53,11 @@ public class DBTripBase implements Serializable {
         this.routeId = prefix + src.getRoute().getId().getId();
         this.serviceId = prefix + src.getServiceId().getId();
         this.tripId = prefix + src.getId().getId();
-        this.headSign = src.getTripHeadsign();
+        this.headsign = src.getTripHeadsign();
         // Could crash? Maybe should add some value for an unknown direction.
         this.direction = Short.parseShort(src.getDirectionId());
         this.shapeId = prefix + src.getShapeId().getId();
-        this.wheelChairAccessible = (short) src.getWheelchairAccessible();
+        this.wheelchairAccessible = (short) src.getWheelchairAccessible();
         this.bikesAllowed = (short) src.getBikesAllowed();
         if (src.getBlockId() != null && !src.getBlockId().isEmpty()) {
             src.getBlockId();
@@ -57,74 +66,74 @@ public class DBTripBase implements Serializable {
         // src.getRouteShortName();
     }
 
+    //@Column(name = "route_id")
     public String getRouteId() {
         return routeId;
     }
-
     public void setRouteId(String routeId) {
         this.routeId = routeId;
     }
 
+    //@Column(name = "service_id")
     public String getServiceId() {
         return serviceId;
     }
-
     public void setServiceId(String serviceId) {
         this.serviceId = serviceId;
     }
 
+    //@Column(name = "trip_id")
     public String getTripId() {
         return tripId;
     }
-
     public void setTripId(String tripId) {
         this.tripId = tripId;
     }
 
-    public String getHeadSign() {
-        return headSign;
+    //@Column(name = "headsign")
+    public String getHeadsign() {
+        return headsign;
+    }
+    public void setHeadsign(String headsign) {
+        this.headsign = headsign;
     }
 
-    public void setHeadSign(String headSign) {
-        this.headSign = headSign;
-    }
-
+    //@Column(name = "direction")
     public short getDirection() {
         return direction;
     }
-
     public void setDirection(short direction) {
         this.direction = direction;
     }
 
+    //@Column(name = "shape_id")
     public String getShapeId() {
         return shapeId;
     }
-
     public void setShapeId(String shapeId) {
         this.shapeId = shapeId;
     }
 
+    //@Column(name = "block_id")
     public String getBlockId() {
         return blockId;
     }
-
     public void setBlockId(String blockId) {
         this.blockId = blockId;
     }
 
-    public short getWheelChairAccessible() {
-        return wheelChairAccessible;
+    //@Column(name = "wheelchair_accessible")
+    public short getWheelchairAccessible() {
+        return wheelchairAccessible;
+    }
+    public void setWheelchairAccessible(short wheelchairAccessible) {
+        this.wheelchairAccessible = wheelchairAccessible;
     }
 
-    public void setWheelChairAccessible(short wheelChairAccessible) {
-        this.wheelChairAccessible = wheelChairAccessible;
-    }
-
+    //@Column(name = "bikes_allowed")
     public short getBikesAllowed() {
         return bikesAllowed;
     }
-
     public void setBikesAllowed(short bikesAllowed) {
         this.bikesAllowed = bikesAllowed;
     }

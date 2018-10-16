@@ -31,21 +31,18 @@ import javax.persistence.Table;
 public interface DBCalendarDate extends Serializable {
     @Id
     @Column(name = "generated_id")
-            
     String getGeneratedId();
-
     void setGeneratedId(String generatedId);
 
+    @Column(name = "exception_date", nullable = false)
     LocalDate getExceptionDate();
-
-    short getExceptionType();
-
-    String getServiceId();
-
     void setExceptionDate(LocalDate exceptionDate);
 
+    @Column(name = "exception_type", nullable = false)
+    short getExceptionType();
     void setExceptionType(short exceptionType);
 
+    @Column(name = "service_id", nullable = false)
+    String getServiceId();
     void setServiceId(String serviceId);
-    
 }

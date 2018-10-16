@@ -29,20 +29,26 @@ import org.onebusaway.gtfs.model.ServiceCalendar;
 public class DBCalendarBase implements Serializable {
 
     private static final long serialVersionUID = -4669208302827540551L;
-    /*
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long generatedId;
-    */
+
+    @Column(name = "service_id")
     private String serviceId;
+    @Column(name = "valid_from")
     private LocalDate validFrom;
+    @Column(name = "valid_until")
     private LocalDate validUntil;
+    @Column(name = "monday")
     private boolean monday;
+    @Column(name = "tuesday")
     private boolean tuesday;
+    @Column(name = "wednesday")
     private boolean wednesday;
+    @Column(name = "thursday")
     private boolean thursday;
+    @Column(name = "friday")
     private boolean friday;
+    @Column(name = "saturday")
     private boolean saturday;
+    @Column(name = "sunday")
     private boolean sunday;
 
     protected DBCalendarBase() {
@@ -60,92 +66,83 @@ public class DBCalendarBase implements Serializable {
         this.saturday = src.getSaturday() == 1;
         this.sunday = src.getSunday() == 1;
     }
-    /*
-    public Long getGeneratedId() {
-        return generatedId;
-    }
 
-    public void setGeneratedId(Long generatedId) {
-        this.generatedId = generatedId;
-    }
-    */
+    //@Column(name = "service_id")
     public String getServiceId() {
         return serviceId;
     }
-
     public void setServiceId(String serviceId) {
         this.serviceId = serviceId;
     }
 
+    //@Column(name = "valid_from")
     public LocalDate getValidFrom() {
         return validFrom;
     }
-
     public void setValidFrom(LocalDate validFrom) {
         this.validFrom = validFrom;
     }
 
+    //@Column(name = "valid_until")
     public LocalDate getValidUntil() {
         return validUntil;
     }
-
     public void setValidUntil(LocalDate validUntil) {
         this.validUntil = validUntil;
     }
 
+    //@Column(name = "monday")
     public boolean isMonday() {
         return monday;
     }
-
     public void setMonday(boolean monday) {
         this.monday = monday;
     }
-
+    
+    //@Column(name = "tuesday")
     public boolean isTuesday() {
         return tuesday;
     }
-
     public void setTuesday(boolean tuesday) {
         this.tuesday = tuesday;
     }
-
+    
+    //@Column(name = "wednesday")
     public boolean isWednesday() {
         return wednesday;
     }
-
     public void setWednesday(boolean wednesday) {
         this.wednesday = wednesday;
     }
-
+    
+    //@Column(name = "thursday")
     public boolean isThursday() {
         return thursday;
     }
-
     public void setThursday(boolean thursday) {
         this.thursday = thursday;
     }
-
-
+    
+    //@Column(name = "friday")
     public boolean isFriday() {
         return friday;
     }
-
     public void setFriday(boolean friday) {
         this.friday = friday;
     }
-
+    
+    //@Column(name = "saturday")
     public boolean isSaturday() {
         return saturday;
     }
-
     public void setSaturday(boolean saturday) {
         this.saturday = saturday;
     }
-
+    
+    //@Column(name = "sunday")
     public boolean isSunday() {
         return sunday;
     }
-
     public void setSunday(boolean sunday) {
         this.sunday = sunday;
     }

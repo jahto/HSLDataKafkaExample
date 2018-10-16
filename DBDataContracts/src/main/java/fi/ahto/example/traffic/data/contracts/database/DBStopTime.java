@@ -33,53 +33,48 @@ import javax.persistence.Table;
 public interface DBStopTime extends Serializable {
     @Id
     @Column(name = "generated_id")
-            
     String getGeneratedId();
-
     void setGeneratedId(String generatedId);
 
-    @Column(name = "arrival")
+    @Column(name = "arrival", nullable = false)
     @Convert(converter = GTFSLocalTimeConverter.class)
     GTFSLocalTime getArrival();
-
-    @Column(name = "departure")
-    @Convert(converter = GTFSLocalTimeConverter.class)
-    GTFSLocalTime getDeparture();
-
-    float getDistTraveled();
-
-    short getDropOffType();
-
-    String getHeadSign();
-
-    short getPickupType();
-
-    String getStopId();
-
-    int getStopSequence();
-
-    short getTimepoint();
-
-    String getTripId();
-
     void setArrival(GTFSLocalTime arrival);
 
+    @Column(name = "departure", nullable = false)
+    @Convert(converter = GTFSLocalTimeConverter.class)
+    GTFSLocalTime getDeparture();
     void setDeparture(GTFSLocalTime departure);
 
+    @Column(name = "dist_traveled")
+    float getDistTraveled();
     void setDistTraveled(float distTraveled);
 
-    void setDropOffType(short dropOffType);
+    @Column(name = "dropoff_type")
+    short getDropoffType();
+    void setDropoffType(short dropoffType);
 
-    void setHeadSign(String headSign);
+    @Column(name = "headsign")
+    String getHeadsign();
+    void setHeadsign(String headsign);
 
+    @Column(name = "pickup_type")
+    short getPickupType();
     void setPickupType(short pickupType);
 
+    @Column(name = "stop_id", nullable = false)
+    String getStopId();
     void setStopId(String stopId);
 
+    @Column(name = "stop_sequence", nullable = false)
+    int getStopSequence();
     void setStopSequence(int stopSequence);
 
+    @Column(name = "timepoint")
+    short getTimepoint();
     void setTimepoint(short timepoint);
 
+    @Column(name = "trip_id", nullable = false)
+    String getTripId();
     void setTripId(String tripId);
-    
 }

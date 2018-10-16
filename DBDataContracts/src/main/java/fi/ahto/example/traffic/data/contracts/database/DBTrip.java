@@ -20,55 +20,59 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import org.hibernate.annotations.NaturalId;
 
 /**
  *
  * @author Jouni Ahto
  */
 @Entity
-@Table(name = "trips")
+@Table(name = "trips",
+        uniqueConstraints
+        = @UniqueConstraint(name = "trips_trip_id_idx", columnNames = {"trip_id"})
+)
 public interface DBTrip extends Serializable {
+
     @Id
     @Column(name = "generated_id")
-            
     String getGeneratedId();
-
     void setGeneratedId(String generatedId);
 
+    @Column(name = "bikes_allowed")
     short getBikesAllowed();
-
-    String getBlockId();
-
-    short getDirection();
-
-    String getHeadSign();
-
-    String getRouteId();
-
-    String getServiceId();
-
-    String getShapeId();
-
-    String getTripId();
-
-    short getWheelChairAccessible();
-
     void setBikesAllowed(short bikesAllowed);
 
+    @Column(name = "block_id")
+    String getBlockId();
     void setBlockId(String blockId);
 
+    @Column(name = "direction")
+    short getDirection();
     void setDirection(short direction);
 
-    void setHeadSign(String headSign);
+    @Column(name = "headsign")
+    String getHeadsign();
+    void setHeadsign(String headsign);
 
+    @Column(name = "route_id", nullable = false)
+    String getRouteId();
     void setRouteId(String routeId);
 
+    @Column(name = "service_id", nullable = false)
+    String getServiceId();
     void setServiceId(String serviceId);
 
+    @Column(name = "shape_id")
+    String getShapeId();
     void setShapeId(String shapeId);
 
+    @NaturalId
+    @Column(name = "trip_id", nullable = false)
+    String getTripId();
     void setTripId(String tripId);
 
-    void setWheelChairAccessible(short wheelChairAccessible);
-    
+    @Column(name = "wheelchair_accessible")
+    short getWheelchairAccessible();
+    void setWheelchairAccessible(short wheelchairAccessible);
 }

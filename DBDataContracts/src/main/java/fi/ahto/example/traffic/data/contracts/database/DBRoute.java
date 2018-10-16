@@ -21,44 +21,46 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import org.hibernate.annotations.NaturalId;
 
 /**
  *
  * @author Jouni Ahto
  */
-// @Entity
 @Entity
-@Table(name = "routes")
+@Table(name = "routes",
+        uniqueConstraints
+        = @UniqueConstraint(name = "routes_route_id_idx", columnNames = {"route_id"})
+)
 public interface DBRoute extends Serializable {
     @Id
     @Column(name = "generated_id")
-            
     String getGeneratedId();
-
     void setGeneratedId(String generatedId);
 
+    @Column(name = "description")
     String getDescription();
-
-    String getLongName();
-
-    String getRouteId();
-
-    String getShortName();
-
-    RouteTypeExtended getType();
-
-    String getUrl();
-
     void setDescription(String description);
 
+    @Column(name = "long_name", nullable = false)
+    String getLongName();
     void setLongName(String longName);
 
+    @NaturalId
+    @Column(name = "route_id", nullable = false)
+    String getRouteId();
     void setRouteId(String routeId);
 
+    @Column(name = "short_name", nullable = false)
+    String getShortName();
     void setShortName(String shortName);
 
+    @Column(name = "route_type", nullable = false)
+    RouteTypeExtended getType();
     void setType(RouteTypeExtended type);
 
+    @Column(name = "url")
+    String getUrl();
     void setUrl(String url);
-
 }

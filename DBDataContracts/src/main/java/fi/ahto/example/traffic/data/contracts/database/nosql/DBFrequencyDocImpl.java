@@ -35,11 +35,9 @@ public class DBFrequencyDocImpl extends DBFrequencyBase implements DBFrequency, 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private String generatedId;
-
     public String getGeneratedId() {
         return generatedId;
     }
-
     public void setGeneratedId(String generatedId) {
         this.generatedId = generatedId;
     }

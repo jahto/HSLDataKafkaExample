@@ -17,7 +17,10 @@ package fi.ahto.example.traffic.data.contracts.database.sql;
 
 import fi.ahto.example.traffic.data.contracts.database.DBFrequency;
 import fi.ahto.example.traffic.data.contracts.database.base.DBFrequencyBase;
+import fi.ahto.example.traffic.data.contracts.database.utils.GTFSLocalTimeConverter;
 import java.io.Serializable;
+import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;

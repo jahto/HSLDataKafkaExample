@@ -28,17 +28,28 @@ public class DBStopBase implements Serializable {
     
     private static final long serialVersionUID = -5765784657797522975L;
 
+    @Column(name = "stop_id")
     private String stopId;
+    @Column(name = "stop_code")
     private String stopCode;
+    @Column(name = "stop_name")
     private String stopName;
+    @Column(name = "stop_description")
     private String stopDescription;
+    @Column(name = "latitude")
     private float latitude;
+    @Column(name = "longitude")
     private float longitude;
+    @Column(name = "url")
     private String url;
+    @Column(name = "location_type")
     private short locationType;
+    @Column(name = "parent_station")
     private String parentStation;
-    private short wheelChairBoarding; // CHECK: probable boolean in reality.
-    private String platFormCode;
+    @Column(name = "wheelchair_boarding")
+    private short wheelchairBoarding; // CHECK: probable boolean in reality.
+    @Column(name = "platform_code")
+    private String platformCode;
     
     protected DBStopBase() {}
     
@@ -53,97 +64,97 @@ public class DBStopBase implements Serializable {
         this.url = src.getUrl();
         this.locationType = (short) src.getLocationType();
         this.parentStation = prefix + src.getParentStation();
-        this.wheelChairBoarding = (short) src.getWheelchairBoarding();
-        this.platFormCode = src.getPlatformCode();
+        this.wheelchairBoarding = (short) src.getWheelchairBoarding();
+        this.platformCode = src.getPlatformCode();
         // src.getVehicleType(); // CHECK: Do we need this?
         // src.getDirection(); // CHECK: Do we need this?
     }
 
+    //@Column(name = "stop_id")
     public String getStopId() {
         return stopId;
     }
-
     public void setStopId(String stopId) {
         this.stopId = stopId;
     }
 
+    //@Column(name = "stop_code")
     public String getStopCode() {
         return stopCode;
     }
-
     public void setStopCode(String stopCode) {
         this.stopCode = stopCode;
     }
 
+    //@Column(name = "stop_name")
     public String getStopName() {
         return stopName;
     }
-
     public void setStopName(String stopName) {
         this.stopName = stopName;
     }
 
+    //@Column(name = "stop_description")
     public String getStopDescription() {
         return stopDescription;
     }
-
     public void setStopDescription(String stopDescription) {
         this.stopDescription = stopDescription;
     }
 
+    //@Column(name = "latitude")
     public float getLatitude() {
         return latitude;
     }
-
     public void setLatitude(float latitude) {
         this.latitude = latitude;
     }
 
+    //@Column(name = "longitude")
     public float getLongitude() {
         return longitude;
     }
-
     public void setLongitude(float longitude) {
         this.longitude = longitude;
     }
 
+    //@Column(name = "url")
     public String getUrl() {
         return url;
     }
-
     public void setUrl(String url) {
         this.url = url;
     }
 
+    //@Column(name = "location_type")
     public short getLocationType() {
         return locationType;
     }
-
     public void setLocationType(short locationType) {
         this.locationType = locationType;
     }
 
+    //@Column(name = "parent_station")
     public String getParentStation() {
         return parentStation;
     }
-
     public void setParentStation(String parentStation) {
         this.parentStation = parentStation;
     }
 
-    public short getWheelChairBoarding() {
-        return wheelChairBoarding;
+    //@Column(name = "wheelchair_boarding")
+    public short getWheelchairBoarding() {
+        return wheelchairBoarding;
+    }
+    public void setWheelchairBoarding(short wheelchairBoarding) {
+        this.wheelchairBoarding = wheelchairBoarding;
     }
 
-    public void setWheelChairBoarding(short wheelChairBoarding) {
-        this.wheelChairBoarding = wheelChairBoarding;
+    //@Column(name = "platform_code")
+    public String getPlatformCode() {
+        return platformCode;
     }
-
-    public String getPlatFormCode() {
-        return platFormCode;
-    }
-
-    public void setPlatFormCode(String platFormCode) {
-        this.platFormCode = platFormCode;
+    public void setPlatformCode(String platformCode) {
+        this.platformCode = platformCode;
     }
 }

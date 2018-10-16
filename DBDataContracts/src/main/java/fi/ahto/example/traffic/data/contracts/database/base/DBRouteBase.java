@@ -28,16 +28,18 @@ import org.onebusaway.gtfs.model.Route;
 public class DBRouteBase implements Serializable{
     
     private static final long serialVersionUID = 8822391347291155647L;
-    /*
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long generatedId;
-    */
+
+    @Column(name = "route_id")
     private String routeId;
+    @Column(name = "short_name")
     private String shortName;
+    @Column(name = "long_name")
     private String longName;
+    @Column(name = "route_type")
     private RouteTypeExtended type;
+    @Column(name = "description")
     private String description;
+    @Column(name = "url")
     private String url;
     
     protected DBRouteBase() {}
@@ -50,59 +52,51 @@ public class DBRouteBase implements Serializable{
         this.description = src.getDesc();
         this.url = src.getUrl();
     }
-    /*
-    public Long getGeneratedId() {
-        return generatedId;
-    }
 
-    public void setGeneratedId(Long generatedId) {
-        this.generatedId = generatedId;
-    }
-    */
+    //@Column(name = "route_id")
     public String getRouteId() {
         return routeId;
     }
-
     public void setRouteId(String routeId) {
         this.routeId = routeId;
     }
 
+    //@Column(name = "short_name")
     public String getShortName() {
         return shortName;
     }
-
     public void setShortName(String shortName) {
         this.shortName = shortName;
     }
 
+    //@Column(name = "long_name")
     public String getLongName() {
         return longName;
     }
-
     public void setLongName(String longName) {
         this.longName = longName;
     }
 
+    //@Column(name = "route_type")
     public RouteTypeExtended getType() {
         return type;
     }
-
     public void setType(RouteTypeExtended type) {
         this.type = type;
     }
 
+    //@Column(name = "description")
     public String getDescription() {
         return description;
     }
-
     public void setDescription(String description) {
         this.description = description;
     }
 
+    //@Column(name = "url")
     public String getUrl() {
         return url;
     }
-
     public void setUrl(String url) {
         this.url = url;
     }
