@@ -56,7 +56,7 @@ public class FSTGTFSLocalTimeSerializer extends FSTBasicObjectSerializer  {
     public static GTFSLocalTime deserialize(FSTObjectInput in) {
         try {
             int secs = in.readInt();
-            GTFSLocalTime time = GTFSLocalTime.ofSeconds(secs);
+            GTFSLocalTime time = GTFSLocalTime.ofSecondOfDay(secs);
             return time;
         } catch (IOException ex) {
         }
