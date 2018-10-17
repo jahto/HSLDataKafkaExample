@@ -15,8 +15,10 @@
  */
 package com.github.jahto.utils.FSTSerializers;
 
-import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -26,17 +28,38 @@ import org.nustaq.serialization.FSTObjectOutput;
  *
  * @author Jouni Ahto
  */
-public class VehicleActivitySerializer extends FSTBasicObjectSerializer {
+public class FSTGTFSLocalTimeSerializer extends FSTBasicObjectSerializer  {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        out.defaultWriteObject(toWrite, clzInfo);
+        GTFSLocalTime time = (GTFSLocalTime) toWrite;
+        serialize(out, time);
     }
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPosition) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
-        VehicleActivity t = new VehicleActivity();
-        in.defaultReadObject(referencee, serializationInfo, t);
-        return t;
+        return deserialize(in);
+    }
+
+    @Override
+    public boolean alwaysCopy() {
+        return true;
+    }
+    
+    public static void serialize(FSTObjectOutput out, GTFSLocalTime time) {
+        try {
+            out.writeInt(time.toSecondOfDay());
+        } catch (IOException ex) {
+        }
+    }
+
+    public static GTFSLocalTime deserialize(FSTObjectInput in) {
+        try {
+            int secs = in.readInt();
+            GTFSLocalTime time = GTFSLocalTime.ofSeconds(secs);
+            return time;
+        } catch (IOException ex) {
+        }
+        return null;
     }
 }

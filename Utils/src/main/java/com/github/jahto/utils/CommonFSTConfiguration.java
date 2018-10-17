@@ -5,12 +5,14 @@
  */
 package com.github.jahto.utils;
 
+import com.github.jahto.utils.FSTSerializers.FSTGTFSLocalTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTInstantSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalDateSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTLocalTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerializer;
 import com.github.jahto.utils.FSTSerializers.ServiceStopSerializer;
 import com.github.jahto.utils.FSTSerializers.TripStopSerializer;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData.RouteStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
@@ -80,6 +82,11 @@ public class CommonFSTConfiguration {
         conf.registerClass(ShapeData.class);
         // Not obvious, but was found during debugging
         conf.registerClass(SerializedLambda.class);
+        
+        // New, add to end.
+        conf.registerSerializer(GTFSLocalTime.class, new FSTGTFSLocalTimeSerializer(), false);
+        conf.registerClass(GTFSLocalTime.class);
+
         // We rarely have anything that could be shared, so don't bother even checking.
         // Shaves off a load of processing cycles.
         conf.setShareReferences(false);

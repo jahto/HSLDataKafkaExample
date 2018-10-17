@@ -1,7 +1,17 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.github.jahto.utils.FSTSerializers;
 
@@ -16,16 +26,15 @@ import org.nustaq.serialization.FSTObjectOutput;
 
 /**
  *
- * @author jah
+ * @author Jouni Ahto
  */
 public class ServiceStopSerializer extends FSTBasicObjectSerializer {
-
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         ServiceStop st = (ServiceStop) toWrite;
         writeUTFOrNull(st.stopid, out);
         out.writeInt(st.seq);
-        SerializerImplementations.serializeLocalTime(st.arrivalTime, out);
+        FSTGTFSLocalTimeSerializer.serialize(out, st.arrivalTime);
         writeUTFOrNull(st.name, out);
     }
 
@@ -34,7 +43,7 @@ public class ServiceStopSerializer extends FSTBasicObjectSerializer {
         ServiceStop st = new ServiceStop();
         st.stopid = readUTFOrNull(in);
         st.seq = in.readInt();
-        st.arrivalTime = (LocalTime) SerializerImplementations.deserializeLocalTime(in);
+        st.arrivalTime = FSTGTFSLocalTimeSerializer.deserialize(in);
         st.name = readUTFOrNull(in);
         return st;
     }
