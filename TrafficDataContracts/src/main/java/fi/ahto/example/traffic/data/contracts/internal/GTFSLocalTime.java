@@ -124,7 +124,7 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
         convert(localsecs);
     }
 
-    public static GTFSLocalTime ofSeconds(int secs) {
+    public static GTFSLocalTime ofSecondOfDay(int secs) {
         return new GTFSLocalTime(secs);
     }
     
