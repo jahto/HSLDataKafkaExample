@@ -56,7 +56,9 @@ public class DBTripBase implements Serializable {
         this.headsign = src.getTripHeadsign();
         // Could crash? Maybe should add some value for an unknown direction.
         this.direction = Short.parseShort(src.getDirectionId());
-        this.shapeId = prefix + src.getShapeId().getId();
+        if (src.getShapeId() != null) {
+            this.shapeId = prefix + src.getShapeId().getId();
+        }
         this.wheelchairAccessible = (short) src.getWheelchairAccessible();
         this.bikesAllowed = (short) src.getBikesAllowed();
         if (src.getBlockId() != null && !src.getBlockId().isEmpty()) {

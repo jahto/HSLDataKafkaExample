@@ -47,8 +47,8 @@ public class DBFrequencyBase implements Serializable {
     
     public DBFrequencyBase(String prefix, Frequency src) {
         this.tripId = prefix + src.getTrip();
-        this.startTime = new GTFSLocalTime(src.getStartTime());
-        this.endTime = new GTFSLocalTime(src.getEndTime());
+        this.startTime = GTFSLocalTime.ofSecondOfDay(src.getStartTime());
+        this.endTime = GTFSLocalTime.ofSecondOfDay(src.getEndTime());
         this.headwaySecs = (short) src.getHeadwaySecs();
         this.exactTimes = (short) src.getExactTimes();
     }

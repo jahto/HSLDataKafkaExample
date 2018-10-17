@@ -60,8 +60,8 @@ public class DBStopTimeBase implements Serializable {
         this.stopSequence = src.getStopSequence();
         this.stopId = prefix + src.getStop().getId().getId();
         this.headsign = src.getStopHeadsign();
-        this.arrival = new GTFSLocalTime(src.getArrivalTime());
-        this.departure = new GTFSLocalTime(src.getDepartureTime());
+        this.arrival = GTFSLocalTime.ofSecondOfDay(src.getArrivalTime());
+        this.departure = GTFSLocalTime.ofSecondOfDay(src.getDepartureTime());
         this.pickupType = (short) src.getPickupType();
         this.dropoffType = (short) src.getDropOffType();
         this.timepoint = (short) src.getTimepoint();
