@@ -128,49 +128,77 @@ public class DataFeeder {
     private void handleRoute(String key, Route rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBRoute dbrt = new DBRouteSQLImpl(key, rt);
-        routeRepository.save(dbrt);
+        try {
+            DBRoute dbrt = new DBRouteSQLImpl(key, rt);
+            routeRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleRoute", e);
+        }
     }
 
     private void handleCalendar(String key, ServiceCalendar rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBCalendar dbrt = new DBCalendarSQLImpl(key, rt);
-        calendarRepository.save(dbrt);
+        try {
+            DBCalendar dbrt = new DBCalendarSQLImpl(key, rt);
+            calendarRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleCalendar", e);
+        }
     }
 
     private void handleCalendarDate(String key, ServiceCalendarDate rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBCalendarDate dbrt = new DBCalendarDateSQLImpl(key, rt);
-        calendarDateRepository.save(dbrt);
+        try {
+            DBCalendarDate dbrt = new DBCalendarDateSQLImpl(key, rt);
+            calendarDateRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleCalendarDate", e);
+        }
     }
 
     private void handleFrequency(String key, Frequency rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBFrequency dbrt = new DBFrequencySQLImpl(key, rt);
-        frequencyRepository.save(dbrt);
+        try {
+            DBFrequency dbrt = new DBFrequencySQLImpl(key, rt);
+            frequencyRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleFrequency", e);
+        }
     }
 
     private void handleStop(String key, Stop rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBStop dbrt = new DBStopSQLImpl(key, rt);
-        stopRepository.save(dbrt);
+        try {
+            DBStop dbrt = new DBStopSQLImpl(key, rt);
+            stopRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleStop", e);
+        }
     }
 
     private void handleStopTime(String key, StopTime rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBStopTime dbrt = new DBStopTimeSQLImpl(key, rt);
-        stopTimeRepository.save(dbrt);
+        try {
+            DBStopTime dbrt = new DBStopTimeSQLImpl(key, rt);
+            stopTimeRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleStopTime", e);
+        }
     }
 
     private void handleTrip(String key, Trip rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
-        DBTrip dbrt = new DBTripSQLImpl(key, rt);
-        tripRepository.save(dbrt);
+        try {
+            DBTrip dbrt = new DBTripSQLImpl(key, rt);
+            tripRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleTrip", e);
+        }
     }
 }
