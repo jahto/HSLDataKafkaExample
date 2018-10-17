@@ -33,7 +33,7 @@ public class TripStop implements Serializable {
     @JsonProperty("Sequence")
     public int seq;
     @JsonProperty("ArrivalTime")
-    public LocalTime arrivalTime;
+    public GTFSLocalTime arrivalTime;
 
     @Override
     public int hashCode() {

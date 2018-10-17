@@ -59,20 +59,23 @@ public class SimpleTests {
     @Test
     public void GTFSLocalTimeValidStringFormats() {
         // Write the test cases and asserts...
-        GTFSLocalTime t = new GTFSLocalTime("22:22");
-        t = new GTFSLocalTime("2:22:22");
-        t = new GTFSLocalTime("50:22:22");
+        GTFSLocalTime t = GTFSLocalTime.parse("22:22");
+        t = GTFSLocalTime.parse("2:22:22");
+        t = GTFSLocalTime.parse("50:22:22");
+        
+        String str = t.toString();
+        
         int i = 0;
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void GTFSLocalTimeInValidValueMinutes() {
-        GTFSLocalTime t = new GTFSLocalTime("22:77");
+        GTFSLocalTime t = GTFSLocalTime.parse("22:77");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void GTFSLocalTimeInValidValueSeconds() {
-        GTFSLocalTime t = new GTFSLocalTime("22:33:77");
+        GTFSLocalTime t = GTFSLocalTime.parse("22:33:77");
     
     }
     

@@ -149,11 +149,11 @@ public class VehicleActivity implements Serializable {
         this.operatingDate = operatingDate;
     }
 
-    public LocalTime getStartTime() {
+    public GTFSLocalTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalTime startTime) {
+    public void setStartTime(GTFSLocalTime startTime) {
         this.startTime = startTime;
     }
 
@@ -398,7 +398,7 @@ public class VehicleActivity implements Serializable {
     @JsonProperty("OperatingDate")
     private LocalDate operatingDate;
     @JsonProperty("StartTime")
-    private LocalTime startTime;
+    private GTFSLocalTime startTime;
     @JsonProperty("BlockId")
     private String blockId;
     private List<String> possibilities;

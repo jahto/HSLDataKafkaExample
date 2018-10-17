@@ -31,7 +31,7 @@ public class VehicleAtStop implements Serializable {
     @JsonProperty("LineId")
     public String lineId;
     @JsonProperty("ArrivalTime")
-    public LocalTime arrivalTime;
+    public GTFSLocalTime arrivalTime;
     @JsonProperty("Remove")
     public boolean remove = false;
 }

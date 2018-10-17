@@ -18,9 +18,7 @@ package fi.ahto.example.traffic.data.contracts.internal;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -38,14 +36,16 @@ public class RouteData implements Serializable {
     public String longname;
     @JsonProperty("TransitType")
     public RouteTypeExtended type = RouteTypeExtended.UNKNOWN;
-    // Not used currently or anymore...
-    // @JsonProperty("Services")
-    // public Map<String, ServiceTrips> services = new HashMap<>();
     
     @JsonProperty("Stops")
     public List<RouteStop> stops = new ArrayList<>();
     
     public static class RouteStop implements Serializable {
+
+        private static final long serialVersionUID = -3579965916298485253L;
+
+        @JsonProperty("StopId")
+        public String stopid;
 
         public RouteStop() {}
         
@@ -77,10 +77,5 @@ public class RouteData implements Serializable {
             }
             return true;
         }
-
-        private static final long serialVersionUID = -3579965916298485253L;
-
-        @JsonProperty("StopId")
-        public String stopid;
     }
 }

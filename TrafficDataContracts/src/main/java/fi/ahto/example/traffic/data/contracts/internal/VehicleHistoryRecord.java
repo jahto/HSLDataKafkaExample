@@ -60,11 +60,11 @@ public class VehicleHistoryRecord implements Serializable {
         this.operatingDate = operatingDate;
     }
 
-    public LocalTime getStartTime() {
+    public GTFSLocalTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalTime startTime) {
+    public void setStartTime(GTFSLocalTime startTime) {
         this.startTime = startTime;
     }
 
@@ -240,5 +240,5 @@ public class VehicleHistoryRecord implements Serializable {
     @JsonProperty("OperatingDate")
     private LocalDate operatingDate;
     @JsonProperty("StartTime")
-    private LocalTime startTime;
+    private GTFSLocalTime startTime;
 }

@@ -20,6 +20,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,11 +37,26 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
     private LocalTime time;
     private int daysForward;
 
-    public GTFSLocalTime() {
-
+    private GTFSLocalTime() {
     }
 
-    public GTFSLocalTime(LocalTime cutoff, LocalTime time) {
+    public static GTFSLocalTime ofCutOffAndZonedDateTime(LocalTime cutoff, ZonedDateTime time) {
+        return new GTFSLocalTime(cutoff, time.toLocalDateTime().toLocalTime());
+    }
+    
+    public static GTFSLocalTime ofZonedDateTime(ZonedDateTime time) {
+        return new GTFSLocalTime(LocalTime.of(0, 0), time.toLocalDateTime().toLocalTime());
+    }
+    
+    public static GTFSLocalTime ofLocalTime(LocalTime time) {
+        return new GTFSLocalTime(LocalTime.of(0, 0), time);
+    }
+    
+    public static GTFSLocalTime ofCutOffAndLocalTime(LocalTime cutoff, LocalTime time) {
+        return new GTFSLocalTime(cutoff, time);
+    }
+    
+    private GTFSLocalTime(LocalTime cutoff, LocalTime time) {
         Objects.requireNonNull(cutoff);
         Objects.requireNonNull(time);
 
@@ -53,7 +69,11 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
         }
     }
 
-    public GTFSLocalTime(String str) {
+    public static GTFSLocalTime parse(String str) {
+        return new GTFSLocalTime(str);
+    }
+    
+    private GTFSLocalTime(String str) {
         Objects.requireNonNull(str);
 
         int hours = 0;
@@ -104,7 +124,11 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
         convert(localsecs);
     }
 
-    public GTFSLocalTime(int secs) {
+    public static GTFSLocalTime ofSeconds(int secs) {
+        return new GTFSLocalTime(secs);
+    }
+    
+    private GTFSLocalTime(int secs) {
         convert(secs);
     }
 
@@ -118,18 +142,35 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
 
         this.time = LocalTime.ofSecondOfDay(secs);
     }
+    
+    public LocalTime getLocalTime() {
+        return this.time;
+    }
+    
+    public boolean isBefore(LocalTime time) {
+        // TODO: this probably has a logic error... write some tests.
+        return this.secs < time.toSecondOfDay();
+    }
 
+    public boolean isBefore(GTFSLocalTime time) {
+        return this.secs < time.secs;
+    }
+    
+    public boolean isAfter(GTFSLocalTime time) {
+        return this.secs > time.secs;
+    }
+    
+    public GTFSLocalTime plusSeconds(int secs) {
+        return new GTFSLocalTime(this.secs + secs); 
+    }
+    
     @Override
     public int compareTo(GTFSLocalTime o) {
-        return Integer.compare(this.getSecs(), o.getSecs());
+        return Integer.compare(this.toSecondOfDay(), o.toSecondOfDay());
     }
 
-    public int getSecs() {
+    public int toSecondOfDay() {
         return secs;
-    }
-
-    public LocalTime getTime() {
-        return time;
     }
 
     public int getDaysForward() {
@@ -144,4 +185,42 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
     private void writeObject(ObjectOutputStream outputStream) throws IOException {
     }
      */
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 29 * hash + this.secs;
+        hash = 29 * hash + Objects.hashCode(this.time);
+        hash = 29 * hash + this.daysForward;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final GTFSLocalTime other = (GTFSLocalTime) obj;
+        if (this.secs != other.secs) {
+            return false;
+        }
+        if (this.daysForward != other.daysForward) {
+            return false;
+        }
+        if (!Objects.equals(this.time, other.time)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "GTFSLocalTime{" + "secs=" + secs + ", time=" + time + ", daysForward=" + daysForward + '}';
+    }
 }

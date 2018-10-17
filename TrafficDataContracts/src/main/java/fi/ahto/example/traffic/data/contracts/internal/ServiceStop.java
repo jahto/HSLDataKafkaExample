@@ -33,7 +33,7 @@ public class ServiceStop implements Serializable {
     @JsonProperty("Sequence")
     public int seq;
     @JsonProperty("ArrivalTime")
-    public LocalTime arrivalTime;
+    public GTFSLocalTime arrivalTime;
     @JsonProperty("Name")
     public String name;
 
