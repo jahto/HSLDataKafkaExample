@@ -18,6 +18,7 @@ package fi.ahto.example.entur.data.connector;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
@@ -213,8 +214,8 @@ public class SiriDataPoller {
         vaf.setLongitude(mvh.getVehicleLocation().getLongitude().floatValue());
         if (mvh.getOriginAimedDepartureTime() != null) {
             vaf.setTripStart(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo")));
-            vaf.setOperatingDate(mvh.getOriginAimedDepartureTime().toLocalDate());
-            vaf.setStartTime(mvh.getOriginAimedDepartureTime().toLocalTime());
+            vaf.setStartTime(GTFSLocalTime.ofZonedDateTime(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo"))));
+            // vaf.setStartTime(mvh.getOriginAimedDepartureTime().toLocalTime());
         }
 
         // What does this field refer to?

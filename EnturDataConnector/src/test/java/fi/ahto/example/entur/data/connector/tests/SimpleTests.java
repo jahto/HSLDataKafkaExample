@@ -61,7 +61,8 @@ public class SimpleTests {
     public void feedExampleDataToQueues() {
         for (int i = 0; i < 1; i++) {
             String postfix = Integer.toString(i);
-            String filename = "exampledata-norway-" + postfix + ".xml";
+            // String filename = "exampledata-norway-" + postfix + ".xml";
+            String filename = "norway.xml";
 
             File file = new File("../testdata/" + filename);
             try (InputStream stream = new FileInputStream(file)) {

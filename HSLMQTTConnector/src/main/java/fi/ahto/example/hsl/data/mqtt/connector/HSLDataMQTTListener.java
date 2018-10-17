@@ -17,6 +17,7 @@ package fi.ahto.example.hsl.data.mqtt.connector;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 // import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.IOException;
@@ -160,7 +161,7 @@ public class HSLDataMQTTListener {
         LocalDate operday = LocalDate.parse(vp.path("oday").asText());
         LocalTime start = LocalTime.parse(vp.path("start").asText());
         vaf.setOperatingDate(operday);
-        vaf.setStartTime(start);
+        vaf.setStartTime(GTFSLocalTime.ofCutOffAndLocalTime(cutoff, start));
         if (start.isBefore(cutoff)) {
             operday = operday.plusDays(1);
         }

@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
 import com.sangupta.murmur.Murmur2;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
@@ -272,8 +273,7 @@ public class DataMapper {
         TripStop ts = new TripStop();
         ts.stopid = stopid;
         ts.seq = st.getStopSequence();
-        ts.arrivalTime = LocalTime.ofSecondOfDay(st.getArrivalTime());
-        //ts.arrivalTime = st.getArrivalTime();
+        ts.arrivalTime = GTFSLocalTime.ofSecondOfDay(st.getArrivalTime());
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }
@@ -282,12 +282,13 @@ public class DataMapper {
     // Fix some observed anomalies or deviations from the standard.
 
     private void dataFixer(String prefix, StopTime st) {
+        /* Not needed anymore after switcing to use GTFSLocalTime.
         int start = st.getArrivalTime();
         if (start > 86399) {
             start -= 86400;
             st.setArrivalTime(start);
         }
-
+        */
         Route route = st.getTrip().getRoute();
         if ("FI:HSL:".equals(prefix)) {
         }

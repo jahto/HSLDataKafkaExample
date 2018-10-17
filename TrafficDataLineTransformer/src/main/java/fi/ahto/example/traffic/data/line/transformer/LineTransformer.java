@@ -18,6 +18,7 @@ package fi.ahto.example.traffic.data.line.transformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
@@ -393,7 +394,7 @@ public class LineTransformer {
             for (TripStop miss : missing) {
                 delay -= adjust;
                 // Use Siri and GTFS-RT definition of the meaning of delay.
-                LocalTime newtime = miss.arrivalTime.plusSeconds(delay);
+                GTFSLocalTime newtime = miss.arrivalTime.plusSeconds(delay);
                 TripStop toadd = new TripStop();
                 toadd.seq = miss.seq;
                 toadd.stopid = miss.stopid;

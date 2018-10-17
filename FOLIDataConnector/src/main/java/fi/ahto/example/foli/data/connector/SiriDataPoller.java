@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
@@ -67,6 +68,7 @@ public class SiriDataPoller {
     private static final String SOURCE = "FI:FOLI";
     private static final String PREFIX = SOURCE + ":";
     private static final ZoneId zone = ZoneId.of("Europe/Helsinki");
+    private static final LocalTime cutoff = LocalTime.of(3, 30); // Check!!!
 
     @Autowired
     @Qualifier( "json")
@@ -181,7 +183,7 @@ public class SiriDataPoller {
 
         vaf.setTripStart(zdt);
         vaf.setOperatingDate(zdt.toLocalDate());
-        vaf.setStartTime(zdt.toLocalTime());
+        vaf.setStartTime(GTFSLocalTime.ofCutOffAndZonedDateTime(cutoff, zdt));
 
         vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
         vaf.setNextStopName(node.path("next_stoppointname").asText());

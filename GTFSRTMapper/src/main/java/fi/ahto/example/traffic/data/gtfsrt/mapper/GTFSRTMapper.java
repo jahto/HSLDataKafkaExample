@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.gtfsrt.mapper;
 
 import com.google.transit.realtime.GtfsRealtime;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -258,7 +259,8 @@ public class GTFSRTMapper {
                 // SIRI, GTFS and other data. Most probably will just convert
                 // everything to seconds since midnight.
                 try {
-                    va.setStartTime(LocalTime.parse(time));
+                    // TODO: Check that this works with GTFSLocalTime!
+                    va.setStartTime(GTFSLocalTime.parse(time));
                 } catch (Exception e) {
                 }
             }
@@ -268,11 +270,11 @@ public class GTFSRTMapper {
             }
             if (va.getOperatingDate() != null && va.getStartTime() != null && va.getTripStart() == null) {
                 LocalDate date = va.getOperatingDate();
-                LocalTime time = va.getStartTime();
+                GTFSLocalTime time = va.getStartTime();
                 if (time.isBefore(cutoff)) {
                     date = date.plusDays(1);
                 }
-                va.setTripStart(ZonedDateTime.of(date, time, zone));
+                va.setTripStart(ZonedDateTime.of(date, time.getLocalTime(), zone));
             }
         } catch (Exception ex) {
             LOG.error("parseTripDescriptor", ex);

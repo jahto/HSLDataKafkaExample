@@ -18,6 +18,7 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 // import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceStopSet;
@@ -210,7 +211,7 @@ public class SiriDataPoller {
         Integer minute = Integer.parseInt(timestr.substring(2));
         LocalTime time = LocalTime.of(hour, minute);
         vaf.setOperatingDate(date);
-        vaf.setStartTime(time);
+        vaf.setStartTime(GTFSLocalTime.ofCutOffAndLocalTime(cutoff, time));
         if (time.isBefore(cutoff)) {
             date = date.plusDays(1);
         }
@@ -249,7 +250,9 @@ public class SiriDataPoller {
                 int index = stopid.lastIndexOf('/');
                 stop.stopid = PREFIX + stopid.substring(index + 1);
                 stop.seq = call.path("order").asInt();
-                stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
+                // stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
+                LocalTime tmp = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
+                stop.arrivalTime = GTFSLocalTime.ofCutOffAndLocalTime(cutoff, tmp);
                 set.add(stop);
             }
         }

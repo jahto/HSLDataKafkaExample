@@ -325,7 +325,7 @@ public class GTFSDataReader implements ApplicationRunner {
                 } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
-                sendJsonRecord("dbqueue-calendar", prefix, stoptime);
+                sendJsonRecord("dbqueue-stoptime", prefix, stoptime);
             }
 
             if (bean instanceof ServiceCalendar) {
@@ -347,7 +347,7 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
-                sendJsonRecord("dbqueue-frecuency", prefix, freq);
+                sendJsonRecord("dbqueue-frequency", prefix, freq);
             }
             
             if (bean instanceof Route) {
