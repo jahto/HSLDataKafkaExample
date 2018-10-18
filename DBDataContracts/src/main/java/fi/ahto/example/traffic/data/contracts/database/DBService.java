@@ -43,17 +43,18 @@ public class DBService {
     private final List<LocalDate> in_use = new ArrayList<>();
     private final List<LocalDate> not_in_use = new ArrayList<>();
     private final List<Trip> trips = new ArrayList<>();
+    private final List<String> routes = new ArrayList<>();
 
-    @Column(name = "route_id")
-    private String routeId;
+    // @Column(name = "route_id")
+    // private String routeId;
 
     public DBService() {
     }
 
     class Trip {
 
-        // @Column(name = "route_id")
-        // private String routeId;
+        @Column(name = "route_id")
+        private String routeId;
         // @Column(name = "service_id")
         // private String serviceId;
         @Column(name = "trip_id")
