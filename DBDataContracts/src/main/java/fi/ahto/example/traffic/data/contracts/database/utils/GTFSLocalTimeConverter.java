@@ -28,6 +28,9 @@ public class GTFSLocalTimeConverter implements AttributeConverter<GTFSLocalTime,
 
     @Override
     public Integer convertToDatabaseColumn(GTFSLocalTime x) {
+        if (x == null) {
+            return null;
+        }
         return x.toSecondOfDay();
     }
 
@@ -36,6 +39,6 @@ public class GTFSLocalTimeConverter implements AttributeConverter<GTFSLocalTime,
         if (y == null) {
             return null;
         }
-        return GTFSLocalTime.ofSecondOfDay(y.intValue());
+        return GTFSLocalTime.ofSecondOfDay(y);
     }
 }
