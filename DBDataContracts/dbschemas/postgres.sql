@@ -1,34 +1,37 @@
 CREATE TABLE calendar_dates (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    service_id VARCHAR,
+    PRIMARY KEY (service_id)
 )
 
 CREATE TABLE calendars (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    service_id VARCHAR,
+    PRIMARY KEY (service_id)
 )
 
 CREATE TABLE frequencies (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    trip_id VARCHAR
+    PRIMARY KEY (trip_id)
 )
 
 CREATE TABLE routes (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    route_id VARCHAR,
+    PRIMARY KEY (route_id)
 )
 
 CREATE TABLE stop_times (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    trip_id VARCHAR,
+    stop_id VARCHAR,
+    arrival INTEGER,
+    stop_sequence INTEGER
+    PRIMARY KEY (trip_id, stop_id, arrival, stop_sequence)
 )
 
 CREATE TABLE stops (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    stop_id VARCHAR,
+    PRIMARY KEY (stop_id)
 )
 
 CREATE TABLE trips (
-    generated_id BIGSERIAL NOT NULL,
-    PRIMARY KEY (generated_id)
+    trip_id VARCHAR,
+    PRIMARY KEY (trip_id)
 )
