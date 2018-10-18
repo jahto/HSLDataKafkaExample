@@ -51,6 +51,19 @@ public class DBRouteBase implements Serializable{
         this.type = RouteTypeExtended.from(src.getType());
         this.description = src.getDesc();
         this.url = src.getUrl();
+        
+        // There are a few cases where incoming data doesn't have
+        // both shortname and longname, although both are required
+        // in GTFS specification. Try to fix the situation, so at
+        // least the database can have both fields as NOT NULL.
+        
+        if (this.shortName == null && this.longName != null) {
+            this.shortName = this.longName;
+        }
+
+        if (this.longName == null && this.shortName != null) {
+            this.longName = this.shortName;
+        }
     }
 
     //@Column(name = "route_id")
