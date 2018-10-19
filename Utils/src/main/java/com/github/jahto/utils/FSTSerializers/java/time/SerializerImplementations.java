@@ -101,8 +101,8 @@ public class SerializerImplementations {
         // of sligtly over 0,003% being able to be compressed down to 3 bytes, but the
         // rest needing 5.
         if (hasNanos) {
-            writeInt(ld.getNano(), out);
-            // out.writeInt(ld.getNano());
+            writeFourByteInt(ld.getNano(), out);
+            // out.writeFourByteInt(ld.getNano());
         }
     }
 
@@ -122,8 +122,8 @@ public class SerializerImplementations {
             s = in.readByte();
         }
         if (hasNanos) {
-            n = readInt(in);
-            // n = in.readInt();
+            n = readFourByteInt(in);
+            // n = in.readFourByteInt();
         }
         Object res = LocalTime.of(h, m, s, n);
         return res;
@@ -331,8 +331,8 @@ public class SerializerImplementations {
             } else if (threeByteYear) {
                 writeThreeByteInt(y, out);
             } else if (fourByteYear) {
-                writeInt(y, out);
-                //out.writeInt(y);
+                writeFourByteInt(y, out);
+                //out.writeFourByteInt(y);
             }
         }
         if (hasMonths || hasEverything) {
@@ -344,8 +344,8 @@ public class SerializerImplementations {
             } else if (threeByteMonth) {
                 writeThreeByteInt(m, out);
             } else if (fourByteMonth) {
-                writeInt(m, out);
-                //out.writeInt(read);
+                writeFourByteInt(m, out);
+                //out.writeFourByteInt(read);
             }
         }
         if (hasDays || hasEverything) {
@@ -357,8 +357,8 @@ public class SerializerImplementations {
             } else if (threeByteDay) {
                 writeThreeByteInt(d, out);
             } else if (fourByteDay) {
-                writeInt(d, out);
-                //out.writeInt(d);
+                writeFourByteInt(d, out);
+                //out.writeFourByteInt(d);
             }
         }
     }
@@ -383,8 +383,8 @@ public class SerializerImplementations {
             } else if ((codec & 0b00110000) == 0b00100000) {
                 y = readThreeByteInt(in);
             } else if ((codec & 0b00110000) == 0b00110000) {
-                y = readInt(in);
-                //y = in.readInt();
+                y = readFourByteInt(in);
+                //y = in.readFourByteInt();
             }
         }
         if (hasMonthsOnly || hasEverything) {
@@ -396,8 +396,8 @@ public class SerializerImplementations {
             } else if ((codec & 0b00001100) == 0b00001000) {
                 m = readThreeByteInt(in);
             } else if ((codec & 0b00001100) == 0b00001100) {
-                m = readInt(in);
-                //m = in.readInt();
+                m = readFourByteInt(in);
+                //m = in.readFourByteInt();
             }
         }
         if (hasDaysOnly || hasEverything) {
@@ -409,8 +409,8 @@ public class SerializerImplementations {
             } else if ((codec & 0b00000011) == 0b00000010) {
                 d = readThreeByteInt(in);
             } else if ((codec & 0b00000011) == 0b00000011) {
-                d = readInt(in);
-                //d = in.readInt();
+                d = readFourByteInt(in);
+                //d = in.readFourByteInt();
             }
         }
 
@@ -485,8 +485,8 @@ public class SerializerImplementations {
         } else if (threeByte) {
             writeThreeByteInt((int) s, out);
         } else if (fourByte) {
-            writeInt((int) s, out);
-            //out.writeInt((int) s);
+            writeFourByteInt((int) s, out);
+            //out.writeFourByteInt((int) s);
         } else if (fiveByte) {
             writeFiveByteLong(s, out);
         } else if (sixByte) {
@@ -497,8 +497,8 @@ public class SerializerImplementations {
             writeLong(s, out);
         }
         if (n != 0) {
-            writeInt(n, out);
-            // out.writeInt(n);
+            writeFourByteInt(n, out);
+            // out.writeFourByteInt(n);
         }
     }
 
@@ -529,7 +529,7 @@ public class SerializerImplementations {
         } else if (threeByte) {
             s = readThreeByteInt(in);
         } else if (fourByte) {
-            s = readInt(in);
+            s = readFourByteInt(in);
         } else if (fiveByte) {
             s = readFiveByteLong(in);
         } else if (sixByte) {
@@ -541,8 +541,8 @@ public class SerializerImplementations {
         }
 
         if (hasNanos) {
-            n = readInt(in);
-            // n = in.readInt();
+            n = readFourByteInt(in);
+            // n = in.readFourByteInt();
         }
 
         InstantOrDuration res = new InstantOrDuration(s, n);
@@ -592,8 +592,8 @@ public class SerializerImplementations {
         } else if (threeByteYear) {
             writeThreeByteInt(y, out);
         } else {
-            writeInt(y, out);
-            //out.writeInt(y);
+            writeFourByteInt(y, out);
+            //out.writeFourByteInt(y);
         }
     }
 
@@ -612,8 +612,8 @@ public class SerializerImplementations {
         } else if (threeByteYear) {
             y = readThreeByteInt(in);
         } else {
-            y = readInt(in);
-            //y = in.readInt();
+            y = readFourByteInt(in);
+            //y = in.readFourByteInt();
         }
         y += YEAR_ADJUST;
         YearMonth res = YearMonth.of(y, m);
@@ -849,7 +849,7 @@ public class SerializerImplementations {
         return res;
     }
 
-    public static void writeInt(int val, FSTObjectOutput out) throws IOException {
+    public static void writeFourByteInt(int val, FSTObjectOutput out) throws IOException {
         FSTEncoder enc = out.getCodec();
         byte[] buf = new byte[4];
         buf[0] = (byte) ((val >>> 0) & 0xFF);
@@ -860,7 +860,7 @@ public class SerializerImplementations {
         //out.write(buf, 0, 4);
     }
 
-    public static int readInt(FSTObjectInput in) throws IOException {
+    public static int readFourByteInt(FSTObjectInput in) throws IOException {
         byte[] buf = new byte[4];
         in.read(buf, 0, 4);
         int i = 0;

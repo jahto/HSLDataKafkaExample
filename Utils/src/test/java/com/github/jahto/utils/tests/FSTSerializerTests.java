@@ -98,7 +98,7 @@ public class FSTSerializerTests {
         for (int i = -8388608; i < 8388608; i++){
             // We only want to test ints that actually need three bytes.
             // In any other case, like the length not known before,
-            // just use out.writeInt().
+            // just use out.writeFourByteInt().
             if (i > Short.MIN_VALUE && i < Short.MAX_VALUE) {
                 i = Short.MAX_VALUE;
                 continue;
@@ -175,10 +175,10 @@ public class FSTSerializerTests {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         for (long i = -2147483648; i < 2147483648L; i += 1000){
             FSTObjectOutput out = conf.getObjectOutput();
-            SerializerImplementations.writeInt((int) i, out);
+            SerializerImplementations.writeFourByteInt((int) i, out);
             byte[] b = out.getBuffer();
             FSTObjectInput in = conf.getObjectInput(b);
-            int j = SerializerImplementations.readInt(in);
+            int j = SerializerImplementations.readFourByteInt(in);
             assertThat(j, is((int) i));
         }
     }
