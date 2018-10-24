@@ -111,8 +111,9 @@ public class DataMapper {
         key = compressedId(key);
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
-            LOG.warn("Service not found " + sct.getServiceId().getId());
-            return;
+            sd = new ServiceDataExt();
+            sd.serviceId = key;
+            services.put(key, sd);
         }
 
         ServiceDate sdt = sct.getDate();
