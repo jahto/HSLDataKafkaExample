@@ -39,8 +39,8 @@ public class ShapeCollector {
         }
         
         ShapeData sd = new ShapeData();
-        sd.latitude = (float) sp.getLat();
-        sd.longitude = (float) sp.getLon();
+        sd.latitude = sp.getLat();
+        sd.longitude = sp.getLon();
         sd.seq = sp.getSequence();
         set.add(sd);
     }

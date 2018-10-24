@@ -59,8 +59,9 @@ public class DataMapper {
         String key = prefix + sc.getServiceId().getId();
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
-            LOG.warn("Service not found " + sc.getServiceId().getId());
-            return;
+            sd = new ServiceDataExt();
+            sd.serviceId = key;
+            services.put(key, sd);
         }
 
         ServiceDate start = sc.getStartDate();
@@ -143,8 +144,8 @@ public class DataMapper {
             stop = new StopData();
             stop.stopid = stopid;
             stop.stopname = st.getStop().getName();
-            stop.latitude = (float) st.getStop().getLat();
-            stop.longitude = (float) st.getStop().getLon();
+            stop.latitude = st.getStop().getLat();
+            stop.longitude = st.getStop().getLon();
             stop.stopcode = st.getStop().getCode();
             stop.desc = st.getStop().getDesc();
             stop.routesserved.add(routeid);
