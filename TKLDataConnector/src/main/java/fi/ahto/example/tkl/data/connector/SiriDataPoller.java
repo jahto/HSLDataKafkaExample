@@ -188,12 +188,12 @@ public class SiriDataPoller {
         // We set it later from the route data...
         // vaf.setTransitType(RouteType.BUS);
         vaf.setVehicleId(PREFIX + jrn.path("vehicleRef").asText());
-        vaf.setBearing((float)jrn.path("bearing").asDouble());
-        vaf.setSpeed((float)jrn.path("speed").asDouble());
+        vaf.setBearing(jrn.path("bearing").asDouble());
+        vaf.setSpeed(jrn.path("speed").asDouble());
 
         JsonNode loc = jrn.path("vehicleLocation");
-        vaf.setLatitude((float)loc.path("latitude").asDouble());
-        vaf.setLongitude((float)loc.path("longitude").asDouble());
+        vaf.setLatitude(loc.path("latitude").asDouble());
+        vaf.setLongitude(loc.path("longitude").asDouble());
 
         // What does this field refer to?
         /*

@@ -283,13 +283,13 @@ public class GTFSRTMapper {
 
     public void parsePosition(GtfsRealtime.Position pos, VehicleActivity va) {
         try {
-            va.setLatitude(pos.getLatitude());
-            va.setLongitude(pos.getLongitude());
+            va.setLatitude((double) pos.getLatitude());
+            va.setLongitude((double) pos.getLongitude());
             if (pos.hasBearing()) {
-                va.setBearing(pos.getBearing());
+                va.setBearing((double) pos.getBearing());
             }
             if (pos.hasSpeed()) {
-                va.setSpeed(pos.getSpeed());
+                va.setSpeed((double) pos.getSpeed());
             }
         } catch (Exception ex) {
             LOG.error("parsePosition", ex);

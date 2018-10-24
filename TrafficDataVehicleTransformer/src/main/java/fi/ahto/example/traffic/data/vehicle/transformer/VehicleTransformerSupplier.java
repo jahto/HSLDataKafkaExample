@@ -353,7 +353,7 @@ public class VehicleTransformerSupplier
             if (bearingdegrees < 0) {
                 bearingdegrees = 360 + bearingdegrees;
             }
-            current.setBearing((float) bearingdegrees);
+            current.setBearing(bearingdegrees);
         }
 
         @Override
