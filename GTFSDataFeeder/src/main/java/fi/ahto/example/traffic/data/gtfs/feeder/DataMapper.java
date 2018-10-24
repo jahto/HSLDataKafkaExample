@@ -53,24 +53,10 @@ public class DataMapper {
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
 
-
-    private static final long MURMUR_SEED = 0x7f3a21eaL;
-
-    // Not needed after switching to GTFS extended route types.
-    // private static final Map<Integer, Integer> routeFixes = new HashMap<>();
-    /*
-    static {
-        routeFixes.put(109, 2);
-        routeFixes.put(700, 3);
-        routeFixes.put(701, 3);
-        routeFixes.put(704, 3);
-    }
-    */
     final Map<String, ServiceList> routeservices = new HashMap<>();
 
     public void add(String prefix, ServiceCalendar sc) {
         String key = prefix + sc.getServiceId().getId();
-        key = compressedId(key);
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             LOG.warn("Service not found " + sc.getServiceId().getId());
@@ -108,7 +94,6 @@ public class DataMapper {
 
     public void add(String prefix, ServiceCalendarDate sct) {
         String key = prefix + sct.getServiceId().getId();
-        key = compressedId(key);
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             sd = new ServiceDataExt();
@@ -124,21 +109,6 @@ public class DataMapper {
         if (sct.getExceptionType() == 1) {
             sd.inuse.add(dt);
         }
-    }
-
-    private String compressedId(String id) {
-        byte[] data = id.getBytes();
-        // 64-bit murmur2 could be a possibility if the strings are still too long.
-        long murmur2id = Murmur2.hash64(data, data.length, MURMUR_SEED);
-        String newid = Base64.encodeBase64URLSafeString(longToBytes(murmur2id));
-        // return newid;
-        return id;
-    }
-
-    public byte[] longToBytes(long x) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x);
-        return buffer.array();
     }
 
     public void add(String prefix, Frequency freq) {
