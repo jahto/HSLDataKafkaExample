@@ -16,7 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.internal.tests;
 
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
-import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
+import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -29,26 +29,26 @@ import org.junit.Test;
 public class SimpleTests {
     @Test
     public void test_From() {
-        RouteTypeExtended rt = RouteTypeExtended.from(3);
-        assertThat(rt, is(RouteTypeExtended.BUS_SERVICE));
-        rt = RouteTypeExtended.from(800);
-        assertThat(rt, is(RouteTypeExtended.TROLLEYBUS_SERVICE));
-        rt = RouteTypeExtended.from(-3);
-        assertThat(rt, is(RouteTypeExtended.UNKNOWN));
-        rt = RouteTypeExtended.from(9);
-        assertThat(rt, is(RouteTypeExtended.UNKNOWN));
-        rt = RouteTypeExtended.from(813);
-        assertThat(rt, is(RouteTypeExtended.UNKNOWN));
+        RouteType rt = RouteType.from(3);
+        assertThat(rt, is(RouteType.BUS_SERVICE));
+        rt = RouteType.from(800);
+        assertThat(rt, is(RouteType.TROLLEYBUS_SERVICE));
+        rt = RouteType.from(-3);
+        assertThat(rt, is(RouteType.UNKNOWN));
+        rt = RouteType.from(9);
+        assertThat(rt, is(RouteType.UNKNOWN));
+        rt = RouteType.from(813);
+        assertThat(rt, is(RouteType.UNKNOWN));
     }
     
     @Test
     public void test_mainCategory() {
-        RouteTypeExtended rt = RouteTypeExtended.mainCategory(RouteTypeExtended.RACK_AND_PINION_RAILWAY);
-        assertThat(rt, is(RouteTypeExtended.RAILWAY_SERVICE));
-        rt = RouteTypeExtended.mainCategory(RouteTypeExtended.TROLLEYBUS_SERVICE);
-        assertThat(rt, is(RouteTypeExtended.BUS_SERVICE));
-        rt = RouteTypeExtended.mainCategory(RouteTypeExtended.UNKNOWN);
-        assertThat(rt, is(RouteTypeExtended.UNKNOWN));
+        RouteType rt = RouteType.mainCategory(RouteType.RACK_AND_PINION_RAILWAY);
+        assertThat(rt, is(RouteType.RAILWAY_SERVICE));
+        rt = RouteType.mainCategory(RouteType.TROLLEYBUS_SERVICE);
+        assertThat(rt, is(RouteType.BUS_SERVICE));
+        rt = RouteType.mainCategory(RouteType.UNKNOWN);
+        assertThat(rt, is(RouteType.UNKNOWN));
     }
 
     @Test
