@@ -6,7 +6,7 @@
         <artifactId>jahto-hsl-example-data-main</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>DBFeeder</artifactId>
+    <artifactId>DBSQLFeeder</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -36,5 +36,5 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
     </dependencies>
-    <name>DBFeeder</name>
+    <name>DBSQLFeeder</name>
 </project>
