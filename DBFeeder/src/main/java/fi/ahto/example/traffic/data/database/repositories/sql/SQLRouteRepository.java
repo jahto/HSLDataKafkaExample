@@ -24,5 +24,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface SQLRouteRepository extends CrudRepository<DBRoute, String> {
-    
+    boolean existsByRouteId(String id);
 }

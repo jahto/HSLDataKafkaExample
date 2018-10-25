@@ -23,6 +23,7 @@ import fi.ahto.example.traffic.data.contracts.database.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.DBStop;
 import fi.ahto.example.traffic.data.contracts.database.DBStopTime;
 import fi.ahto.example.traffic.data.contracts.database.DBTrip;
+import fi.ahto.example.traffic.data.contracts.database.nosql.DBRouteDocImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendarDateSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendarSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequencySQLImpl;
@@ -30,6 +31,9 @@ import fi.ahto.example.traffic.data.contracts.database.sql.DBRouteSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStopSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStopTimeSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBTripSQLImpl;
+import fi.ahto.example.traffic.data.database.repositories.mongo.RouteRepository;
+import fi.ahto.example.traffic.data.database.repositories.mongo.StopRepository;
+import fi.ahto.example.traffic.data.database.repositories.mongo.StopTimesRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarDateRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLFrequencyRepository;
@@ -37,6 +41,7 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteRepository
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopTimeRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripRepository;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -54,6 +59,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
@@ -62,17 +68,31 @@ import org.springframework.stereotype.Component;
  * @author Jouni Ahto
  */
 @Component
-@EnableJpaRepositories
+// @EnableJpaRepositories
+@EnableMongoRepositories
 public class DataFeeder {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataFeeder.class);
-
+    private static AtomicLong counter = new AtomicLong(1);
+    
     @Autowired
     @Qualifier("binary")
     private ObjectMapper smileMapper;
 
     @Autowired
+    private RouteRepository routeRepository;
+
+    @Autowired
+    private StopRepository stopRepository;
+
+    @Autowired
+    private StopTimesRepository stopTimeRepository;
+    /*
+    @Autowired
     private SQLRouteRepository routeRepository;
+
+    @Autowired
+    private SQLStopRepository stopRepository;
 
     @Autowired
     private SQLCalendarRepository calendarRepository;
@@ -83,21 +103,23 @@ public class DataFeeder {
     @Autowired
     private SQLFrequencyRepository frequencyRepository;
 
-    @Autowired
-    private SQLStopRepository stopRepository;
 
     @Autowired
     private SQLStopTimeRepository stopTimeRepository;
 
     @Autowired
     private SQLTripRepository tripRepository;
-
+    */
     @Bean
     public KStream<String, Route> kStream(StreamsBuilder builder) {
         final JsonSerde<Route> routeserde = new JsonSerde<>(Route.class, smileMapper);
         KStream<String, Route> routestream = builder.stream("dbqueue-route", Consumed.with(Serdes.String(), routeserde));
         routestream.foreach((key, value) -> handleRoute(key, value));
 
+        final JsonSerde<Stop> stopserde = new JsonSerde<>(Stop.class, smileMapper);
+        KStream<String, Stop> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
+        stopstream.foreach((key, value) -> handleStop(key, value));
+        /*
         final JsonSerde<ServiceCalendar> calendarserde = new JsonSerde<>(ServiceCalendar.class, smileMapper);
         KStream<String, ServiceCalendar> calendarstream = builder.stream("dbqueue-calendar", Consumed.with(Serdes.String(), calendarserde));
         calendarstream.foreach((key, value) -> handleCalendar(key, value));
@@ -109,19 +131,15 @@ public class DataFeeder {
         final JsonSerde<Frequency> frequencyserde = new JsonSerde<>(Frequency.class, smileMapper);
         KStream<String, Frequency> frequencystream = builder.stream("dbqueue-frequency", Consumed.with(Serdes.String(), frequencyserde));
         frequencystream.foreach((key, value) -> handleFrequency(key, value));
-
-        final JsonSerde<Stop> stopserde = new JsonSerde<>(Stop.class, smileMapper);
-        KStream<String, Stop> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
-        stopstream.foreach((key, value) -> handleStop(key, value));
-
+        */
         final JsonSerde<StopTime> stoptimeserde = new JsonSerde<>(StopTime.class, smileMapper);
         KStream<String, StopTime> stoptimestream = builder.stream("dbqueue-stoptime", Consumed.with(Serdes.String(), stoptimeserde));
         stoptimestream.foreach((key, value) -> handleStopTime(key, value));
-
+        /*
         final JsonSerde<Trip> tripserde = new JsonSerde<>(Trip.class, smileMapper);
         KStream<String, Trip> tripstream = builder.stream("dbqueue-trip", Consumed.with(Serdes.String(), tripserde));
         tripstream.foreach((key, value) -> handleTrip(key, value));
-
+        */
         return routestream;
     }
 
@@ -136,6 +154,17 @@ public class DataFeeder {
         }
     }
 
+    private void handleStop(String key, Stop rt) {
+        // Must implement a factory that returns the correct implementation
+        // based on database type. Same for repository.
+        try {
+            DBStop dbrt = new DBStopSQLImpl(key, rt);
+            stopRepository.save(dbrt);
+        } catch (Exception e) {
+            LOG.info("handleStop", e);
+        }
+    }
+    /*
     private void handleCalendar(String key, ServiceCalendar rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
@@ -168,29 +197,21 @@ public class DataFeeder {
             LOG.info("handleFrequency", e);
         }
     }
-
-    private void handleStop(String key, Stop rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
-        try {
-            DBStop dbrt = new DBStopSQLImpl(key, rt);
-            stopRepository.save(dbrt);
-        } catch (Exception e) {
-            LOG.info("handleStop", e);
-        }
-    }
-
+    */
     private void handleStopTime(String key, StopTime rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
         try {
             DBStopTime dbrt = new DBStopTimeSQLImpl(key, rt);
             stopTimeRepository.save(dbrt);
+            if (counter.addAndGet(1) % 10000 == 0) {
+                LOG.info("Handled {} records", counter);
+            }
         } catch (Exception e) {
             LOG.info("handleStopTime", e);
         }
     }
-
+    /*
     private void handleTrip(String key, Trip rt) {
         // Must implement a factory that returns the correct implementation
         // based on database type. Same for repository.
@@ -201,4 +222,5 @@ public class DataFeeder {
             LOG.info("handleTrip", e);
         }
     }
+    */
 }

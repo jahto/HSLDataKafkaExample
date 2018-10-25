@@ -21,7 +21,7 @@ import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
+import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -163,7 +163,7 @@ public class DataMapper {
             route.routeid = routeid;
             route.longname = rt.getLongName();
             route.shortname = rt.getShortName();
-            route.type = RouteTypeExtended.from(rt.getType());
+            route.type = RouteType.from(rt.getType());
             routes.put(routeid, route);
             LOG.debug("Added route " + routeid);
         }

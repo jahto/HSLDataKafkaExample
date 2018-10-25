@@ -24,5 +24,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface SQLTripRepository extends CrudRepository<DBTrip, String> {
-    
+    boolean existsByTripId(String id);
 }

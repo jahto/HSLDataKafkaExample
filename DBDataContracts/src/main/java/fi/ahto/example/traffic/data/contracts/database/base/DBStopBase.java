@@ -63,7 +63,9 @@ public class DBStopBase implements Serializable {
         // src.getTimezone(); // CHECK: Do we need this?
         this.url = src.getUrl();
         this.locationType = (short) src.getLocationType();
-        this.parentStation = prefix + src.getParentStation();
+        if (src.getParentStation() != null && !src.getParentStation().isEmpty()) {
+            this.parentStation = prefix + src.getParentStation();
+        }
         this.wheelchairBoarding = (short) src.getWheelchairBoarding();
         this.platformCode = src.getPlatformCode();
         // src.getVehicleType(); // CHECK: Do we need this?

@@ -49,9 +49,9 @@ public class DBStopTimeBase implements Serializable {
     @Column(name = "dropoff_type")
     private short dropoffType;
     @Column(name = "timepoint")
-    private short timepoint;
+    private Short timepoint;
     @Column(name = "dist_traveled")
-    private float distTraveled;
+    private Float distTraveled;
     
     protected DBStopTimeBase() {}
     
@@ -64,8 +64,12 @@ public class DBStopTimeBase implements Serializable {
         this.departure = GTFSLocalTime.ofSecondOfDay(src.getDepartureTime());
         this.pickupType = (short) src.getPickupType();
         this.dropoffType = (short) src.getDropOffType();
-        this.timepoint = (short) src.getTimepoint();
-        this.distTraveled = (float) src.getShapeDistTraveled();
+        if (src.isTimepointSet()) {
+            this.timepoint = (short) src.getTimepoint();
+        }
+        if (src.isShapeDistTraveledSet()) {
+            this.distTraveled = (float) src.getShapeDistTraveled();
+        }
         // fare_units_traveled
     }
 

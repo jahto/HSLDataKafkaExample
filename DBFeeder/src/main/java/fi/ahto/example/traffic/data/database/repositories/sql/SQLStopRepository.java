@@ -24,5 +24,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface SQLStopRepository extends CrudRepository<DBStop, String> {
-    
+    boolean existsByStopId(String id);
 }

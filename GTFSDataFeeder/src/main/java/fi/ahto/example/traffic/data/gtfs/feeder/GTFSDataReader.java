@@ -325,7 +325,7 @@ public class GTFSDataReader implements ApplicationRunner {
                 } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
-                sendJsonRecord("dbqueue-stoptime", prefix, stoptime);
+                sendJsonRecord("dbqueue-stoptime", stoptime.getStop().getId().getId(), stoptime);
             }
 
             if (bean instanceof ServiceCalendar) {

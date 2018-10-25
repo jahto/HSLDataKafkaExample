@@ -15,7 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.base;
 
-import fi.ahto.example.traffic.data.contracts.internal.RouteTypeExtended;
+import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.Serializable;
 import javax.persistence.*;
 import org.onebusaway.gtfs.model.Route;
@@ -36,7 +36,7 @@ public class DBRouteBase implements Serializable{
     @Column(name = "long_name")
     private String longName;
     @Column(name = "route_type")
-    private RouteTypeExtended type;
+    private RouteType type;
     @Column(name = "description")
     private String description;
     @Column(name = "url")
@@ -48,7 +48,7 @@ public class DBRouteBase implements Serializable{
         this.routeId = prefix + src.getId().getId();
         this.shortName = src.getShortName();
         this.longName = src.getLongName();
-        this.type = RouteTypeExtended.from(src.getType());
+        this.type = RouteType.from(src.getType());
         this.description = src.getDesc();
         this.url = src.getUrl();
         
@@ -91,10 +91,10 @@ public class DBRouteBase implements Serializable{
     }
 
     //@Column(name = "route_type")
-    public RouteTypeExtended getType() {
+    public RouteType getType() {
         return type;
     }
-    public void setType(RouteTypeExtended type) {
+    public void setType(RouteType type) {
         this.type = type;
     }
 

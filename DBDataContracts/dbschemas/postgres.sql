@@ -55,7 +55,7 @@ CREATE TABLE stop_times (
     timepoint SMALLINT NOT NULL DEFAULT 1,
     headsign VARCHAR,
     dist_traveled REAL,
-    PRIMARY KEY (trip_id, stop_id, arrival, stop_sequence)
+    PRIMARY KEY (trip_id, stop_id, arrival)
 );
 
 CREATE TABLE stops (

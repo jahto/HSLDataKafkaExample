@@ -21,6 +21,23 @@ come available on Maven central before the end of April 2018.
 
 ## Running
 
+In the project root directory, run mvn install.
+
+Then change to the subdirectory docker, and run docker-compose up -d. Assuming of course
+that you have both docker and docker-compose already installed. And do first
+check the ports used, there might be something else already running on the ports
+exposed to outside world, adjust according to your needs.
+
+This will run the main processing pipeline. It's up to you which connectors you
+want to run and feed data from into the pipeline, and to first feed the static
+GTFS data into the system using GTFSDataFeeder.
+
+## About serializers used
+
+For internal processing in the pipeline, two different serialization formats are used.
+
+All the resulting data is served to the outside world using plain JSON.
+
 ## Subprojects and services
 
 ### HSLDataConnector
@@ -28,7 +45,7 @@ come available on Maven central before the end of April 2018.
 Very simple. Just polls the endpoint (http://api.digitransit.fi/realtime/vehicle-positions/v1/siriaccess/vm/json)
 and pushes received list of JSON-data from HSL real-time feed to a Kafka stream as separate messages. More connectors
 could be added later. Consider switching to MQTT feed instead, this feed is not working reliably since April 2018.
-Obsoleted and removed.
+Obsoleted and already removed.
 
 ### HSLDataMQTTConnector
 
@@ -107,8 +124,6 @@ setting up a database url and other properties, even if they are not needed.
 Just reads static GTFS data from queues and saves it to any kind of database available.
 
 ## To do
-- Test Avro as the internal serialization format instead of JSON. Just for the fun of it,
-also to learn something new, and it's rumoured be more compact and faster.
 - Steal a good UI from some project at https://github.com/HSLdevcom and modify it to present
 data received from web server.
 - Clean up this mess of code...
