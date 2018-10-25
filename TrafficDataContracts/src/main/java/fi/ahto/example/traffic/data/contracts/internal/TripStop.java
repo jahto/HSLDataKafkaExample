@@ -37,8 +37,9 @@ public class TripStop implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 23 * hash + Objects.hashCode(this.stopid);
+        int hash = 7;
+        hash = 37 * hash + Objects.hashCode(this.stopid);
+        hash = 37 * hash + this.seq;
         return hash;
     }
 
@@ -54,10 +55,13 @@ public class TripStop implements Serializable {
             return false;
         }
         final TripStop other = (TripStop) obj;
+        if (this.seq != other.seq) {
+            return false;
+        }
         if (!Objects.equals(this.stopid, other.stopid)) {
             return false;
         }
         return true;
     }
-    
+
 }
