@@ -27,7 +27,7 @@ import java.util.Map;
  * See https://developers.google.com/transit/gtfs/reference/extended-route-types.
  */
 
-public enum RouteTypeExtended implements Serializable {
+public enum RouteType implements Serializable {
     UNKNOWN(-1),
     RAILWAY_SERVICE(100), // YES
     HIGH_SPEED_RAIL_SERVICE(101), // YES
@@ -160,50 +160,50 @@ public enum RouteTypeExtended implements Serializable {
     
     private static final long serialVersionUID = -2254522655930255127L;
     private final int value;
-    private static final Map<Integer, RouteTypeExtended> map = new HashMap<>();
+    private static final Map<Integer, RouteType> map = new HashMap<>();
 
-    private RouteTypeExtended(int val) {
+    private RouteType(int val) {
         value = val;
     }
     
     static {
-        for (RouteTypeExtended type : RouteTypeExtended.values()) {
+        for (RouteType type : RouteType.values()) {
             map.put(type.value, type);
         }
     }
     
-    public static RouteTypeExtended from(int val) {
+    public static RouteType from(int val) {
         switch (val) {
             case 0:
-                return RouteTypeExtended.TRAM_SERVICE;
+                return RouteType.TRAM_SERVICE;
             case 1:
-                return RouteTypeExtended.METRO_SERVICE;
+                return RouteType.METRO_SERVICE;
             case 2:
-                return RouteTypeExtended.RAILWAY_SERVICE;
+                return RouteType.RAILWAY_SERVICE;
             case 3:
-                return RouteTypeExtended.BUS_SERVICE;
+                return RouteType.BUS_SERVICE;
             case 4:
-                return RouteTypeExtended.WATER_TRANSPORT_SERVICE; // Or FERRY_SERVICE?
+                return RouteType.WATER_TRANSPORT_SERVICE; // Or FERRY_SERVICE?
             case 5:
-                return RouteTypeExtended.TELECABIN_SERVICE;
+                return RouteType.TELECABIN_SERVICE;
             case 6:
-                return RouteTypeExtended.TELECABIN_SERVICE; // Not exact match here between GTFS and GTFS-extended.
+                return RouteType.TELECABIN_SERVICE; // Not exact match here between GTFS and GTFS-extended.
             case 7:
-                return RouteTypeExtended.FUNICULAR_SERVICE;
+                return RouteType.FUNICULAR_SERVICE;
             default:
                 return map.getOrDefault(val, UNKNOWN);
         }
     }
 
-    public RouteTypeExtended mainCategory() {
+    public RouteType mainCategory() {
         return mainCategory(this);
     }
     
-    public static RouteTypeExtended mainCategory(RouteTypeExtended val) {
+    public static RouteType mainCategory(RouteType val) {
         int intval = val.value;
         intval = (intval / 100) * 100;
         if (intval == 800) {
-            return RouteTypeExtended.BUS_SERVICE;
+            return RouteType.BUS_SERVICE;
         } 
         return map.getOrDefault(intval, UNKNOWN);
     }

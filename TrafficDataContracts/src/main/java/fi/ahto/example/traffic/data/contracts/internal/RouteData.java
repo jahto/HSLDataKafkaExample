@@ -35,7 +35,7 @@ public class RouteData implements Serializable {
     @JsonProperty("LongName")
     public String longname;
     @JsonProperty("TransitType")
-    public RouteTypeExtended type = RouteTypeExtended.UNKNOWN;
+    public RouteType type = RouteType.UNKNOWN;
     
     @JsonProperty("Stops")
     public List<RouteStop> stops = new ArrayList<>();
