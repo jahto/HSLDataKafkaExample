@@ -18,13 +18,11 @@ package fi.ahto.example.traffic.data.database.feeder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.ahto.example.traffic.data.contracts.database.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.DBStop;
-import fi.ahto.example.traffic.data.contracts.database.DBStopTime;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRouteSQLImpl;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStopSQLImpl;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBStopTimeSQLImpl;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.database.repositories.mongo.RouteRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.StopRepository;
-import fi.ahto.example.traffic.data.database.repositories.mongo.StopTimesRepository;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -32,7 +30,6 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
-import org.onebusaway.gtfs.model.StopTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +38,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
+import fi.ahto.example.traffic.data.database.repositories.mongo.ServiceDataRepository;
 
 /**
  *
@@ -52,7 +50,7 @@ import org.springframework.stereotype.Component;
 public class DataFeeder {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataFeeder.class);
-    private static AtomicLong counter = new AtomicLong(1);
+    private static final AtomicLong counter = new AtomicLong(1);
     
     @Autowired
     @Qualifier("binary")
@@ -65,30 +63,8 @@ public class DataFeeder {
     private StopRepository stopRepository;
 
     @Autowired
-    private StopTimesRepository stopTimeRepository;
-    /*
-    @Autowired
-    private SQLRouteRepository routeRepository;
-
-    @Autowired
-    private SQLStopRepository stopRepository;
-
-    @Autowired
-    private SQLCalendarRepository calendarRepository;
-
-    @Autowired
-    private SQLCalendarDateRepository calendarDateRepository;
-
-    @Autowired
-    private SQLFrequencyRepository frequencyRepository;
-
-
-    @Autowired
-    private SQLStopTimeRepository stopTimeRepository;
-
-    @Autowired
-    private SQLTripRepository tripRepository;
-    */
+    private ServiceDataRepository serviceRepository;
+    
     @Bean
     public KStream<String, Route> kStream(StreamsBuilder builder) {
         final JsonSerde<Route> routeserde = new JsonSerde<>(Route.class, smileMapper);
@@ -98,33 +74,14 @@ public class DataFeeder {
         final JsonSerde<Stop> stopserde = new JsonSerde<>(Stop.class, smileMapper);
         KStream<String, Stop> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
         stopstream.foreach((key, value) -> handleStop(key, value));
-        /*
-        final JsonSerde<ServiceCalendar> calendarserde = new JsonSerde<>(ServiceCalendar.class, smileMapper);
-        KStream<String, ServiceCalendar> calendarstream = builder.stream("dbqueue-calendar", Consumed.with(Serdes.String(), calendarserde));
-        calendarstream.foreach((key, value) -> handleCalendar(key, value));
-
-        final JsonSerde<ServiceCalendarDate> calendardateserde = new JsonSerde<>(ServiceCalendarDate.class, smileMapper);
-        KStream<String, ServiceCalendarDate> calendardatestream = builder.stream("dbqueue-calendardate", Consumed.with(Serdes.String(), calendardateserde));
-        calendardatestream.foreach((key, value) -> handleCalendarDate(key, value));
-
-        final JsonSerde<Frequency> frequencyserde = new JsonSerde<>(Frequency.class, smileMapper);
-        KStream<String, Frequency> frequencystream = builder.stream("dbqueue-frequency", Consumed.with(Serdes.String(), frequencyserde));
-        frequencystream.foreach((key, value) -> handleFrequency(key, value));
-        */
-        final JsonSerde<StopTime> stoptimeserde = new JsonSerde<>(StopTime.class, smileMapper);
-        KStream<String, StopTime> stoptimestream = builder.stream("dbqueue-stoptime", Consumed.with(Serdes.String(), stoptimeserde));
-        stoptimestream.foreach((key, value) -> handleStopTime(key, value));
-        /*
-        final JsonSerde<Trip> tripserde = new JsonSerde<>(Trip.class, smileMapper);
-        KStream<String, Trip> tripstream = builder.stream("dbqueue-trip", Consumed.with(Serdes.String(), tripserde));
-        tripstream.foreach((key, value) -> handleTrip(key, value));
-        */
+        
+        final JsonSerde<ServiceDataComplete> serviceserde = new JsonSerde<>(ServiceDataComplete.class, smileMapper);
+        KStream<String, ServiceDataComplete> servicestream = builder.stream("dbqueue-services-complete", Consumed.with(Serdes.String(), serviceserde));
+        servicestream.foreach((key, value) -> handleService(key, value));
         return routestream;
     }
 
     private void handleRoute(String key, Route rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
         try {
             DBRoute dbrt = new DBRouteSQLImpl(key, rt);
             routeRepository.save(dbrt);
@@ -134,8 +91,6 @@ public class DataFeeder {
     }
 
     private void handleStop(String key, Stop rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
         try {
             DBStop dbrt = new DBStopSQLImpl(key, rt);
             stopRepository.save(dbrt);
@@ -143,63 +98,15 @@ public class DataFeeder {
             LOG.info("handleStop", e);
         }
     }
-    /*
-    private void handleCalendar(String key, ServiceCalendar rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
+    
+    private void handleService(String key, ServiceDataComplete rt) {
         try {
-            DBCalendar dbrt = new DBCalendarSQLImpl(key, rt);
-            calendarRepository.save(dbrt);
-        } catch (Exception e) {
-            LOG.info("handleCalendar", e);
-        }
-    }
-
-    private void handleCalendarDate(String key, ServiceCalendarDate rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
-        try {
-            DBCalendarDate dbrt = new DBCalendarDateSQLImpl(key, rt);
-            calendarDateRepository.save(dbrt);
-        } catch (Exception e) {
-            LOG.info("handleCalendarDate", e);
-        }
-    }
-
-    private void handleFrequency(String key, Frequency rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
-        try {
-            DBFrequency dbrt = new DBFrequencySQLImpl(key, rt);
-            frequencyRepository.save(dbrt);
-        } catch (Exception e) {
-            LOG.info("handleFrequency", e);
-        }
-    }
-    */
-    private void handleStopTime(String key, StopTime rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
-        try {
-            DBStopTime dbrt = new DBStopTimeSQLImpl(key, rt);
-            stopTimeRepository.save(dbrt);
-            if (counter.addAndGet(1) % 10000 == 0) {
+            serviceRepository.save(rt);
+            if (counter.addAndGet(1) % 100 == 0) {
                 LOG.info("Handled {} records", counter);
             }
         } catch (Exception e) {
-            LOG.info("handleStopTime", e);
+            LOG.info("handleService", e);
         }
     }
-    /*
-    private void handleTrip(String key, Trip rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
-        try {
-            DBTrip dbrt = new DBTripSQLImpl(key, rt);
-            tripRepository.save(dbrt);
-        } catch (Exception e) {
-            LOG.info("handleTrip", e);
-        }
-    }
-    */
 }

@@ -15,6 +15,8 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -29,6 +31,8 @@ import java.util.regex.Pattern;
  *
  * @author Jouni Ahto
  */
+@JsonSerialize(using = GTFSLocalTimeJsonSerializer.class)
+@JsonDeserialize(using = GTFSLocalTimeJsonDeserializer.class)
 public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
 
     private static final long serialVersionUID = -704773418366604253L;

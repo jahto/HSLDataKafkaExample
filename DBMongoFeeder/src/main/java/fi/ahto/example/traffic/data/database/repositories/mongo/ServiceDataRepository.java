@@ -5,14 +5,14 @@
  */
 package fi.ahto.example.traffic.data.database.repositories.mongo;
 
-import fi.ahto.example.traffic.data.contracts.database.DBStop;
-import fi.ahto.example.traffic.data.contracts.database.DBStopTime;
+import fi.ahto.example.traffic.data.contracts.database.DBRoute;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author jah
  */
-public interface StopTimesRepository extends MongoRepository<DBStopTime, String>{
+public interface ServiceDataRepository  extends MongoRepository<ServiceDataComplete, String>{
     
 }

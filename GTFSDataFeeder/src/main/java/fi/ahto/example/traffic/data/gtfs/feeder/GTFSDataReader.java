@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
@@ -31,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
@@ -101,6 +103,15 @@ public class GTFSDataReader implements ApplicationRunner {
         try {
             byte[] msg = objectMapper.writeValueAsBytes(value);
             ProducerRecord record = new ProducerRecord(topic, key, msg);
+            /*
+            try {
+                ServiceDataComplete obj = objectMapper.readValue(msg, ServiceDataComplete.class);
+                String res = new String(msg);
+                int i = 0;
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(GTFSDataReader.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            */
             producer.send(record);
         } catch (JsonProcessingException ex) {
             LOG.error(topic, ex);
@@ -309,6 +320,11 @@ public class GTFSDataReader implements ApplicationRunner {
                 }
         );
 
+        LOG.debug("Sending complete services");
+        mapper.completeservices.forEach(
+                (k, v) -> {
+                sendJsonRecord("dbqueue-services-complete", k, v);
+        });
     }
 
     @Component
@@ -325,18 +341,18 @@ public class GTFSDataReader implements ApplicationRunner {
                 } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
-                sendJsonRecord("dbqueue-stoptime", stoptime.getStop().getId().getId(), stoptime);
+                // sendJsonRecord("dbqueue-stoptime", stoptime.getStop().getId().getId(), stoptime);
             }
 
             if (bean instanceof ServiceCalendar) {
                 ServiceCalendar sc = (ServiceCalendar) bean;
                 mapper.add(prefix, sc);
-                sendJsonRecord("dbqueue-calendar", prefix, sc);
+                // sendJsonRecord("dbqueue-calendar", prefix, sc);
             }
             if (bean instanceof ServiceCalendarDate) {
                 ServiceCalendarDate scd = (ServiceCalendarDate) bean;
                 mapper.add(prefix, scd);
-                sendJsonRecord("dbqueue-calendardate", prefix, scd);
+                // sendJsonRecord("dbqueue-calendardate", prefix, scd);
             }
 
             if (bean instanceof ShapePoint) {
@@ -347,23 +363,24 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
-                sendJsonRecord("dbqueue-frequency", prefix, freq);
+                // sendJsonRecord("dbqueue-frequency", prefix, freq);
             }
             
             if (bean instanceof Route) {
                 Route rt = (Route) bean;
-                sendJsonRecord("dbqueue-route", prefix, rt);
+                //sendJsonRecord("dbqueue-route", prefix, rt);
             }
             
             if (bean instanceof Stop) {
                 Stop st = (Stop) bean;
-                sendJsonRecord("dbqueue-stop", prefix, st);
+                //sendJsonRecord("dbqueue-stop", prefix, st);
             }
-            
+            /*
             if (bean instanceof Trip) {
                 Trip tr = (Trip) bean;
                 sendJsonRecord("dbqueue-trip", prefix, tr);
             }
+            */
         }
     }
 }

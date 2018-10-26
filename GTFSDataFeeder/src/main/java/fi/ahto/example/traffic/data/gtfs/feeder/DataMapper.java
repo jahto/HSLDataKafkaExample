@@ -15,20 +15,19 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import com.sangupta.murmur.Murmur2;
+import fi.ahto.example.traffic.data.contracts.internal.FrequencyComplete;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.RouteType;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.RouteType;
+import fi.ahto.example.traffic.data.contracts.internal.TripComplete;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
-import java.nio.ByteBuffer;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.codec.binary.Base64;
 import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
@@ -52,11 +51,24 @@ public class DataMapper {
     public Map<String, ServiceDataExt> services = new HashMap<>();
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
+    public Map<String, String> triptoservice = new HashMap<>();
+
+    public Map<String, ServiceDataComplete> completeservices = new HashMap<>();
 
     final Map<String, ServiceList> routeservices = new HashMap<>();
 
     public void add(String prefix, ServiceCalendar sc) {
         String key = prefix + sc.getServiceId().getId();
+
+        ServiceDataComplete sdc = completeservices.get(key);
+        if (sdc == null) {
+            sdc = new ServiceDataComplete(prefix, sc);
+            completeservices.put(key, sdc);
+        }
+        else {
+            sdc.add(prefix, sc);
+        }
+        
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             sd = new ServiceDataExt();
@@ -95,6 +107,15 @@ public class DataMapper {
 
     public void add(String prefix, ServiceCalendarDate sct) {
         String key = prefix + sct.getServiceId().getId();
+        ServiceDataComplete sdc = completeservices.get(key);
+        if (sdc == null) {
+            sdc = new ServiceDataComplete(prefix, sct);
+            completeservices.put(key, sdc);
+        }
+        else {
+            sdc.add(prefix, sct);
+        }
+        
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             sd = new ServiceDataExt();
@@ -113,6 +134,17 @@ public class DataMapper {
     }
 
     public void add(String prefix, Frequency freq) {
+        String key = prefix + freq.getTrip().getId().getId();
+        String skey = triptoservice.get(key);
+        if (skey != null) {
+            ServiceDataComplete sdc = completeservices.get(key);
+            if (sdc != null) {
+                TripComplete tc = sdc.getTrips().get(key);
+                if (tc != null) {
+                    tc.getFrequencies().add(new FrequencyComplete(prefix, freq));
+                }
+            }
+        }
         int i = 0;
     }
 
@@ -131,6 +163,7 @@ public class DataMapper {
             dir = "1";
         }
 
+        
         String servicetripid = serviceid + ":" + routeid + ":" + dir;
         String blockid = null;
         if (st.getTrip().getBlockId() != null) {
@@ -248,6 +281,19 @@ public class DataMapper {
         ts.arrivalTime = GTFSLocalTime.ofSecondOfDay(st.getArrivalTime());
         if (tr.contains(ts) == false) {
             tr.add(ts);
+        }
+        
+        ServiceDataComplete sdc = completeservices.get(serviceid);
+        if (sdc == null) {
+            sdc = new ServiceDataComplete(prefix, st);
+            completeservices.put(serviceid, sdc);
+        }
+        else {
+            sdc.add(prefix, st);
+        }
+        
+        if (triptoservice.containsKey(tripid) == false) {
+            triptoservice.put(tripid, serviceid);
         }
     }
     
