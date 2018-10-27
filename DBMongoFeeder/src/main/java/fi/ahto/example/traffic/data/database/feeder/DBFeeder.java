@@ -18,10 +18,7 @@ package fi.ahto.example.traffic.data.database.feeder;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 /**
  *
@@ -30,9 +27,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @SpringBootApplication
 @ComponentScan
 @EnableAutoConfiguration
-@EntityScan("fi.ahto.example.traffic.data.contracts.database")
-// @EnableJpaRepositories
-// @EnableJpaRepositories("fi.ahto.example.traffic.data.database.repositories.sql")
+// @EntityScan("fi.ahto.example.traffic.data.contracts.database")
+@ComponentScan(basePackages = {"fi.ahto.example.traffic.data.contracts.internal"})
 @EnableMongoRepositories("fi.ahto.example.traffic.data.database.repositories.mongo")
 public class DBFeeder {
 

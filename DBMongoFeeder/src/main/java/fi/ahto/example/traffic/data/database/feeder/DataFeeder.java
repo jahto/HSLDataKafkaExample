@@ -16,12 +16,9 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.database.DBRoute;
-import fi.ahto.example.traffic.data.contracts.database.DBStop;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBRouteSQLImpl;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBStopSQLImpl;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.database.repositories.mongo.RouteRepository;
+import fi.ahto.example.traffic.data.database.repositories.mongo.ServiceDataRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.StopRepository;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.common.serialization.Serdes;
@@ -38,7 +35,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
-import fi.ahto.example.traffic.data.database.repositories.mongo.ServiceDataRepository;
 
 /**
  *
@@ -83,8 +79,7 @@ public class DataFeeder {
 
     private void handleRoute(String key, Route rt) {
         try {
-            DBRoute dbrt = new DBRouteSQLImpl(key, rt);
-            routeRepository.save(dbrt);
+            routeRepository.save(rt);
         } catch (Exception e) {
             LOG.info("handleRoute", e);
         }
@@ -92,8 +87,7 @@ public class DataFeeder {
 
     private void handleStop(String key, Stop rt) {
         try {
-            DBStop dbrt = new DBStopSQLImpl(key, rt);
-            stopRepository.save(dbrt);
+            stopRepository.save(rt);
         } catch (Exception e) {
             LOG.info("handleStop", e);
         }
