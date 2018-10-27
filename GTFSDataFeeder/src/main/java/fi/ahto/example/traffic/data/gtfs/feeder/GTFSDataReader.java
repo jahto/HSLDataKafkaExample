@@ -103,15 +103,6 @@ public class GTFSDataReader implements ApplicationRunner {
         try {
             byte[] msg = objectMapper.writeValueAsBytes(value);
             ProducerRecord record = new ProducerRecord(topic, key, msg);
-            /*
-            try {
-                ServiceDataComplete obj = objectMapper.readValue(msg, ServiceDataComplete.class);
-                String res = new String(msg);
-                int i = 0;
-            } catch (IOException ex) {
-                java.util.logging.Logger.getLogger(GTFSDataReader.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            */
             producer.send(record);
         } catch (JsonProcessingException ex) {
             LOG.error(topic, ex);

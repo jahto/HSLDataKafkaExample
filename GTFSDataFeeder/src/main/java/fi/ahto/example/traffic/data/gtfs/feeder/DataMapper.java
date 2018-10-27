@@ -51,7 +51,6 @@ public class DataMapper {
     public Map<String, ServiceDataExt> services = new HashMap<>();
     public Map<String, ServiceTrips> servicetrips = new HashMap<>();
     public Map<String, ServiceTrips> blocks = new HashMap<>();
-    public Map<String, String> triptoservice = new HashMap<>();
 
     public Map<String, ServiceDataComplete> completeservices = new HashMap<>();
 
@@ -64,11 +63,10 @@ public class DataMapper {
         if (sdc == null) {
             sdc = new ServiceDataComplete(prefix, sc);
             completeservices.put(key, sdc);
-        }
-        else {
+        } else {
             sdc.add(prefix, sc);
         }
-        
+
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             sd = new ServiceDataExt();
@@ -111,11 +109,10 @@ public class DataMapper {
         if (sdc == null) {
             sdc = new ServiceDataComplete(prefix, sct);
             completeservices.put(key, sdc);
-        }
-        else {
+        } else {
             sdc.add(prefix, sct);
         }
-        
+
         ServiceDataExt sd = services.get(key);
         if (sd == null) {
             sd = new ServiceDataExt();
@@ -134,18 +131,15 @@ public class DataMapper {
     }
 
     public void add(String prefix, Frequency freq) {
-        String key = prefix + freq.getTrip().getId().getId();
-        String skey = triptoservice.get(key);
-        if (skey != null) {
-            ServiceDataComplete sdc = completeservices.get(key);
-            if (sdc != null) {
-                TripComplete tc = sdc.getTrips().get(key);
-                if (tc != null) {
-                    tc.getFrequencies().add(new FrequencyComplete(prefix, freq));
-                }
+        String key = prefix + freq.getTrip().getServiceId().getId();
+        ServiceDataComplete sdc = completeservices.get(key);
+        if (sdc != null) {
+            String tkey = prefix + freq.getTrip().getId().getId();
+            TripComplete tc = sdc.getTrips().get(tkey);
+            if (tc != null) {
+                tc.getFrequencies().add(new FrequencyComplete(prefix, freq));
             }
         }
-        int i = 0;
     }
 
     public void add(String prefix, StopTime st) {
@@ -163,7 +157,6 @@ public class DataMapper {
             dir = "1";
         }
 
-        
         String servicetripid = serviceid + ":" + routeid + ":" + dir;
         String blockid = null;
         if (st.getTrip().getBlockId() != null) {
@@ -200,12 +193,12 @@ public class DataMapper {
             routes.put(routeid, route);
             LOG.debug("Added route " + routeid);
         }
-        
+
         RouteData.RouteStop rst = new RouteData.RouteStop(stopid);
         if (route.stops.contains(rst) == false) {
             route.stops.add(rst);
         }
-        
+
         ServiceTrips servicetripmap = servicetrips.get(servicetripid);
         if (servicetripmap == null) {
             servicetripmap = new ServiceTrips();
@@ -282,23 +275,17 @@ public class DataMapper {
         if (tr.contains(ts) == false) {
             tr.add(ts);
         }
-        
+
         ServiceDataComplete sdc = completeservices.get(serviceid);
         if (sdc == null) {
             sdc = new ServiceDataComplete(prefix, st);
             completeservices.put(serviceid, sdc);
-        }
-        else {
+        } else {
             sdc.add(prefix, st);
         }
-        
-        if (triptoservice.containsKey(tripid) == false) {
-            triptoservice.put(tripid, serviceid);
-        }
     }
-    
-    // Fix some observed anomalies or deviations from the standard.
 
+    // Fix some observed anomalies or deviations from the standard.
     private void dataFixer(String prefix, StopTime st) {
         /* Not needed anymore after switcing to use GTFSLocalTime.
         int start = st.getArrivalTime();
@@ -306,7 +293,7 @@ public class DataMapper {
             start -= 86400;
             st.setArrivalTime(start);
         }
-        */
+         */
         Route route = st.getTrip().getRoute();
         if ("FI:HSL:".equals(prefix)) {
         }
