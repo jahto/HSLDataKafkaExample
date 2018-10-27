@@ -25,8 +25,6 @@ public class StopTimeComplete {
         this.pickupType = (short) st.getPickupType();
         this.stopId = prefix + ":" + st.getStop().getId().getId();
         this.stopSequence = st.getStopSequence();
-        this.timepoint = (short) st.getTimepoint();
-
         if (st.isTimepointSet()) {
             this.timepoint = (short) st.getTimepoint();
         }

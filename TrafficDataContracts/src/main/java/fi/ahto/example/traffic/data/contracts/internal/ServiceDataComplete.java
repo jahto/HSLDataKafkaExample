@@ -39,25 +39,25 @@ public class ServiceDataComplete {
     }
 
     public ServiceDataComplete(String prefix, ServiceCalendar st) {
+        String serviceid = prefix + st.getServiceId().getId();
+        this.serviceId = serviceid;
         this.add(prefix, st);
     }
 
     public ServiceDataComplete(String prefix, ServiceCalendarDate st) {
+        String serviceid = prefix + st.getServiceId().getId();
+        this.serviceId = serviceid;
         this.add(prefix, st);
     }
     
     public ServiceDataComplete(String prefix, StopTime st) {
-        String routeid = prefix + st.getTrip().getRoute().getId().getId();
-        String serviceid = prefix + st.getTrip().getServiceId().getId(); // + ":" + routeid;
-
+        String serviceid = prefix + st.getTrip().getServiceId().getId();
         this.serviceId = serviceid;
-        this.routes.add(routeid);
-
         this.add(prefix, st);
     }
 
     public void add(String prefix, StopTime st) {
-        String stopid = prefix + st.getStop().getId().getId();
+        String routeid = prefix + st.getTrip().getRoute().getId().getId();
         String tripid = prefix + st.getTrip().getId().getId();
 
         TripComplete ti = this.getTrips().get(tripid);
@@ -66,6 +66,9 @@ public class ServiceDataComplete {
             this.getTrips().put(tripid, ti);
         } else {
             ti.add(prefix, st);
+        }
+        if (this.routes.contains(routeid) == false) {
+            this.routes.add(routeid);
         }
     }
 
@@ -110,15 +113,20 @@ public class ServiceDataComplete {
         ServiceDate sdt = sct.getDate();
         LocalDate dt = LocalDate.of(sdt.getYear(), sdt.getMonth(), sdt.getDay());
         if (sct.getExceptionType() == 2) {
-            this.not_in_use.add(dt);
+            this.notInUse.add(dt);
         }
         if (sct.getExceptionType() == 1) {
-            this.in_use.add(dt);
+            this.inUse.add(dt);
         }
     }
 
     public void add(String prefix, Frequency fr) {
-
+        String tripid = prefix + fr.getTrip().getId().getId();
+        TripComplete ti = this.getTrips().get(tripid);
+        if (ti != null) {
+            FrequencyComplete fc = new FrequencyComplete(prefix, fr);
+            ti.add(prefix, fc);
+        }
     }
 
     @Id
@@ -215,17 +223,17 @@ public class ServiceDataComplete {
     private boolean sunday;
     public byte weekdays = 0;
 
-    private final List<LocalDate> in_use = new ArrayList<>();
-    private final List<LocalDate> not_in_use = new ArrayList<>();
+    private final List<LocalDate> inUse = new ArrayList<>();
+    private final List<LocalDate> notInUse = new ArrayList<>();
     private final Map<String, TripComplete> trips = new HashMap<>();
     private final List<String> routes = new ArrayList<>();
 
     public List<LocalDate> getInUse() {
-        return in_use;
+        return inUse;
     }
 
     public List<LocalDate> getNotInUse() {
-        return not_in_use;
+        return notInUse;
     }
 
     public Map<String, TripComplete> getTrips() {
