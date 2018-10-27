@@ -151,7 +151,7 @@ public class TripComplete {
     public List<StopTimeComplete> getStopTimes() {
         return stopTimes;
     }
-    private final List<FrequencyComplete> frequencies = new ArrayList<>();
+    private List<FrequencyComplete> frequencies = new ArrayList<>();
 
 
 }

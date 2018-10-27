@@ -223,10 +223,10 @@ public class ServiceDataComplete {
     private boolean sunday;
     public byte weekdays = 0;
 
-    private final List<LocalDate> inUse = new ArrayList<>();
-    private final List<LocalDate> notInUse = new ArrayList<>();
-    private final Map<String, TripComplete> trips = new HashMap<>();
-    private final List<String> routes = new ArrayList<>();
+    private List<LocalDate> inUse = new ArrayList<>();
+    private List<LocalDate> notInUse = new ArrayList<>();
+    private Map<String, TripComplete> trips = new HashMap<>();
+    private List<String> routes = new ArrayList<>();
 
     public List<LocalDate> getInUse() {
         return inUse;
