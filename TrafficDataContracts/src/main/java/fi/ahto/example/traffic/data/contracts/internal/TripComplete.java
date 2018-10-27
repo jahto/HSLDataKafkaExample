@@ -48,10 +48,10 @@ public class TripComplete {
         }
 
         if (tr.getBlockId() != null) {
-            this.blockId = prefix + ":" + tr.getBlockId(); // + ":" + routeid; // + ":" + dir;
+            this.blockId = prefix + tr.getBlockId(); // + ":" + routeid; // + ":" + dir;
         }
         if (tr.getShapeId() != null) {
-            this.shapeId = prefix + ":" + tr.getShapeId().getId();
+            this.shapeId = prefix + tr.getShapeId().getId();
         }
 
         this.wheelchairAccessible = (short) tr.getWheelchairAccessible();
