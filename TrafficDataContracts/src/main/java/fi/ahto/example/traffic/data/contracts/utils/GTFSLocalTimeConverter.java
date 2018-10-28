@@ -15,21 +15,30 @@
  */
 package fi.ahto.example.traffic.data.contracts.utils;
 
-import java.time.LocalDate;
-import org.onebusaway.gtfs.model.calendar.ServiceDate;
+import fi.ahto.example.traffic.data.contracts.internal.*;
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class Helpers {
+@Converter
+public class GTFSLocalTimeConverter implements AttributeConverter<GTFSLocalTime, Integer> {
 
-    public static LocalDate from(ServiceDate src) {
-        try {
-            return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
-        } catch (NullPointerException ne) {
-            int i = 0;
+    @Override
+    public Integer convertToDatabaseColumn(GTFSLocalTime x) {
+        if (x == null) {
+            return null;
         }
-        return null;
+        return x.toSecondOfDay();
+    }
+
+    @Override
+    public GTFSLocalTime convertToEntityAttribute(Integer y) {
+        if (y == null) {
+            return null;
+        }
+        return GTFSLocalTime.ofSecondOfDay(y);
     }
 }

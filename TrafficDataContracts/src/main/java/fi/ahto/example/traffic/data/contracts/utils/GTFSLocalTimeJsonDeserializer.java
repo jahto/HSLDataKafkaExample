@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.contracts.utils;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import fi.ahto.example.traffic.data.contracts.internal.*;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import java.io.IOException;
 
 /**
  *
  * @author Jouni Ahto
  */
-@Converter
-public class GTFSLocalTimeConverter implements AttributeConverter<GTFSLocalTime, Integer> {
+public class GTFSLocalTimeJsonDeserializer extends JsonDeserializer<GTFSLocalTime> {
 
     @Override
-    public Integer convertToDatabaseColumn(GTFSLocalTime x) {
-        if (x == null) {
-            return null;
-        }
-        return x.toSecondOfDay();
+    public GTFSLocalTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        return GTFSLocalTime.ofSecondOfDay(p.getIntValue());
     }
-
-    @Override
-    public GTFSLocalTime convertToEntityAttribute(Integer y) {
-        if (y == null) {
-            return null;
-        }
-        return GTFSLocalTime.ofSecondOfDay(y);
-    }
+    
 }

@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.contracts.utils;
 
+import fi.ahto.example.traffic.data.contracts.internal.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

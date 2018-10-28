@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.contracts.utils;
+
+import fi.ahto.example.traffic.data.contracts.internal.*;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
 
 /**
  *
  * @author Jouni Ahto
  */
-public interface Partitionable {
-    byte[] getKeyBytes();
+public class GTFSLocalTimeJsonSerializer extends JsonSerializer<GTFSLocalTime> {
+
+    @Override
+    public void serialize(GTFSLocalTime value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        gen.writeNumber(value.toSecondOfDay());
+    }
 }

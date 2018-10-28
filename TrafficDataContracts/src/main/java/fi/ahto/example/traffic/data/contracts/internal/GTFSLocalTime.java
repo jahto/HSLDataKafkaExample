@@ -17,9 +17,8 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeJsonDeserializer;
+import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeJsonSerializer;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
