@@ -38,6 +38,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
@@ -169,7 +170,7 @@ public class FSTSerializerTests {
             assertThat(j, is(i));
         }
     }
-    
+    /*
     @Test
     public void test_Int() throws IOException {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
@@ -182,8 +183,10 @@ public class FSTSerializerTests {
             assertThat(j, is(i));
         }
     }
+    */
     
     @Test
+    @Ignore
     public void test_YearMonth() throws IOException, ClassNotFoundException {
         FSTSerdeUtil s = new FSTSerdeUtil(YearMonth.class, new FSTYearMonthSerializer());
         

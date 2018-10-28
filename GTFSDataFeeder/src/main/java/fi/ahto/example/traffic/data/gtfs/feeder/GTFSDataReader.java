@@ -359,12 +359,12 @@ public class GTFSDataReader implements ApplicationRunner {
             
             if (bean instanceof Route) {
                 Route rt = (Route) bean;
-                //sendJsonRecord("dbqueue-route", prefix, rt);
+                sendJsonRecord("dbqueue-route", prefix, rt);
             }
             
             if (bean instanceof Stop) {
                 Stop st = (Stop) bean;
-                //sendJsonRecord("dbqueue-stop", prefix, st);
+                sendJsonRecord("dbqueue-stop", prefix, st);
             }
             /*
             if (bean instanceof Trip) {
