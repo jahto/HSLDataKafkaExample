@@ -15,7 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
-import fi.ahto.example.traffic.data.contracts.utils.Helpers;
+import fi.ahto.example.traffic.data.contracts.utils.OneBusAwayHelpers;
 import java.io.Serializable;
 import java.time.LocalDate;
 import javax.persistence.*;
@@ -81,8 +81,8 @@ public class DBCalendar implements Serializable {
 
     public DBCalendar(String prefix, ServiceCalendar src) {
         this.serviceId = prefix + src.getServiceId().getId();
-        this.validFrom = Helpers.from(src.getStartDate());
-        this.validUntil = Helpers.from(src.getEndDate());
+        this.validFrom = OneBusAwayHelpers.from(src.getStartDate());
+        this.validUntil = OneBusAwayHelpers.from(src.getEndDate());
         this.monday = src.getMonday() == 1;
         this.tuesday = src.getTuesday() == 1;
         this.wednesday = src.getWednesday() == 1;

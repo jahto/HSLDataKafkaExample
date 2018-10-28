@@ -15,8 +15,8 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
-import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTimeConverter;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
+import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
