@@ -16,52 +16,73 @@
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
 import java.io.Serializable;
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Table;
+import org.springframework.data.annotation.Id;
 import lombok.Data;
 import org.onebusaway.gtfs.model.Stop;
-
 /**
  *
  * @author Jouni Ahto
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "stops")
+@org.springframework.data.relational.core.mapping.Table(value = "stops")
 public class DBStop implements Serializable {
     
     private static final long serialVersionUID = -5765784657797522975L;
 
-    @Id
-    @Column(name = "stop_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "stop_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_num")
     private Long stopNum;
 
-    @Column(name = "stop_id")
+    @javax.persistence.Column(name = "stop_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_id")
     private String stopId;
-    @Column(name = "stop_code")
+    @javax.persistence.Column(name = "stop_code")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_code")
     private String stopCode;
-    @Column(name = "stop_name")
+    @javax.persistence.Column(name = "stop_name")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_name")
     private String stopName;
-    @Column(name = "stop_description")
+    @javax.persistence.Column(name = "stop_description")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_description")
     private String stopDescription;
-    @Column(name = "latitude")
+    @javax.persistence.Column(name = "latitude")
+    @org.springframework.data.relational.core.mapping.Column(value = "latitude")
     private float latitude;
-    @Column(name = "longitude")
+    @javax.persistence.Column(name = "longitude")
+    @org.springframework.data.relational.core.mapping.Column(value = "longitude")
     private float longitude;
-    @Column(name = "url")
+    @javax.persistence.Column(name = "url")
+    @org.springframework.data.relational.core.mapping.Column(value = "url")
     private String url;
-    @Column(name = "location_type")
+    @javax.persistence.Column(name = "location_type")
+    @org.springframework.data.relational.core.mapping.Column(value = "location_type")
     private short locationType;
-    @Column(name = "parent_station")
+    @javax.persistence.Column(name = "parent_station")
+    @org.springframework.data.relational.core.mapping.Column(value = "parent_station")
     private String parentStation;
-    @Column(name = "wheelchair_boarding")
+    @javax.persistence.Column(name = "wheelchair_boarding")
+    @org.springframework.data.relational.core.mapping.Column(value = "wheelchair_boarding")
     private short wheelchairBoarding; // CHECK: probable boolean in reality.
-    @Column(name = "platform_code")
+    @javax.persistence.Column(name = "platform_code")
+    @org.springframework.data.relational.core.mapping.Column(value = "platform_code")
     private String platformCode;
     
     protected DBStop() {}
     
     public DBStop(String prefix, Stop src) {
         this.stopId = prefix + src.getId().getId();
-        this.stopCode = prefix + src.getCode();
+        if (src.getCode() != null && !src.getCode().isEmpty()) {
+            this.stopCode = prefix + src.getCode();
+        }
         this.stopName = src.getName();
         this.stopDescription = src.getDesc();
         this.latitude = (float) src.getLat();
@@ -77,93 +98,4 @@ public class DBStop implements Serializable {
         // src.getVehicleType(); // CHECK: Do we need this?
         // src.getDirection(); // CHECK: Do we need this?
     }
-    /*
-    //@Column(name = "stop_id")
-    public String getStopId() {
-        return stopId;
-    }
-    public void setStopId(String stopId) {
-        this.stopId = stopId;
-    }
-
-    //@Column(name = "stop_code")
-    public String getStopCode() {
-        return stopCode;
-    }
-    public void setStopCode(String stopCode) {
-        this.stopCode = stopCode;
-    }
-
-    //@Column(name = "stop_name")
-    public String getStopName() {
-        return stopName;
-    }
-    public void setStopName(String stopName) {
-        this.stopName = stopName;
-    }
-
-    //@Column(name = "stop_description")
-    public String getStopDescription() {
-        return stopDescription;
-    }
-    public void setStopDescription(String stopDescription) {
-        this.stopDescription = stopDescription;
-    }
-
-    //@Column(name = "latitude")
-    public float getLatitude() {
-        return latitude;
-    }
-    public void setLatitude(float latitude) {
-        this.latitude = latitude;
-    }
-
-    //@Column(name = "longitude")
-    public float getLongitude() {
-        return longitude;
-    }
-    public void setLongitude(float longitude) {
-        this.longitude = longitude;
-    }
-
-    //@Column(name = "url")
-    public String getUrl() {
-        return url;
-    }
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    //@Column(name = "location_type")
-    public short getLocationType() {
-        return locationType;
-    }
-    public void setLocationType(short locationType) {
-        this.locationType = locationType;
-    }
-
-    //@Column(name = "parent_station")
-    public String getParentStation() {
-        return parentStation;
-    }
-    public void setParentStation(String parentStation) {
-        this.parentStation = parentStation;
-    }
-
-    //@Column(name = "wheelchair_boarding")
-    public short getWheelchairBoarding() {
-        return wheelchairBoarding;
-    }
-    public void setWheelchairBoarding(short wheelchairBoarding) {
-        this.wheelchairBoarding = wheelchairBoarding;
-    }
-
-    //@Column(name = "platform_code")
-    public String getPlatformCode() {
-        return platformCode;
-    }
-    public void setPlatformCode(String platformCode) {
-        this.platformCode = platformCode;
-    }
-    */
 }

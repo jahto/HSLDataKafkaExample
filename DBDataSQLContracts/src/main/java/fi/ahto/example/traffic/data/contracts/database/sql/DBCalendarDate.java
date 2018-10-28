@@ -28,19 +28,27 @@ import org.onebusaway.gtfs.model.ServiceCalendarDate;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "calendar_dates")
+@org.springframework.data.relational.core.mapping.Table(value = "calendar_dates")
 public class DBCalendarDate implements Serializable {
     
     private static final long serialVersionUID = 6416239279270803561L;
 
-    @Id
-    @Column(name = "calendar_date_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "calendar_date_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "calendar_date_num")
     private Long calendarDateNum;
 
-    @Column(name = "service_id")
+    @javax.persistence.Column(name = "service_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_id")
     private String serviceId;
-    @Column(name = "exception_date")
+    @javax.persistence.Column(name = "exception_date")
+    @org.springframework.data.relational.core.mapping.Column(value = "exception_date")
     private LocalDate exceptionDate;
-    @Column(name = "exception_type")
+    @javax.persistence.Column(name = "exception_type")
+    @org.springframework.data.relational.core.mapping.Column(value = "exception_type")
     private short exceptionType;
     
     protected DBCalendarDate() {}
@@ -50,29 +58,4 @@ public class DBCalendarDate implements Serializable {
         this.exceptionDate = Helpers.from(src.getDate());
         this.exceptionType = (short) src.getExceptionType();
     }
-    /*
-    //@Column(name = "service_id")
-    public String getServiceId() {
-        return serviceId;
-    }
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
-    }
-
-    //@Column(name = "exception_date")
-    public LocalDate getExceptionDate() {
-        return exceptionDate;
-    }
-    public void setExceptionDate(LocalDate exceptionDate) {
-        this.exceptionDate = exceptionDate;
-    }
-
-    //@Column(name = "exception_type")
-    public short getExceptionType() {
-        return exceptionType;
-    }
-    public void setExceptionType(short exceptionType) {
-        this.exceptionType = exceptionType;
-    }
-    */
 }

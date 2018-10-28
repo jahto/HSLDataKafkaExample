@@ -27,25 +27,36 @@ import org.onebusaway.gtfs.model.Route;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "routes")
+@org.springframework.data.relational.core.mapping.Table(value = "routes")
 public class DBRoute implements Serializable{
     
     private static final long serialVersionUID = 8822391347291155647L;
 
-    @Id
-    @Column(name = "route_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "route_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "route_num")
     private Long routeNum;
 
-    @Column(name = "route_id")
+    @javax.persistence.Column(name = "route_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "route_id")
     private String routeId;
-    @Column(name = "short_name")
+    @javax.persistence.Column(name = "short_name")
+    @org.springframework.data.relational.core.mapping.Column(value = "short_name")
     private String shortName;
-    @Column(name = "long_name")
+    @javax.persistence.Column(name = "long_name")
+    @org.springframework.data.relational.core.mapping.Column(value = "long_name")
     private String longName;
-    @Column(name = "route_type")
+    @javax.persistence.Column(name = "route_type")
+    @org.springframework.data.relational.core.mapping.Column(value = "route_type")
     private RouteType type;
-    @Column(name = "description")
+    @javax.persistence.Column(name = "description")
+    @org.springframework.data.relational.core.mapping.Column(value = "description")
     private String description;
-    @Column(name = "url")
+    @javax.persistence.Column(name = "url")
+    @org.springframework.data.relational.core.mapping.Column(value = "url")
     private String url;
     
     protected DBRoute() {}
@@ -71,53 +82,4 @@ public class DBRoute implements Serializable{
             this.longName = this.shortName;
         }
     }
-    /*
-    //@Column(name = "route_id")
-    public String getRouteId() {
-        return routeId;
-    }
-    public void setRouteId(String routeId) {
-        this.routeId = routeId;
-    }
-
-    //@Column(name = "short_name")
-    public String getShortName() {
-        return shortName;
-    }
-    public void setShortName(String shortName) {
-        this.shortName = shortName;
-    }
-
-    //@Column(name = "long_name")
-    public String getLongName() {
-        return longName;
-    }
-    public void setLongName(String longName) {
-        this.longName = longName;
-    }
-
-    //@Column(name = "route_type")
-    public RouteType getType() {
-        return type;
-    }
-    public void setType(RouteType type) {
-        this.type = type;
-    }
-
-    //@Column(name = "description")
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    //@Column(name = "url")
-    public String getUrl() {
-        return url;
-    }
-    public void setUrl(String url) {
-        this.url = url;
-    }
-    */
 }

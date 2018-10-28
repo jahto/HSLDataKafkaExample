@@ -28,35 +28,54 @@ import org.onebusaway.gtfs.model.ServiceCalendar;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "calendars")
+@org.springframework.data.relational.core.mapping.Table(value = "calendars")
 public class DBCalendar implements Serializable {
 
     private static final long serialVersionUID = -4669208302827540551L;
 
-    @Id
-    @Column(name = "service_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "service_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_num")
     private Long serviceNum;
 
-    @Column(name = "service_id")
+    @javax.persistence.Column(name = "service_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_id")
     private String serviceId;
-    @Column(name = "valid_from")
+    @javax.persistence.Column(name = "valid_from")
+    @org.springframework.data.relational.core.mapping.Column(value = "valid_from")
     private LocalDate validFrom;
-    @Column(name = "valid_until")
+    @javax.persistence.Column(name = "valid_until")
+    @org.springframework.data.relational.core.mapping.Column(value = "valid_until")
     private LocalDate validUntil;
-    @Column(name = "monday")
+    @javax.persistence.Column(name = "monday")
+    @org.springframework.data.relational.core.mapping.Column(value = "monday")
     private boolean monday;
-    @Column(name = "tuesday")
+    @javax.persistence.Column(name = "tuesday")
+    @org.springframework.data.relational.core.mapping.Column(value = "tuesday")
     private boolean tuesday;
-    @Column(name = "wednesday")
+    @javax.persistence.Column(name = "wednesday")
+    @org.springframework.data.relational.core.mapping.Column(value = "wednesday")
     private boolean wednesday;
-    @Column(name = "thursday")
+    @javax.persistence.Column(name = "thursday")
+    @org.springframework.data.relational.core.mapping.Column(value = "thursday")
     private boolean thursday;
-    @Column(name = "friday")
+    @javax.persistence.Column(name = "friday")
+    @org.springframework.data.relational.core.mapping.Column(value = "friday")
     private boolean friday;
-    @Column(name = "saturday")
+    @javax.persistence.Column(name = "saturday")
+    @org.springframework.data.relational.core.mapping.Column(value = "saturday")
     private boolean saturday;
-    @Column(name = "sunday")
+    @javax.persistence.Column(name = "sunday")
+    @org.springframework.data.relational.core.mapping.Column(value = "sunday")
     private boolean sunday;
-
+    /*
+    @javax.persistence.Column(name = "weekdays")
+    @org.springframework.data.relational.core.mapping.Column(value = "weekdays")
+    private byte weekdays;
+    */
     protected DBCalendar() {
     }
 
@@ -72,85 +91,4 @@ public class DBCalendar implements Serializable {
         this.saturday = src.getSaturday() == 1;
         this.sunday = src.getSunday() == 1;
     }
-    /*
-    //@Column(name = "service_id")
-    public String getServiceId() {
-        return serviceId;
-    }
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
-    }
-
-    //@Column(name = "valid_from")
-    public LocalDate getValidFrom() {
-        return validFrom;
-    }
-    public void setValidFrom(LocalDate validFrom) {
-        this.validFrom = validFrom;
-    }
-
-    //@Column(name = "valid_until")
-    public LocalDate getValidUntil() {
-        return validUntil;
-    }
-    public void setValidUntil(LocalDate validUntil) {
-        this.validUntil = validUntil;
-    }
-
-    //@Column(name = "monday")
-    public boolean isMonday() {
-        return monday;
-    }
-    public void setMonday(boolean monday) {
-        this.monday = monday;
-    }
-    
-    //@Column(name = "tuesday")
-    public boolean isTuesday() {
-        return tuesday;
-    }
-    public void setTuesday(boolean tuesday) {
-        this.tuesday = tuesday;
-    }
-    
-    //@Column(name = "wednesday")
-    public boolean isWednesday() {
-        return wednesday;
-    }
-    public void setWednesday(boolean wednesday) {
-        this.wednesday = wednesday;
-    }
-    
-    //@Column(name = "thursday")
-    public boolean isThursday() {
-        return thursday;
-    }
-    public void setThursday(boolean thursday) {
-        this.thursday = thursday;
-    }
-    
-    //@Column(name = "friday")
-    public boolean isFriday() {
-        return friday;
-    }
-    public void setFriday(boolean friday) {
-        this.friday = friday;
-    }
-    
-    //@Column(name = "saturday")
-    public boolean isSaturday() {
-        return saturday;
-    }
-    public void setSaturday(boolean saturday) {
-        this.saturday = saturday;
-    }
-    
-    //@Column(name = "sunday")
-    public boolean isSunday() {
-        return sunday;
-    }
-    public void setSunday(boolean sunday) {
-        this.sunday = sunday;
-    }
-    */
 }

@@ -28,35 +28,50 @@ import org.onebusaway.gtfs.model.StopTime;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "stop_times")
+@org.springframework.data.relational.core.mapping.Table(value = "stop_times")
 public class DBStopTime implements Serializable {
     
     private static final long serialVersionUID = -175539650314949501L;
 
-    @Id
-    @Column(name = "stoptime_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "stoptime_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "stoptime_num")
     private Long stopTimeNum;
 
-    @Column(name = "trip_id")
+    @javax.persistence.Column(name = "trip_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
-    @Column(name = "stop_sequence")
+    @javax.persistence.Column(name = "stop_sequence")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_sequence")
     private int stopSequence;
-    @Column(name = "stop_id")
+    @javax.persistence.Column(name = "stop_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_id")
     private String stopId;
-    @Column(name = "headsign")
+    @javax.persistence.Column(name = "headsign")
+    @org.springframework.data.relational.core.mapping.Column(value = "headsign")
     private String headsign;
-    @Column(name = "arrival")
+    @javax.persistence.Column(name = "arrival")
+    @org.springframework.data.relational.core.mapping.Column(value = "arrival")
     @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime arrival;
-    @Column(name = "departure")
+    @javax.persistence.Column(name = "departure")
+    @org.springframework.data.relational.core.mapping.Column(value = "departure")
     @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime departure;
-    @Column(name = "pickup_type")
+    @javax.persistence.Column(name = "pickup_type")
+    @org.springframework.data.relational.core.mapping.Column(value = "pickup_type")
     private short pickupType;
-    @Column(name = "dropoff_type")
+    @javax.persistence.Column(name = "dropoff_type")
+    @org.springframework.data.relational.core.mapping.Column(value = "dropoff_type")
     private short dropoffType;
-    @Column(name = "timepoint")
+    @javax.persistence.Column(name = "timepoint")
+    @org.springframework.data.relational.core.mapping.Column(value = "timepoint")
     private Short timepoint;
-    @Column(name = "dist_traveled")
+    @javax.persistence.Column(name = "dist_traveled")
+    @org.springframework.data.relational.core.mapping.Column(value = "dist_traveled")
     private Float distTraveled;
     
     protected DBStopTime() {}
@@ -78,87 +93,4 @@ public class DBStopTime implements Serializable {
         }
         // fare_units_traveled
     }
-    /*
-    //@Column(name = "trip_id")
-    public String getTripId() {
-        return tripId;
-    }
-    public void setTripId(String tripId) {
-        this.tripId = tripId;
-    }
-
-    //@Column(name = "stop_sequence")
-    public int getStopSequence() {
-        return stopSequence;
-    }
-    public void setStopSequence(int stopSequence) {
-        this.stopSequence = stopSequence;
-    }
-
-    //@Column(name = "stop_id")
-    public String getStopId() {
-        return stopId;
-    }
-    public void setStopId(String stopId) {
-        this.stopId = stopId;
-    }
-
-    //@Column(name = "headsign")
-    public String getHeadsign() {
-        return headsign;
-    }
-    public void setHeadsign(String headsign) {
-        this.headsign = headsign;
-    }
-
-    //@Column(name = "arrival")
-    //@Convert(converter = GTFSLocalTimeConverter.class)
-    public GTFSLocalTime getArrival() {
-        return arrival;
-    }
-    public void setArrival(GTFSLocalTime arrival) {
-        this.arrival = arrival;
-    }
-
-    //@Column(name = "departure")
-    //@Convert(converter = GTFSLocalTimeConverter.class)
-    public GTFSLocalTime getDeparture() {
-        return departure;
-    }
-    public void setDeparture(GTFSLocalTime departure) {
-        this.departure = departure;
-    }
-
-    //@Column(name = "pickup_type")
-    public short getPickupType() {
-        return pickupType;
-    }
-    public void setPickupType(short pickupType) {
-        this.pickupType = pickupType;
-    }
-
-    //@Column(name = "dropoff_type")
-    public short getDropoffType() {
-        return dropoffType;
-    }
-    public void setDropoffType(short dropoffType) {
-        this.dropoffType = dropoffType;
-    }
-
-    //@Column(name = "timepoint")
-    public short getTimepoint() {
-        return timepoint;
-    }
-    public void setTimepoint(short timepoint) {
-        this.timepoint = timepoint;
-    }
-
-    //@Column(name = "dist_traveled")
-    public float getDistTraveled() {
-        return distTraveled;
-    }
-    public void setDistTraveled(float distTraveled) {
-        this.distTraveled = distTraveled;
-    }
-    */
 }

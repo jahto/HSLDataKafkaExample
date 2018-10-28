@@ -28,25 +28,35 @@ import org.onebusaway.gtfs.model.Frequency;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "frequencies")
+@org.springframework.data.relational.core.mapping.Table(value = "frequencies")
 public class DBFrequency implements Serializable {
     
     private static final long serialVersionUID = 598721321515940744L;
 
-    @Id
-    @Column(name = "frequency_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "frequency_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "frequency_num")
     private Long frequencyNum;
 
-    @Column(name = "trip_id")
+    @javax.persistence.Column(name = "trip_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
-    @Column(name = "start_time")
+    @javax.persistence.Column(name = "start_time")
+    @org.springframework.data.relational.core.mapping.Column(value = "start_time")
     @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime startTime;
-    @Column(name = "end_time")
+    @javax.persistence.Column(name = "end_time")
+    @org.springframework.data.relational.core.mapping.Column(value = "end_time")
     @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime endTime;
-    @Column(name = "headway_secs")
+    @javax.persistence.Column(name = "headway_secs")
+    @org.springframework.data.relational.core.mapping.Column(value = "headway_secs")
     private short headwaySecs;
-    @Column(name = "exact_times")
+    @javax.persistence.Column(name = "exact_times")
+    @org.springframework.data.relational.core.mapping.Column(value = "exact_times")
     private short exactTimes; // TODO: Check if this actually boolean.
 
     protected DBFrequency() {}
@@ -58,47 +68,4 @@ public class DBFrequency implements Serializable {
         this.headwaySecs = (short) src.getHeadwaySecs();
         this.exactTimes = (short) src.getExactTimes();
     }
-    /*
-    //@Column(name = "trip_id")
-    public String getTripId() {
-        return tripId;
-    }
-    public void setTripId(String tripId) {
-        this.tripId = tripId;
-    }
-
-    //@Column(name = "start_time")
-    //@Convert(converter = GTFSLocalTimeConverter.class)
-    public GTFSLocalTime getStartTime() {
-        return startTime;
-    }
-    public void setStartTime(GTFSLocalTime startTime) {
-        this.startTime = startTime;
-    }
-
-    //@Column(name = "end_time")
-    //@Convert(converter = GTFSLocalTimeConverter.class)
-    public GTFSLocalTime getEndTime() {
-        return endTime;
-    }
-    public void setEndTime(GTFSLocalTime endTime) {
-        this.endTime = endTime;
-    }
-
-    //@Column(name = "headway_secs")
-    public short getHeadwaySecs() {
-        return headwaySecs;
-    }
-    public void setHeadwaySecs(short headwaySecs) {
-        this.headwaySecs = headwaySecs;
-    }
-
-    //@Column(name = "exact_times")
-    public short getExactTimes() {
-        return exactTimes;
-    }
-    public void setExactTimes(short exactTimes) {
-        this.exactTimes = exactTimes;
-    }
-    */
 }

@@ -26,31 +26,45 @@ import org.onebusaway.gtfs.model.Trip;
  */
 @Data
 @Entity
+@javax.persistence.Table(name = "trips")
+@org.springframework.data.relational.core.mapping.Table(value = "trips")
 public class DBTrip implements Serializable {
     
     private static final long serialVersionUID = 4713983106084304945L;
     
-    @Id
-    @Column(name = "trip_num")
+    @javax.persistence.Id
+    @org.springframework.data.annotation.Id
+    @GeneratedValue
+    @javax.persistence.Column(name = "trip_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_num")
     private Long tripNum;
 
-    @Column(name = "route_id")
+    @javax.persistence.Column(name = "route_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "route_id")
     private String routeId;
-    @Column(name = "service_id")
+    @javax.persistence.Column(name = "service_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_id")
     private String serviceId;
-    @Column(name = "trip_id")
+    @javax.persistence.Column(name = "trip_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
-    @Column(name = "headsign")
+    @javax.persistence.Column(name = "headsign")
+    @org.springframework.data.relational.core.mapping.Column(value = "headsign")
     private String headsign;
-    @Column(name = "direction")
+    @javax.persistence.Column(name = "direction")
+    @org.springframework.data.relational.core.mapping.Column(value = "direction")
     private short direction;
-    @Column(name = "shape_id")
+    @javax.persistence.Column(name = "shape_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "shape_id")
     private String shapeId;
-    @Column(name = "block_id")
+    @javax.persistence.Column(name = "block_id")
+    @org.springframework.data.relational.core.mapping.Column(value = "block_id")
     private String blockId;
-    @Column(name = "wheelchair_accessible")
+    @javax.persistence.Column(name = "wheelchair_accessible")
+    @org.springframework.data.relational.core.mapping.Column(value = "wheelchair_accessible")
     private short wheelchairAccessible;
-    @Column(name = "bikes_allowed")
+    @javax.persistence.Column(name = "bikes_allowed")
+    @org.springframework.data.relational.core.mapping.Column(value = "bikes_allowed")
     private short bikesAllowed;
     
     protected DBTrip() {}
@@ -73,77 +87,4 @@ public class DBTrip implements Serializable {
         // src.getTripShortName();
         // src.getRouteShortName();
     }
-    /*
-    //@Column(name = "route_id")
-    public String getRouteId() {
-        return routeId;
-    }
-    public void setRouteId(String routeId) {
-        this.routeId = routeId;
-    }
-
-    //@Column(name = "service_id")
-    public String getServiceId() {
-        return serviceId;
-    }
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
-    }
-
-    //@Column(name = "trip_id")
-    public String getTripId() {
-        return tripId;
-    }
-    public void setTripId(String tripId) {
-        this.tripId = tripId;
-    }
-
-    //@Column(name = "headsign")
-    public String getHeadsign() {
-        return headsign;
-    }
-    public void setHeadsign(String headsign) {
-        this.headsign = headsign;
-    }
-
-    //@Column(name = "direction")
-    public short getDirection() {
-        return direction;
-    }
-    public void setDirection(short direction) {
-        this.direction = direction;
-    }
-
-    //@Column(name = "shape_id")
-    public String getShapeId() {
-        return shapeId;
-    }
-    public void setShapeId(String shapeId) {
-        this.shapeId = shapeId;
-    }
-
-    //@Column(name = "block_id")
-    public String getBlockId() {
-        return blockId;
-    }
-    public void setBlockId(String blockId) {
-        this.blockId = blockId;
-    }
-
-    //@Column(name = "wheelchair_accessible")
-    public short getWheelchairAccessible() {
-        return wheelchairAccessible;
-    }
-    public void setWheelchairAccessible(short wheelchairAccessible) {
-        this.wheelchairAccessible = wheelchairAccessible;
-    }
-
-    //@Column(name = "bikes_allowed")
-    public short getBikesAllowed() {
-        return bikesAllowed;
-    }
-    public void setBikesAllowed(short bikesAllowed) {
-        this.bikesAllowed = bikesAllowed;
-    }
-    */
 }
