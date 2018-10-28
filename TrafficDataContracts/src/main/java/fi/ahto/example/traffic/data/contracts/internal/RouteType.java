@@ -172,6 +172,10 @@ public enum RouteType implements Serializable {
         }
     }
     
+    public Integer toInteger() {
+        return this.value;
+    }
+    
     public static RouteType from(int val) {
         switch (val) {
             case 0:
