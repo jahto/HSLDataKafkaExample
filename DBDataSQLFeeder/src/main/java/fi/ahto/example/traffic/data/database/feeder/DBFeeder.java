@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
 // import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 /**
  *
@@ -30,8 +31,7 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan
 @EnableAutoConfiguration
 @EntityScan("fi.ahto.example.traffic.data.contracts.database")
-// @EnableJpaRepositories
-// @EnableJpaRepositories("fi.ahto.example.traffic.data.database.repositories.sql")
+@EnableJdbcRepositories("fi.ahto.example.traffic.data.database.repositories.sql")
 public class DBFeeder {
 
     public static void main(String[] args) {

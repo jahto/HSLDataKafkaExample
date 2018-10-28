@@ -16,13 +16,8 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendarDate;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendar;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequency;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStop;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBStopTime;
-import fi.ahto.example.traffic.data.contracts.database.sql.DBTrip;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarDateRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLFrequencyRepository;
@@ -30,24 +25,20 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteRepository
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopTimeRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripRepository;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
-import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
-import org.onebusaway.gtfs.model.ServiceCalendar;
-import org.onebusaway.gtfs.model.ServiceCalendarDate;
 import org.onebusaway.gtfs.model.Stop;
-import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
-// import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
@@ -56,11 +47,12 @@ import org.springframework.stereotype.Component;
  * @author Jouni Ahto
  */
 @Component
-// @EnableJpaRepositories
 public class DataFeeder {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataFeeder.class);
     private static AtomicLong counter = new AtomicLong(1);
+    private static ConcurrentHashMap<String, Long> routenums = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, Long> stopnums = new ConcurrentHashMap<>();
     
     @Autowired
     @Qualifier("binary")
@@ -124,22 +116,24 @@ public class DataFeeder {
     }
 
     private void handleRoute(String key, Route rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
         try {
             DBRoute dbrt = new DBRoute(key, rt);
-            routeRepository.save(dbrt);
+            Long id = routeRepository.save(dbrt).getRouteNum();
+            if (id != null) {
+                routenums.put(dbrt.getRouteId(), id);
+            }
         } catch (Exception e) {
             LOG.info("handleRoute", e);
         }
     }
 
     private void handleStop(String key, Stop rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
         try {
             DBStop dbrt = new DBStop(key, rt);
-            stopRepository.save(dbrt);
+            Long id = stopRepository.save(dbrt).getStopNum();
+            if (id != null) {
+                stopnums.put(dbrt.getStopId(), id);
+            }
         } catch (Exception e) {
             LOG.info("handleStop", e);
         }
@@ -205,4 +199,29 @@ public class DataFeeder {
         }
     }
     */
+    
+    private Long getRouteNumber(String id) {
+        Long num = routenums.get(id);
+        if (num == null) {
+            Optional<DBRoute> res = routeRepository.findById(id);
+            if (res.isPresent()) {
+                DBRoute db = res.get();
+                num = db.getRouteNum();
+                routenums.put(id, num);
+            }
+        }
+        return num;
+    }
+    private Long getStopNumber(String id) {
+        Long num = stopnums.get(id);
+        if (num == null) {
+            Optional<DBStop> res = stopRepository.findById(id);
+            if (res.isPresent()) {
+                DBStop db = res.get();
+                num = db.getStopNum();
+                stopnums.put(id, num);
+            }
+        }
+        return num;
+    }
 }
