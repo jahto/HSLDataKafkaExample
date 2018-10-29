@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequency;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStop;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarDateRepository;
@@ -32,6 +33,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
 import org.slf4j.Logger;
@@ -63,23 +65,23 @@ public class DataFeeder {
 
     @Autowired
     private SQLStopRepository stopRepository;
-
+    /*
     @Autowired
     private SQLCalendarRepository calendarRepository;
 
     @Autowired
     private SQLCalendarDateRepository calendarDateRepository;
-
+    */
     @Autowired
     private SQLFrequencyRepository frequencyRepository;
 
-
+    /*
     @Autowired
     private SQLStopTimeRepository stopTimeRepository;
 
     @Autowired
     private SQLTripRepository tripRepository;
-
+    */
     @Bean
     public KStream<String, Route> kStream(StreamsBuilder builder) {
         final JsonSerde<Route> routeserde = new JsonSerde<>(Route.class, smileMapper);
@@ -97,11 +99,10 @@ public class DataFeeder {
         final JsonSerde<ServiceCalendarDate> calendardateserde = new JsonSerde<>(ServiceCalendarDate.class, smileMapper);
         KStream<String, ServiceCalendarDate> calendardatestream = builder.stream("dbqueue-calendardate", Consumed.with(Serdes.String(), calendardateserde));
         calendardatestream.foreach((key, value) -> handleCalendarDate(key, value));
-
+        */
         final JsonSerde<Frequency> frequencyserde = new JsonSerde<>(Frequency.class, smileMapper);
         KStream<String, Frequency> frequencystream = builder.stream("dbqueue-frequency", Consumed.with(Serdes.String(), frequencyserde));
         frequencystream.foreach((key, value) -> handleFrequency(key, value));
-        */
         /*
         final JsonSerde<StopTime> stoptimeserde = new JsonSerde<>(StopTime.class, smileMapper);
         KStream<String, StopTime> stoptimestream = builder.stream("dbqueue-stoptime", Consumed.with(Serdes.String(), stoptimeserde));
@@ -160,18 +161,16 @@ public class DataFeeder {
             LOG.info("handleCalendarDate", e);
         }
     }
+    */
 
     private void handleFrequency(String key, Frequency rt) {
-        // Must implement a factory that returns the correct implementation
-        // based on database type. Same for repository.
         try {
-            DBFrequency dbrt = new DBFrequencySQLImpl(key, rt);
+            DBFrequency dbrt = new DBFrequency(key, rt);
             frequencyRepository.save(dbrt);
         } catch (Exception e) {
             LOG.info("handleFrequency", e);
         }
     }
-    */
     /*
     private void handleStopTime(String key, StopTime rt) {
         // Must implement a factory that returns the correct implementation

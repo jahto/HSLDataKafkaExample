@@ -17,6 +17,8 @@ package fi.ahto.example.traffic.data.database.utils;
 
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteType;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
@@ -26,6 +28,15 @@ import org.springframework.data.convert.WritingConverter;
  */
 public class Converters {
 
+    public static List<Converter<?, ?>> getConvertersToRegister() {
+        List<Converter<?, ?>> converters = new ArrayList<>();
+        converters.add(IntegerToGTFSLocalTimeConverter.INSTANCE);
+        converters.add(GTFSLocalTimeToIntegerConverter.INSTANCE);
+        converters.add(IntegerToRouteTypeConverter.INSTANCE);
+        converters.add(RouteTypeToIntegerConverter.INSTANCE);
+        return converters;
+    }
+    
     @ReadingConverter
     public static enum IntegerToGTFSLocalTimeConverter implements Converter<Integer, GTFSLocalTime> {
         INSTANCE;
