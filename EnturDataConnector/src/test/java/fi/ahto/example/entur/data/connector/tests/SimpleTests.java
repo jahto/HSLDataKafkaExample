@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -58,6 +59,7 @@ public class SimpleTests {
     }
 
     @Test /* Uncomment when needed */
+    @Ignore
     public void feedExampleDataToQueues() {
         for (int i = 0; i < 1; i++) {
             String postfix = Integer.toString(i);

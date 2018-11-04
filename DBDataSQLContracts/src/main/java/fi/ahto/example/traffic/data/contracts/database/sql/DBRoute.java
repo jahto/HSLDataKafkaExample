@@ -16,6 +16,7 @@
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
 import fi.ahto.example.traffic.data.contracts.internal.RouteType;
+import fi.ahto.example.traffic.data.contracts.utils.RouteTypeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
@@ -49,6 +50,7 @@ public class DBRoute implements Serializable{
     @javax.persistence.Column(name = "long_name")
     @org.springframework.data.relational.core.mapping.Column(value = "long_name")
     private String longName;
+    @Convert(converter = RouteTypeConverter.class)
     @javax.persistence.Column(name = "route_type")
     @org.springframework.data.relational.core.mapping.Column(value = "route_type")
     private RouteType type;

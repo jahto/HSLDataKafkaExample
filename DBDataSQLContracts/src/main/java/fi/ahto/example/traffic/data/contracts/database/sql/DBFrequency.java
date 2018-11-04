@@ -33,7 +33,6 @@ import org.onebusaway.gtfs.model.Frequency;
 public class DBFrequency implements Serializable {
     
     private static final long serialVersionUID = 598721321515940744L;
-
     @javax.persistence.Id
     @org.springframework.data.annotation.Id
     @GeneratedValue
@@ -44,13 +43,13 @@ public class DBFrequency implements Serializable {
     @javax.persistence.Column(name = "trip_id")
     @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     @javax.persistence.Column(name = "start_time")
     @org.springframework.data.relational.core.mapping.Column(value = "start_time")
-    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime startTime;
+    @Convert(converter = GTFSLocalTimeConverter.class)
     @javax.persistence.Column(name = "end_time")
     @org.springframework.data.relational.core.mapping.Column(value = "end_time")
-    @Convert(converter = GTFSLocalTimeConverter.class)
     private GTFSLocalTime endTime;
     @javax.persistence.Column(name = "headway_secs")
     @org.springframework.data.relational.core.mapping.Column(value = "headway_secs")
@@ -62,7 +61,7 @@ public class DBFrequency implements Serializable {
     protected DBFrequency() {}
     
     public DBFrequency(String prefix, Frequency src) {
-        this.tripId = prefix + src.getTrip();
+        this.tripId = prefix + src.getTrip().getId().getId();
         this.startTime = GTFSLocalTime.ofSecondOfDay(src.getStartTime());
         this.endTime = GTFSLocalTime.ofSecondOfDay(src.getEndTime());
         this.headwaySecs = (short) src.getHeadwaySecs();

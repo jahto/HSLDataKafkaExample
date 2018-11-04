@@ -18,7 +18,7 @@ package fi.ahto.example.traffic.data.database.feeder;
 /**
  *
  * @author Jouni Ahto
- * 
+ *
  * Based on an example from
  * https://www.mkyong.com/mongodb/spring-data-mongodb-jsr-310-or-java-8-new-date-apis/
  */
@@ -36,23 +36,19 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 @ComponentScan(basePackages = {"fi.ahto.example.traffic.data.contracts.internal"})
 public class MongoConfiguration {
 
-	@Autowired
-	MongoDbFactory mongoDbFactory;
-	
+    @Autowired
+    MongoDbFactory mongoDbFactory;
+
     @Bean
     public MongoTemplate mongoTemplate() throws Exception {
-
         MongoTemplate mongoTemplate = new MongoTemplate(mongoDbFactory, getDefaultMongoConverter());
         return mongoTemplate;
-
     }
 
     @Bean
     public MappingMongoConverter getDefaultMongoConverter() throws Exception {
-
         MappingMongoConverter converter = new MappingMongoConverter(
                 new DefaultDbRefResolver(mongoDbFactory), new MongoMappingContext());
-
         return converter;
     }
 }

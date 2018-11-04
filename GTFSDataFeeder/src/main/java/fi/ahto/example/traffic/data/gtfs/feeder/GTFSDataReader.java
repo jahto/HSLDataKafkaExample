@@ -354,7 +354,7 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
-                // sendJsonRecord("dbqueue-frequency", prefix, freq);
+                sendJsonRecord("dbqueue-frequency", prefix, freq);
             }
             
             if (bean instanceof Route) {

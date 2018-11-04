@@ -16,9 +16,12 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendar;
+import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendarDate;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequency;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStop;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarDateRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLFrequencyRepository;
@@ -26,6 +29,7 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteRepository
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopTimeRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripRepository;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,13 +69,13 @@ public class DataFeeder {
 
     @Autowired
     private SQLStopRepository stopRepository;
-    /*
+
     @Autowired
     private SQLCalendarRepository calendarRepository;
 
     @Autowired
     private SQLCalendarDateRepository calendarDateRepository;
-    */
+
     @Autowired
     private SQLFrequencyRepository frequencyRepository;
 
@@ -91,6 +95,10 @@ public class DataFeeder {
         final JsonSerde<Stop> stopserde = new JsonSerde<>(Stop.class, smileMapper);
         KStream<String, Stop> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
         stopstream.foreach((key, value) -> handleStop(key, value));
+        
+        final JsonSerde<ServiceDataComplete> serviceserde = new JsonSerde<>(ServiceDataComplete.class, smileMapper);
+        KStream<String, ServiceDataComplete> servicestream = builder.stream("dbqueue-services-complete", Consumed.with(Serdes.String(), serviceserde));
+        servicestream.foreach((key, value) -> handleService(key, value));
         /*
         final JsonSerde<ServiceCalendar> calendarserde = new JsonSerde<>(ServiceCalendar.class, smileMapper);
         KStream<String, ServiceCalendar> calendarstream = builder.stream("dbqueue-calendar", Consumed.with(Serdes.String(), calendarserde));
@@ -100,9 +108,11 @@ public class DataFeeder {
         KStream<String, ServiceCalendarDate> calendardatestream = builder.stream("dbqueue-calendardate", Consumed.with(Serdes.String(), calendardateserde));
         calendardatestream.foreach((key, value) -> handleCalendarDate(key, value));
         */
+        /*
         final JsonSerde<Frequency> frequencyserde = new JsonSerde<>(Frequency.class, smileMapper);
         KStream<String, Frequency> frequencystream = builder.stream("dbqueue-frequency", Consumed.with(Serdes.String(), frequencyserde));
         frequencystream.foreach((key, value) -> handleFrequency(key, value));
+        */
         /*
         final JsonSerde<StopTime> stoptimeserde = new JsonSerde<>(StopTime.class, smileMapper);
         KStream<String, StopTime> stoptimestream = builder.stream("dbqueue-stoptime", Consumed.with(Serdes.String(), stoptimeserde));
@@ -116,13 +126,44 @@ public class DataFeeder {
         return routestream;
     }
 
+    private void handleService(String key, ServiceDataComplete rt) {
+        try {
+            DBCalendar dbc = new DBCalendar(rt);
+            Long sid = calendarRepository.save(dbc).getServiceNum();
+            if (counter.addAndGet(1) % 100 == 0) {
+                LOG.info("Handled {} records", counter);
+            }
+            // Just checking if the idea works. Should add everything
+            // into a batch update and run it. Ok, it seems work...
+            // So we can run several threads all pumping data to the db. 
+            for (LocalDate ld : rt.getInUse()) {
+                DBCalendarDate dbcd = new DBCalendarDate();
+                dbcd.setServiceId(dbc.getServiceId());
+                dbcd.setExceptionDate(ld);
+                dbcd.setExceptionType((short) 1);
+                calendarDateRepository.save(dbcd);
+            }
+            for (LocalDate ld : rt.getNotInUse()) {
+                DBCalendarDate dbcd = new DBCalendarDate();
+                dbcd.setServiceId(dbc.getServiceId());
+                dbcd.setExceptionDate(ld);
+                dbcd.setExceptionType((short) 2);
+                calendarDateRepository.save(dbcd);
+            }
+            // Now, add the trips too...
+        } catch (Exception e) {
+            LOG.info("handleService", e);
+        }
+    }
     private void handleRoute(String key, Route rt) {
         try {
             DBRoute dbrt = new DBRoute(key, rt);
+            
             Long id = routeRepository.save(dbrt).getRouteNum();
             if (id != null) {
                 routenums.put(dbrt.getRouteId(), id);
             }
+            
         } catch (Exception e) {
             LOG.info("handleRoute", e);
         }
@@ -131,10 +172,12 @@ public class DataFeeder {
     private void handleStop(String key, Stop rt) {
         try {
             DBStop dbrt = new DBStop(key, rt);
+            /*
             Long id = stopRepository.save(dbrt).getStopNum();
             if (id != null) {
                 stopnums.put(dbrt.getStopId(), id);
             }
+            */
         } catch (Exception e) {
             LOG.info("handleStop", e);
         }
@@ -167,6 +210,9 @@ public class DataFeeder {
         try {
             DBFrequency dbrt = new DBFrequency(key, rt);
             frequencyRepository.save(dbrt);
+            if (counter.addAndGet(1) % 10000 == 0) {
+                LOG.info("Handled {} records", counter);
+            }
         } catch (Exception e) {
             LOG.info("handleFrequency", e);
         }

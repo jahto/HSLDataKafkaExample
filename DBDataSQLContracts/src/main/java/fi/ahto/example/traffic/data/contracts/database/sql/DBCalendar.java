@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
+import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
 import fi.ahto.example.traffic.data.contracts.utils.OneBusAwayHelpers;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -90,5 +91,18 @@ public class DBCalendar implements Serializable {
         this.friday = src.getFriday() == 1;
         this.saturday = src.getSaturday() == 1;
         this.sunday = src.getSunday() == 1;
+    }
+    
+    public DBCalendar(ServiceDataComplete src) {
+        this.serviceId = src.getServiceId();
+        this.validFrom = src.getValidFrom();
+        this.validUntil = src.getValidUntil();
+        this.monday = src.isMonday();
+        this.tuesday = src.isTuesday();
+        this.wednesday = src.isWednesday();
+        this.thursday = src.isThursday();
+        this.friday = src.isFriday();
+        this.saturday = src.isSaturday();
+        this.sunday = src.isSunday();
     }
 }

@@ -51,7 +51,7 @@ public class DBCalendarDate implements Serializable {
     @org.springframework.data.relational.core.mapping.Column(value = "exception_type")
     private short exceptionType;
     
-    protected DBCalendarDate() {}
+    public DBCalendarDate() {}
     
     public DBCalendarDate(String prefix, ServiceCalendarDate src) {
         this.serviceId = prefix + src.getServiceId().getId();
