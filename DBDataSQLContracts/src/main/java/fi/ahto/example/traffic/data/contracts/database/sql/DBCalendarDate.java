@@ -41,9 +41,14 @@ public class DBCalendarDate implements Serializable {
     @org.springframework.data.relational.core.mapping.Column(value = "calendar_date_num")
     private Long calendarDateNum;
 
-    @javax.persistence.Column(name = "service_id")
-    @org.springframework.data.relational.core.mapping.Column(value = "service_id")
-    private String serviceId;
+    // @javax.persistence.Id
+    // @org.springframework.data.annotation.Id
+    @javax.persistence.Column(name = "service_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_num")
+    private Long serviceId;
+
+    // @javax.persistence.Id
+    // @org.springframework.data.annotation.Id
     @javax.persistence.Column(name = "exception_date")
     @org.springframework.data.relational.core.mapping.Column(value = "exception_date")
     private LocalDate exceptionDate;
@@ -52,10 +57,11 @@ public class DBCalendarDate implements Serializable {
     private short exceptionType;
     
     public DBCalendarDate() {}
-    
+    /*
     public DBCalendarDate(String prefix, ServiceCalendarDate src) {
         this.serviceId = prefix + src.getServiceId().getId();
         this.exceptionDate = OneBusAwayHelpers.from(src.getDate());
         this.exceptionType = (short) src.getExceptionType();
     }
+    */
 }

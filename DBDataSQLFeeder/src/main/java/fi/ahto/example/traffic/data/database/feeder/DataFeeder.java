@@ -30,6 +30,8 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopTimeRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripRepository;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -136,20 +138,30 @@ public class DataFeeder {
             // Just checking if the idea works. Should add everything
             // into a batch update and run it. Ok, it seems work...
             // So we can run several threads all pumping data to the db. 
+            
+            List<DBCalendarDate> dates = new ArrayList<>();
+                    
             for (LocalDate ld : rt.getInUse()) {
                 DBCalendarDate dbcd = new DBCalendarDate();
-                dbcd.setServiceId(dbc.getServiceId());
+                // dbcd.setServiceId(dbc.getServiceId());
+                dbcd.setServiceId(sid);
                 dbcd.setExceptionDate(ld);
                 dbcd.setExceptionType((short) 1);
-                calendarDateRepository.save(dbcd);
+                dates.add(dbcd);
+                // calendarDateRepository.save(dbcd);
             }
             for (LocalDate ld : rt.getNotInUse()) {
                 DBCalendarDate dbcd = new DBCalendarDate();
-                dbcd.setServiceId(dbc.getServiceId());
+                // dbcd.setServiceId(dbc.getServiceId());
+                dbcd.setServiceId(sid);
                 dbcd.setExceptionDate(ld);
                 dbcd.setExceptionType((short) 2);
-                calendarDateRepository.save(dbcd);
+                dates.add(dbcd);
+                // calendarDateRepository.save(dbcd);
             }
+            // No obvious improvement, probably doesn't create a batch.
+            // Must continue with experiments.
+            calendarDateRepository.saveAll(dates);
             // Now, add the trips too...
         } catch (Exception e) {
             LOG.info("handleService", e);
