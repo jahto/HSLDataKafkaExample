@@ -60,10 +60,10 @@ public class ServiceDataComplete {
         String routeid = prefix + st.getTrip().getRoute().getId().getId();
         String tripid = prefix + st.getTrip().getId().getId();
 
-        TripComplete ti = this.getTrips().get(tripid);
+        TripComplete ti = this.getTrip(tripid);
         if (ti == null) {
             ti = new TripComplete(prefix, st);
-            this.getTrips().put(tripid, ti);
+            this.getTrips().add(ti);
         } else {
             ti.add(prefix, st);
         }
@@ -122,7 +122,7 @@ public class ServiceDataComplete {
 
     public void add(String prefix, Frequency fr) {
         String tripid = prefix + fr.getTrip().getId().getId();
-        TripComplete ti = this.getTrips().get(tripid);
+        TripComplete ti = this.getTrip(tripid);
         if (ti != null) {
             FrequencyComplete fc = new FrequencyComplete(prefix, fr);
             ti.add(prefix, fc);
@@ -225,8 +225,19 @@ public class ServiceDataComplete {
 
     private List<LocalDate> inUse = new ArrayList<>();
     private List<LocalDate> notInUse = new ArrayList<>();
-    private Map<String, TripComplete> trips = new HashMap<>();
+    // private Map<String, TripComplete> trips = new HashMap<>();
+    private List<TripComplete> trips = new ArrayList<>();
     private List<String> routes = new ArrayList<>();
+
+    public TripComplete getTrip(String key) {
+        for (int i = 0; i < trips.size(); i++) {
+            TripComplete tc = trips.get(i);
+            if (tc.getTripId().equals(key)) {
+                return tc;
+            }
+        }
+        return null;
+    }
 
     public List<LocalDate> getInUse() {
         return inUse;
@@ -235,8 +246,8 @@ public class ServiceDataComplete {
     public List<LocalDate> getNotInUse() {
         return notInUse;
     }
-
-    public Map<String, TripComplete> getTrips() {
+   
+    public List<TripComplete> getTrips() {
         return trips;
     }
 

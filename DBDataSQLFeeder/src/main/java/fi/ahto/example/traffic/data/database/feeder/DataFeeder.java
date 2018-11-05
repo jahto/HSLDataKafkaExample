@@ -22,6 +22,8 @@ import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequency;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBRoute;
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStop;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
+import fi.ahto.example.traffic.data.contracts.internal.StopTimeComplete;
+import fi.ahto.example.traffic.data.contracts.internal.TripComplete;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarDateRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarRepository;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLFrequencyRepository;
@@ -31,6 +33,7 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopTimeReposit
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -163,10 +166,23 @@ public class DataFeeder {
             // Must continue with experiments.
             calendarDateRepository.saveAll(dates);
             // Now, add the trips too...
+            handleTrips(sid, rt.getTrips());
         } catch (Exception e) {
             LOG.info("handleService", e);
         }
     }
+
+    private void handleTrips(Long sid, Collection<TripComplete> trc) {
+        for (TripComplete tr : trc) {
+            handleStopTimes(null, tr.getStopTimes());
+        }
+    }
+
+    private void handleStopTimes(Long tid, Collection<StopTimeComplete> stc) {
+        for (StopTimeComplete st : stc) {
+        }
+    }
+    
     private void handleRoute(String key, Route rt) {
         try {
             DBRoute dbrt = new DBRoute(key, rt);

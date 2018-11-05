@@ -39,9 +39,8 @@ public class TripComplete {
         Trip tr = st.getTrip();
 
         // ServiceId not needed here!
-        // TripId not needed here!
-        // String tripid = prefix + tr.getId().getId();
-        // this.tripId = tripid;
+        String tripid = prefix + tr.getId().getId();
+        this.tripId = tripid;
         String routeid = prefix + tr.getRoute().getId().getId();
         this.routeId = routeid;
 
@@ -89,15 +88,14 @@ public class TripComplete {
         this.routeId = routeId;
     }
 
-    /*
-        public String getTripId() {
-            return tripId;
-        }
+    public String getTripId() {
+        return tripId;
+    }
 
-        public void setTripId(String tripId) {
-            this.tripId = tripId;
-        }
-     */
+    public void setTripId(String tripId) {
+        this.tripId = tripId;
+    }
+
     public String getHeadsign() {
         return headsign;
     }
@@ -147,7 +145,7 @@ public class TripComplete {
     }
 
     // private String serviceId;
-    // private String tripId;
+    private String tripId;
     private String headsign;
     private short direction;
     private String shapeId;
@@ -162,6 +160,5 @@ public class TripComplete {
         return stopTimes;
     }
     private List<FrequencyComplete> frequencies = new ArrayList<>();
-
 
 }

@@ -135,7 +135,7 @@ public class DataMapper {
         ServiceDataComplete sdc = completeservices.get(key);
         if (sdc != null) {
             String tkey = prefix + freq.getTrip().getId().getId();
-            TripComplete tc = sdc.getTrips().get(tkey);
+            TripComplete tc = sdc.getTrip(tkey);
             if (tc != null) {
                 tc.getFrequencies().add(new FrequencyComplete(prefix, freq));
             }
