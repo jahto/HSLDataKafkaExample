@@ -34,7 +34,7 @@ public class StopTimeComplete {
         this.dropoffType = (short) st.getDropOffType();
         this.headsign = st.getStopHeadsign();
         this.pickupType = (short) st.getPickupType();
-        this.stopId = prefix + ":" + st.getStop().getId().getId();
+        this.stopId = prefix + st.getStop().getId().getId();
         this.stopSequence = st.getStopSequence();
         if (st.isTimepointSet()) {
             this.timepoint = (short) st.getTimepoint();
