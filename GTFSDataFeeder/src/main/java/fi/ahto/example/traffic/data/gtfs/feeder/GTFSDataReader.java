@@ -3,7 +3,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * You may obtain a rtcp of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -31,12 +31,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.onebusaway.csv_entities.EntityHandler;
+import org.onebusaway.gtfs.impl.GtfsDaoImpl;
+import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
@@ -186,7 +189,7 @@ public class GTFSDataReader implements ApplicationRunner {
     boolean validatedir(File dir) {
         File prefixfile = new File(dir, "prefix.data");
         if (prefixfile.exists() && prefixfile.canRead() && prefixfile.length() > 0) {
-            try (BufferedReader br = new BufferedReader(new FileReader(prefixfile))) {
+            try ( BufferedReader br = new BufferedReader(new FileReader(prefixfile))) {
                 String line = br.readLine();
                 if (line != null) {
                     prefix = line;
@@ -202,6 +205,7 @@ public class GTFSDataReader implements ApplicationRunner {
     void processdir(File dir) {
         GtfsReader reader = new GtfsReader();
         reader.addEntityHandler(entityHandler);
+        //reader.setEntityStore(store);
         File input = dir.getAbsoluteFile();
         try {
             mapper = new DataMapper();
@@ -245,15 +249,15 @@ public class GTFSDataReader implements ApplicationRunner {
         });
 
         mapper.services.forEach((k, v) -> {
-                    for (String route : v.routeIds) {
-                        ServiceList list = mapper.routeservices.get(route);
-                        if (list == null) {
-                            list = new ServiceList();
-                            mapper.routeservices.put(route, list);
-                        }
-                        list.add(v.toServiceData());
-                    }
+            for (String route : v.routeIds) {
+                ServiceList list = mapper.routeservices.get(route);
+                if (list == null) {
+                    list = new ServiceList();
+                    mapper.routeservices.put(route, list);
                 }
+                list.add(v.toServiceData());
+            }
+        }
         );
 
         LOG.debug("Sending routes-to-services maps");
@@ -314,13 +318,13 @@ public class GTFSDataReader implements ApplicationRunner {
         LOG.debug("Sending complete services");
         mapper.completeservices.forEach(
                 (k, v) -> {
-                sendJsonRecord("dbqueue-services-complete", k, v);
-        });
+                    sendJsonRecord("dbqueue-services-complete", k, v);
+                });
     }
 
     @Component
     private class GtfsEntityHandler implements EntityHandler {
-    // private static class GtfsEntityHandler implements EntityHandler {
+        // private static class GtfsEntityHandler implements EntityHandler {
 
         @Override
         public void handleEntity(Object bean) {
@@ -350,28 +354,42 @@ public class GTFSDataReader implements ApplicationRunner {
                 ShapePoint shape = (ShapePoint) bean;
                 collector.add(prefix, shape);
             }
-            
+
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
                 sendJsonRecord("dbqueue-frequency", prefix, freq);
             }
-            
+
             if (bean instanceof Route) {
                 Route rt = (Route) bean;
-                sendJsonRecord("dbqueue-route", prefix, rt);
+                AgencyAndId aid = rt.getId();
+                Route rtcp = new Route(rt);
+                AgencyAndId aidcp = new AgencyAndId(aid.getAgencyId(), prefix + aid.getId());
+                rtcp.setId(aidcp);
+                sendJsonRecord("dbqueue-route", rtcp.getId().getId(), rtcp);
             }
-            
+
             if (bean instanceof Stop) {
                 Stop st = (Stop) bean;
-                sendJsonRecord("dbqueue-stop", prefix, st);
+                AgencyAndId aid = st.getId();
+                Stop stcp = new Stop(st);
+                AgencyAndId aidcp = new AgencyAndId(aid.getAgencyId(), prefix + aid.getId());
+                stcp.setId(aidcp);
+                if (stcp.getCode() != null && !stcp.getCode().isEmpty()) {
+                    stcp.setCode(prefix + stcp.getCode());
+                }
+                if (stcp.getParentStation() != null && !stcp.getParentStation().isEmpty()) {
+                    stcp.setParentStation(prefix + stcp.getParentStation());
+                }
+                sendJsonRecord("dbqueue-stop", stcp.getId().getId(), stcp);
             }
             /*
             if (bean instanceof Trip) {
                 Trip tr = (Trip) bean;
                 sendJsonRecord("dbqueue-trip", prefix, tr);
             }
-            */
+             */
         }
     }
 }
