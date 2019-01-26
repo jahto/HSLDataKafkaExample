@@ -17,68 +17,46 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.Convert;
-import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class TripComplete {
+public class TripData {
+    public TripData() {}
 
-    public List<FrequencyComplete> getFrequencies() {
-        return frequencies;
+    public RouteData getRoute() {
+        return route;
     }
 
-    public TripComplete() {
-
+    public void setRoute(RouteData route) {
+        this.route = route;
     }
 
-    public TripComplete(String prefix, StopTime st) {
-        Trip tr = st.getTrip();
-
-        // ServiceId not needed here!
-        String tripid = prefix + tr.getId().getId();
-        this.tripId = tripid;
-        String routeid = prefix + tr.getRoute().getId().getId();
-        this.routeId = routeid;
-
-        this.headsign = tr.getTripHeadsign();
-        this.shortName = tr.getTripShortName();
-
-        String dir = tr.getDirectionId();
-        if (dir.equals("1")) {
-            this.direction = 2;
-        } else if (dir.equals("0")) {
-            this.direction = 1;
-        } else {
-            this.direction = 0;
-        }
-
-        if (tr.getBlockId() != null) {
-            this.blockId = prefix + tr.getBlockId(); // + ":" + routeid; // + ":" + dir;
-        }
-        if (tr.getShapeId() != null) {
-            this.shapeId = prefix + tr.getShapeId().getId();
-        }
-
-        this.wheelchairAccessible = (short) tr.getWheelchairAccessible();
-        this.bikesAllowed = (short) tr.getBikesAllowed();
-
-        this.add(prefix, st);
+    public ServiceData getService() {
+        return service;
     }
 
-    public void add(String prefix, StopTime st) {
-        StopTimeComplete stc = new StopTimeComplete(prefix, st);
-        this.stopTimes.add(stc);
+    public void setService(ServiceData service) {
+        this.service = service;
     }
 
-    public void add(String prefix, FrequencyComplete fr) {
 
+    public void add(StopTimeData st) {
+        this.stopTimes.add(st);
     }
 
-    private String routeId;
+    public void add(FrequencyData fr) {
+        this.frequencies.add(fr);
+    }
+
+    public String getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
+    }
 
     public String getRouteId() {
         return routeId;
@@ -110,6 +88,14 @@ public class TripComplete {
 
     public void setDirection(short direction) {
         this.direction = direction;
+    }
+
+    public GTFSLocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(GTFSLocalTime startTime) {
+        this.startTime = startTime;
     }
 
     public String getShapeId() {
@@ -144,21 +130,50 @@ public class TripComplete {
         this.bikesAllowed = bikesAllowed;
     }
 
-    // private String serviceId;
+    public String getShortName() {
+        return shortName;
+    }
+
+    public void setShortName(String shortName) {
+        this.shortName = shortName;
+    }
+
+    @org.springframework.data.annotation.Id
     private String tripId;
+    private String serviceId;
+    private String routeId;
     private String headsign;
     private short direction;
+    private GTFSLocalTime startTime;
     private String shapeId;
     private String blockId;
     private short wheelchairAccessible;
     private short bikesAllowed;
     private String shortName;
+    private RouteData route;
+    private ServiceData service;
 
-    public List<StopTimeComplete> stopTimes = new ArrayList<>();
+    public final StopTimeDataSet stopTimes = new StopTimeDataSet();
 
-    public List<StopTimeComplete> getStopTimes() {
+    public StopTimeDataSet getStopTimes() {
         return stopTimes;
     }
-    private List<FrequencyComplete> frequencies = new ArrayList<>();
+    private final List<FrequencyData> frequencies = new ArrayList<>();
 
+    public List<FrequencyData> getFrequencies() {
+        return frequencies;
+    }
+
+    public TripStopSet toTripStopSet() {
+        TripStopSet set = new TripStopSet();
+        
+        for (StopTimeData stc : stopTimes) {
+            TripStop st = new TripStop();
+            st.arrivalTime = stc.getArrival();
+            st.seq = stc.getStopSequence();
+            st.stopid = stc.getStopId();
+            set.add(st);
+        }
+        return set;
+    }
 }

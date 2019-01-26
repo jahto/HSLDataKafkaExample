@@ -16,13 +16,19 @@
 package fi.ahto.example.traffic.data.database.repositories.sql;
 
 import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendarDate;
+import org.springframework.data.jdbc.repository.query.Modifying;
+import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 /**
  *
  * @author Jouni Ahto
  */
 @Repository
-public interface SQLCalendarDateRepository extends CrudRepository<DBCalendarDate, String> {
-    
+public interface SQLCalendarDateRepository extends CrudRepository<DBCalendarDate, String>, SQLCalendarDateBatchRepository {
+    @Modifying
+    @Query("delete from calendar_dates where service_num = :id")
+    void deleteByServiceNum(@Param("id") Long id);
 }

@@ -16,13 +16,18 @@
 package fi.ahto.example.traffic.data.database.repositories.sql;
 
 import fi.ahto.example.traffic.data.contracts.database.sql.DBStopTime;
+import org.springframework.data.jdbc.repository.query.Modifying;
+import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 /**
  *
  * @author Jouni Ahto
  */
 @Repository
-public interface SQLStopTimeRepository extends CrudRepository<DBStopTime, String> {
-    
+public interface SQLStopTimeRepository extends CrudRepository<DBStopTime, String>, SQLStopTimeBatchRepository {
+    @Modifying
+    @Query("delete from stop_times where trip_num = :id")
+    void deleteByTripNum(@Param("id") Long id);
 }

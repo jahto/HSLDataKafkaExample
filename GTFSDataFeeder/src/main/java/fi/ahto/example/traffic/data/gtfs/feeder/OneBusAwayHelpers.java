@@ -13,31 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import fi.ahto.example.traffic.data.contracts.utils.Partitionable;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDate;
+import org.onebusaway.gtfs.model.calendar.ServiceDate;
 
 /**
  *
  * @author Jouni Ahto
  */
+public class OneBusAwayHelpers {
 
-public class ServiceTrips implements Serializable, Partitionable {
-    private static final long serialVersionUID = -7159227698102377063L;
-
-    public String route;
-    @JsonProperty("StartTimes")
-    public Map<Integer, String> starttimes = new HashMap<>();
-
-    @Override
-    public byte[] getKeyBytes() {
-        if (route == null) {
+    public static LocalDate from(ServiceDate src) {
+        if (src == null) {
             return null;
         }
-        return route.getBytes();
+        try {
+            return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
+        } catch (NullPointerException ne) {
+            int i = 0;
+        }
+        return null;
     }
 }

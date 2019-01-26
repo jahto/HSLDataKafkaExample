@@ -19,9 +19,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import fi.ahto.example.traffic.data.contracts.internal.StreamServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
@@ -81,7 +81,7 @@ public class LineTransformer {
         final FSTSerde<VehicleDataList> fstvaflistserde = new FSTSerde<>(VehicleDataList.class, conf);
         final FSTSerde<ServiceList> fstServiceListSerde = new FSTSerde<>(ServiceList.class, conf);
         final FSTSerde<TripStopSet> fsttripsserde = new FSTSerde<>(TripStopSet.class, conf);
-        final FSTSerde<ServiceTrips> fstserviceserde = new FSTSerde<>(ServiceTrips.class, conf);
+        final FSTSerde<StartTimesToTrips> fstserviceserde = new FSTSerde<>(StartTimesToTrips.class, conf);
         final FSTSerde<VehicleAtStop> fstvasserde = new FSTSerde<>(VehicleAtStop.class, conf);
 
         KStream<String, VehicleActivity> streamin = builder.stream("data-by-lineid", Consumed.with(Serdes.String(), fstvafserde));
@@ -92,10 +92,10 @@ public class LineTransformer {
                         Materialized.<String, ServiceList, KeyValueStore<Bytes, byte[]>>as("routes-to-services-store")
                 );
 
-        GlobalKTable<String, ServiceTrips> serviceToTrips
+        GlobalKTable<String, StartTimesToTrips> serviceToTrips
                 = builder.globalTable("services-to-trips",
                         Consumed.with(Serdes.String(), fstserviceserde),
-                        Materialized.<String, ServiceTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips-store")
+                        Materialized.<String, StartTimesToTrips, KeyValueStore<Bytes, byte[]>>as("services-to-trips-store")
                 );
 
         GlobalKTable<String, TripStopSet> trips
@@ -118,8 +118,13 @@ public class LineTransformer {
                 // .filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
                         (VehicleActivity value, ServiceList right) -> {
+                            if (value.getInternalLineId().equals("FI:TKL:90")) {
+                                if (value.getStartTime().toSecondOfDay() == 21900) {
+                                    int i = 0;
+                                }
+                            }
                             if (right == null) {
-                                LOG.info("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
+                                LOG.warn("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             } else {
                                 LOG.debug("Found correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
                             }
@@ -149,23 +154,29 @@ public class LineTransformer {
                             String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                             return newkey;
                         },
-                        (VehicleActivity value, ServiceTrips right) -> {
+                        (VehicleActivity value, StartTimesToTrips right) -> {
                             String newkey = value.getServiceID() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                             if (right == null) {
-                                LOG.info("Didn't find correct service {} for route {}, line {}, time {}, dir {}",
+                                LOG.warn("Didn't find correct service {} for route {}, line {}, time {}, dir {}",
                                         newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             } else {
-                                LOG.debug("Found correct service {} for route {}, line {}, time {}, dir {}",
+                                LOG.info("Found correct service {} for route {}, line {}, time {}, dir {}",
                                         newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
+                            }
+                            if (newkey.equals("FI:TKL:TAL_MATO_K35_2019:FI:TKL:90:1")) {
+                                int i = 1;
+                            }
+                            if (newkey.equals("FI:TKL:TAL_MATO_K35_2019:FI:TKL:90:2")) {
+                                int i = 1;
                             }
                             value = findTrip(value, right);
                             if (value.getTripID() == null) {
-                                LOG.debug("Didn't find correct trip for service {}, route {}, line {}, time {}",
+                                LOG.warn("Didn't find correct trip for service {}, route {}, line {}, time {}",
                                         value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                                 return null;
                             }
 
-                            LOG.debug("Found correct trip for service {}, route {}, line {}, time {}",
+                            LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
                                     value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
                             return value;
                         }
@@ -180,16 +191,24 @@ public class LineTransformer {
                 })
                 //.filterNot((k, v) -> v.LineHasChanged())
                 .leftJoin(serviceToTrips,
-                        (String key, VehicleActivity value) -> value.getBlockId() + ":" + value.getInternalLineId(), // + ":" + value.getDirection(),
-                        (VehicleActivity value, ServiceTrips right) -> {
+                        (String key, VehicleActivity value) -> {
+                            String retkey = value.getBlockId() + ":" + value.getInternalLineId(); // + ":" + value.getDirection();
+                            return retkey;
+                        },
+                        (VehicleActivity value, StartTimesToTrips right) -> {
+                            String retkey = value.getBlockId() + ":" + value.getInternalLineId(); // + ":" + value.getDirection();
                             if (right == null) {
-                                LOG.info("Didn't find correct block {} for route {}, line {}, dir {}",
-                                        value.getBlockId(), value.getInternalLineId(), value.getLineId(), value.getDirection());
+                                LOG.warn("Didn't find correct block {} for route {}, line {}, dir {}",
+                                        retkey, value.getInternalLineId(), value.getLineId(), value.getDirection());
                             } else {
-                                LOG.debug("Found correct block {} for route {}, line {}, dir {}",
-                                        value.getBlockId(), value.getInternalLineId(), value.getLineId(), value.getDirection());
+                                LOG.info("Found correct block {} for route {}, line {}, dir {}",
+                                        retkey, value.getInternalLineId(), value.getLineId(), value.getDirection());
                             }
                             value = findTrip(value, right);
+                            if (value == null) {
+                                LOG.warn("Didn't find correct trip, block {} for route {}, line {}, dir {}",
+                                        retkey, value.getInternalLineId(), value.getLineId(), value.getDirection());
+                            }
                             return value;
                         });
 
@@ -245,25 +264,30 @@ public class LineTransformer {
 
         LocalDate date = va.getOperatingDate();
         DayOfWeek dow = date.getDayOfWeek();
-        int cnt = 0;
 
-        for (ServiceData sdb : sd) {
-            LOG.debug("Checking service {} for route {}, line {}", sdb.serviceId, va.getInternalLineId(), va.getLineId());
+        for (StreamServiceData sdb : sd) {
+            LOG.debug("Checking service {} for route {}, line {}", sdb.getServiceId(), va.getInternalLineId(), va.getLineId());
 
             // The date was specifically added to timetables, so it should override anything else.
-            if (sdb.inuse.contains(date)) {
-                possibilities.add(sdb.serviceId);
+            if (sdb.getInUse().contains(date)) {
+                possibilities.add(sdb.getServiceId());
+                continue;
+            }
+
+            // The date was specifically removed from timetables, so it should override anything else.
+            if (sdb.getNotInUse().contains(date)) {
                 continue;
             }
 
             // Check if the service is one direction only, and doesn't match current direction.
+            byte extra = sdb.getExtra();
             if (va.getDirection().equals("1")) {
-                if ((sdb.extra &= 0x1) == 0) {
+                if ((extra &= 0x1) == 0) {
                     continue;
                 }
             }
             if (va.getDirection().equals("2")) {
-                if ((sdb.extra &= 0x2) == 0) {
+                if ((extra &= 0x2) == 0) {
                     continue;
                 }
             }
@@ -271,52 +295,48 @@ public class LineTransformer {
             byte result = 0x0;
             switch (dow) {
                 case MONDAY:
-                    result = (byte) (sdb.weekdays & 0x1);
+                    result = (byte) (sdb.getWeekdays() & 0x1);
                     break;
                 case TUESDAY:
-                    result = (byte) (sdb.weekdays & 0x2);
+                    result = (byte) (sdb.getWeekdays() & 0x2);
                     break;
                 case WEDNESDAY:
-                    result = (byte) (sdb.weekdays & 0x4);
+                    result = (byte) (sdb.getWeekdays() & 0x4);
                     break;
                 case THURSDAY:
-                    result = (byte) (sdb.weekdays & 0x8);
+                    result = (byte) (sdb.getWeekdays() & 0x8);
                     break;
                 case FRIDAY:
-                    result = (byte) (sdb.weekdays & 0x10);
+                    result = (byte) (sdb.getWeekdays() & 0x10);
                     break;
                 case SATURDAY:
-                    result = (byte) (sdb.weekdays & 0x20);
+                    result = (byte) (sdb.getWeekdays() & 0x20);
                     break;
                 case SUNDAY:
-                    result = (byte) (sdb.weekdays & 0x40);
+                    result = (byte) (sdb.getWeekdays() & 0x40);
                     break;
             }
 
-            if (result == 0x0 && sdb.weekdays != 0x0) {
+            if (result == 0x0 && sdb.getWeekdays() != 0x0) {
                 continue;
             }
 
-            if (sdb.validfrom.isAfter(date)) {
+            if (sdb.getValidFrom().isAfter(date)) {
                 continue;
             }
-            if (sdb.validuntil.isBefore(date)) {
-                continue;
-            }
-            if (sdb.notinuse.contains(date)) {
+            if (sdb.getValidUntil().isBefore(date)) {
                 continue;
             }
 
-            possibilities.add(sdb.serviceId);
+            possibilities.add(sdb.getServiceId());
             LOG.debug("Service {} matches for route {}, line {}, time {}",
-                    sdb.serviceId, va.getInternalLineId(), va.getLineId(), va.getStartTime());
-            cnt++;
+                    sdb.getServiceId(), va.getInternalLineId(), va.getLineId(), va.getStartTime());
         }
         va.setServicePossibilities(possibilities);
         return va;
     }
 
-    private VehicleActivity findTrip(VehicleActivity va, ServiceTrips sd) {
+    private VehicleActivity findTrip(VehicleActivity va, StartTimesToTrips sd) {
         String tripId = null;
 
         if (sd == null) {
@@ -325,11 +345,11 @@ public class LineTransformer {
 
         tripId = sd.starttimes.get(va.getStartTime().toSecondOfDay());
         if (tripId == null) {
-            LOG.debug("Time {} not found in maps, route {}, line {}, service {}",
+            LOG.warn("Time {} not found in maps, route {}, line {}, service {}",
                     va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
             return va;
         }
-        LOG.debug("Time {} was found in maps, route {}, line {}, service {}, trip {}",
+        LOG.info("Time {} was found in maps, route {}, line {}, service {}, trip {}",
                 va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID(), tripId);
 
         va.setTripID(tripId);
@@ -345,26 +365,12 @@ public class LineTransformer {
         if (value.LineHasChanged() == false) {
             list.add(value);
         } else {
-            /*
-            if (value.getVehicleId().equals("FI:FOLI:80025")) {
-                if (value.LineHasChanged()) {
-                    int i = 0;
-                }
-            }
-             */
-            LOG.info("Removed vehicle {} from line {}", value.getVehicleId(), key);
+            LOG.debug("Removed vehicle {} from line {}", value.getVehicleId(), key);
         }
         return aggregate;
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
-        /*
-        if (left.getVehicleId().equals("FI:FOLI:80025")) {
-            if (left.LineHasChanged() || left.getNextStopId().equals("FI:FOLI:101")) {
-                int i = 0;
-            }
-        }
-         */
         if (right == null) {
             return left;
         }

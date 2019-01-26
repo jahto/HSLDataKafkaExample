@@ -15,13 +15,13 @@
  */
 package fi.ahto.example.traffic.data.database.repositories.mongo;
 
-import org.onebusaway.gtfs.model.Route;
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author Jouni Ahto
  */
-public interface RouteRepository  extends MongoRepository<Route, String>{
+public interface RouteRepository  extends MongoRepository<RouteData, String> {
     
 }

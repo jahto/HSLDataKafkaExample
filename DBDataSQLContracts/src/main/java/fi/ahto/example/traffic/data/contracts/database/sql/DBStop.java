@@ -15,14 +15,11 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import java.io.Serializable;
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
-import javax.persistence.Table;
-import org.springframework.data.annotation.Id;
 import lombok.Data;
-import org.onebusaway.gtfs.model.Stop;
 /**
  *
  * @author Jouni Ahto
@@ -78,21 +75,23 @@ public class DBStop implements Serializable {
     
     protected DBStop() {}
     
-    public DBStop(String prefix, Stop src) {
-        this.stopId = prefix + src.getId().getId();
-        if (src.getCode() != null && !src.getCode().isEmpty()) {
-            this.stopCode = prefix + src.getCode();
-        }
-        this.stopName = src.getName();
+    public DBStop(StopData src) {
+        this.stopId = src.getStopid();
+        this.stopCode = src.getStopcode();
+        //if (src.getCode() != null && !src.getCode().isEmpty()) {
+        //    this.stopCode = prefix + src.getCode();
+        //}
+        this.stopName = src.getStopname();
         this.stopDescription = src.getDesc();
-        this.latitude = (float) src.getLat();
-        this.longitude = (float) src.getLon();
+        this.latitude = (float) src.getLatitude();
+        this.longitude = (float) src.getLongitude();
         // src.getTimezone(); // CHECK: Do we need this?
         this.url = src.getUrl();
         this.locationType = (short) src.getLocationType();
-        if (src.getParentStation() != null && !src.getParentStation().isEmpty()) {
-            this.parentStation = prefix + src.getParentStation();
-        }
+        this.parentStation = src.getParentStation();
+        //if (src.getParentStation() != null && !src.getParentStation().isEmpty()) {
+        //    this.parentStation = prefix + src.getParentStation();
+        //}
         this.wheelchairBoarding = (short) src.getWheelchairBoarding();
         this.platformCode = src.getPlatformCode();
         // src.getVehicleType(); // CHECK: Do we need this?

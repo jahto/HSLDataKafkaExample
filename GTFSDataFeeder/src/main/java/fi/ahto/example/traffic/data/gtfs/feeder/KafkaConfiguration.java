@@ -26,7 +26,7 @@ import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
@@ -127,8 +127,7 @@ public class KafkaConfiguration {
     
     @Bean
     public FSTConfiguration getFSTConfiguration() {
-        FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
-        return conf;
+        return CommonFSTConfiguration.getCommonFSTConfiguration();
     }
     @Autowired
     private FSTConfiguration conf;
@@ -139,8 +138,8 @@ public class KafkaConfiguration {
     }
 
     @Bean
-    FSTSerde<ServiceTrips> fststserde() {
-        return new FSTSerde<>(ServiceTrips.class, conf);
+    FSTSerde<StartTimesToTrips> fststserde() {
+        return new FSTSerde<>(StartTimesToTrips.class, conf);
     }
 
     @Bean

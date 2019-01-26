@@ -17,22 +17,14 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import javax.persistence.Convert;
-import org.onebusaway.gtfs.model.Frequency;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class FrequencyComplete {
-    public FrequencyComplete() {}
+public class FrequencyData {
+    public FrequencyData() {}
 
-    public FrequencyComplete(String prefix, Frequency fr) {
-        this.startTime = GTFSLocalTime.ofSecondOfDay(fr.getStartTime());
-        this.endTime = GTFSLocalTime.ofSecondOfDay(fr.getEndTime());
-        this.headwaySecs = (short) fr.getHeadwaySecs();
-        this.exactTimes = (short) fr.getExactTimes();
-    }
-    
     public GTFSLocalTime getStartTime() {
         return startTime;
     }

@@ -15,12 +15,12 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
+import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import fi.ahto.example.traffic.data.contracts.utils.RouteTypeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
-import org.onebusaway.gtfs.model.Route;
 
 /**
  *
@@ -63,13 +63,13 @@ public class DBRoute implements Serializable{
     
     protected DBRoute() {}
     
-    public DBRoute(String prefix, Route src) {
-        this.routeId = prefix + src.getId().getId();
-        this.shortName = src.getShortName();
-        this.longName = src.getLongName();
-        this.type = RouteType.from(src.getType());
-        this.description = src.getDesc();
-        this.url = src.getUrl();
+    public DBRoute(RouteData src) {
+        this.routeId = src.routeid;
+        this.shortName = src.shortname;
+        this.longName = src.longname;
+        this.type = src.type;
+        this.description = src.description;
+        this.url = src.url;
         
         // There are a few cases where incoming data doesn't have
         // both shortname and longname, although both are required

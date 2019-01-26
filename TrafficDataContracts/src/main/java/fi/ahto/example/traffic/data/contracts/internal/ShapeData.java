@@ -30,4 +30,6 @@ public class ShapeData implements Serializable {
     public double latitude;
     @JsonProperty("Longitude")
     public double longitude;
+    @JsonProperty("DistTraveled")
+    public Double distTraveled;
 }

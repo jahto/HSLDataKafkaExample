@@ -29,6 +29,7 @@ import org.springframework.data.jdbc.repository.config.JdbcConfiguration;
 @Configuration
 public class ConverterConfiguration extends JdbcConfiguration {
     @Bean
+    @Override
     public JdbcCustomConversions jdbcCustomConversions() {
         return new JdbcCustomConversions(Converters.getConvertersToRegister());
     }

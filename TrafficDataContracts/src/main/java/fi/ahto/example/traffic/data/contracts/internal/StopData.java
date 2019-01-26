@@ -17,27 +17,119 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *
  * @author Jouni Ahto
  */
 public class StopData implements Serializable {
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public short getLocationType() {
+        return locationType;
+    }
+
+    public void setLocationType(short locationType) {
+        this.locationType = locationType;
+    }
+
+    public String getParentStation() {
+        return parentStation;
+    }
+
+    public void setParentStation(String parentStation) {
+        this.parentStation = parentStation;
+    }
+
+    public short getWheelchairBoarding() {
+        return wheelchairBoarding;
+    }
+
+    public void setWheelchairBoarding(short wheelchairBoarding) {
+        this.wheelchairBoarding = wheelchairBoarding;
+    }
+
+    public String getPlatformCode() {
+        return platformCode;
+    }
+
+    public void setPlatformCode(String platformCode) {
+        this.platformCode = platformCode;
+    }
+
+    public String getStopid() {
+        return stopid;
+    }
+
+    public void setStopid(String stopid) {
+        this.stopid = stopid;
+    }
+
+    public String getStopname() {
+        return stopname;
+    }
+
+    public void setStopname(String stopname) {
+        this.stopname = stopname;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getStopcode() {
+        return stopcode;
+    }
+
+    public void setStopcode(String stopcode) {
+        this.stopcode = stopcode;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
+    }
     private static final long serialVersionUID = 195474500820358925L;
     @JsonProperty("StopId")
-    public String stopid;
+    @org.springframework.data.annotation.Id
+    private String stopid;
     @JsonProperty("StopName")
-    public String stopname;
+    private String stopname;
     @JsonProperty("Latitude")
-    public double latitude;
+    private double latitude;
     @JsonProperty("Longitude")
-    public double longitude;
+    private double longitude;
     @JsonProperty("StopCode")
-    public String stopcode;
+    private String stopcode;
     @JsonProperty("Description")
-    public String desc;
-    @JsonProperty("RoutesServed")
-    public List<String> routesserved = new ArrayList<>();
+    private String desc;
+    private String url;
+    private short locationType;
+    private String parentStation;
+    private short wheelchairBoarding; // CHECK: probable boolean in reality.
+    private String platformCode;
+
+    // @JsonProperty("RoutesServed")
+    // public List<String> routesserved = new ArrayList<>();
 }

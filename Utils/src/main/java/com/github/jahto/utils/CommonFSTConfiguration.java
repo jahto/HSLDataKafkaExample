@@ -13,10 +13,10 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerialize
 import com.github.jahto.utils.FSTSerializers.TripStopSerializer;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.RouteData.RouteStop;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+// import fi.ahto.example.traffic.data.contracts.internal.RouteData.RouteStop;
+import fi.ahto.example.traffic.data.contracts.internal.StreamServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;
 import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
@@ -62,14 +62,14 @@ public class CommonFSTConfiguration {
         conf.registerClass(VehicleHistorySetComparator.class);
         conf.registerClass(VehicleActivity.class);
         conf.registerClass(ServiceList.class);
-        conf.registerClass(ServiceData.class);
-        conf.registerClass(ServiceTrips.class);
+        conf.registerClass(StreamServiceData.class);
+        conf.registerClass(StartTimesToTrips.class);
         conf.registerClass(VehicleDataList.class);
         conf.registerClass(RouteType.class);
         conf.registerClass(VehicleHistoryRecord.class);
         conf.registerClass(StopData.class);
         conf.registerClass(RouteData.class);
-        conf.registerClass(RouteStop.class);
+        // conf.registerClass(RouteStop.class);
         conf.registerClass(ShapeSet.class);
         conf.registerClass(ShapeData.class);
         // Not obvious, but was found during debugging

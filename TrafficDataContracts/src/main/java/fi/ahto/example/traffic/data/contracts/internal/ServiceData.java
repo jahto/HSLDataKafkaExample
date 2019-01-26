@@ -17,23 +17,74 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  *
  * @author Jouni Ahto
  */
+public class ServiceData extends StreamServiceData implements Serializable {
+    public boolean isMonday() {
+        return monday;
+    }
 
-public class ServiceData implements Serializable {
-    private static final long serialVersionUID = 3738645659204806594L;
+    public void setMonday(boolean monday) {
+        this.monday = monday;
+    }
 
-    public String serviceId;
-    public LocalDate validfrom;
-    public LocalDate validuntil;
-    public List<LocalDate> inuse = new ArrayList<>();
-    public List<LocalDate> notinuse = new ArrayList<>();
-    public byte weekdays = 0;
-    // Oh hell, we need an extra field for special flags...
-    public byte extra = 0;
+    public boolean isTuesday() {
+        return tuesday;
+    }
+
+    public void setTuesday(boolean tuesday) {
+        this.tuesday = tuesday;
+    }
+
+    public boolean isWednesday() {
+        return wednesday;
+    }
+
+    public void setWednesday(boolean wednesday) {
+        this.wednesday = wednesday;
+    }
+
+    public boolean isThursday() {
+        return thursday;
+    }
+
+    public void setThursday(boolean thursday) {
+        this.thursday = thursday;
+    }
+
+    public boolean isFriday() {
+        return friday;
+    }
+
+    public void setFriday(boolean friday) {
+        this.friday = friday;
+    }
+
+    public boolean isSaturday() {
+        return saturday;
+    }
+
+    public void setSaturday(boolean saturday) {
+        this.saturday = saturday;
+    }
+
+    public boolean isSunday() {
+        return sunday;
+    }
+
+    public void setSunday(boolean sunday) {
+        this.sunday = sunday;
+    }
+
+    private boolean monday;
+    private boolean tuesday;
+    private boolean wednesday;
+    private boolean thursday;
+    private boolean friday;
+    private boolean saturday;
+    private boolean sunday;
 }

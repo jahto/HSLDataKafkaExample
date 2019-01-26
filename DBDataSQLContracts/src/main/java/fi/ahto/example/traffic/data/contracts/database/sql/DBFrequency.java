@@ -15,12 +15,12 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
+import fi.ahto.example.traffic.data.contracts.internal.FrequencyData;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
-import org.onebusaway.gtfs.model.Frequency;
 
 /**
  *
@@ -40,9 +40,9 @@ public class DBFrequency implements Serializable {
     @org.springframework.data.relational.core.mapping.Column(value = "frequency_num")
     private Long frequencyNum;
 
-    @javax.persistence.Column(name = "trip_id")
-    @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
-    private String tripId;
+    @javax.persistence.Column(name = "trip_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_num")
+    private Long tripNum;
     @Convert(converter = GTFSLocalTimeConverter.class)
     @javax.persistence.Column(name = "start_time")
     @org.springframework.data.relational.core.mapping.Column(value = "start_time")
@@ -59,11 +59,11 @@ public class DBFrequency implements Serializable {
     private short exactTimes; // TODO: Check if this actually boolean.
 
     protected DBFrequency() {}
-    
-    public DBFrequency(String prefix, Frequency src) {
-        this.tripId = prefix + src.getTrip().getId().getId();
-        this.startTime = GTFSLocalTime.ofSecondOfDay(src.getStartTime());
-        this.endTime = GTFSLocalTime.ofSecondOfDay(src.getEndTime());
+
+    public DBFrequency(Long tid, FrequencyData src) {
+        this.tripNum = tid;
+        this.startTime = src.getStartTime();
+        this.endTime = src.getEndTime();
         this.headwaySecs = (short) src.getHeadwaySecs();
         this.exactTimes = (short) src.getExactTimes();
     }

@@ -26,22 +26,18 @@ import org.onebusaway.gtfs.model.ShapePoint;
  * @author Jouni Ahto
  */
 public class ShapeCollector {
-    public Map<String, ShapeSet> shapes = new HashMap<>();
+    public Map<String, ShapePointExtSet> shapes = new HashMap<>();
 
     public void add(String prefix, ShapePoint sp) {
         String shape = prefix + sp.getShapeId().getId();
         
-        ShapeSet set = shapes.get(shape);
+        ShapePointExtSet set = shapes.get(shape);
         
         if (set == null) {
-            set = new ShapeSet();
+            set = new ShapePointExtSet();
             shapes.put(shape, set);
         }
         
-        ShapeData sd = new ShapeData();
-        sd.latitude = sp.getLat();
-        sd.longitude = sp.getLon();
-        sd.seq = sp.getSequence();
-        set.add(sd);
+        set.add(new ShapePointExt(prefix, sp));
     }
 }

@@ -15,27 +15,25 @@
  */
 package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import java.util.ArrayList;
-import java.util.List;
+import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
+import java.util.Comparator;
+import java.util.TreeSet;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class ServiceDataExt extends ServiceData {
-    public List<String> blockIds = new ArrayList<>();
-    public List<String> routeIds = new ArrayList<>();
-
-    ServiceData toServiceData() {
-        ServiceData sd = new ServiceData();
-        sd.inuse = this.inuse;
-        sd.notinuse = this.notinuse;
-        sd.serviceId = this.serviceId;
-        sd.validfrom = this.validfrom;
-        sd.validuntil = this.validuntil;
-        sd.weekdays = this.weekdays;
-        sd.extra = this.extra;
-        return sd;
+public class ShapePointExtSet extends TreeSet<ShapePointExt> {
+    public ShapePointExtSet() {
+        super((Comparator<ShapePointExt>) (ShapePointExt o1, ShapePointExt o2) -> Integer.compare(o1.getSequence(), o2.getSequence()));
+    }
+    
+    public ShapeSet toShapeSet() {
+        ShapeSet ss = new ShapeSet();
+        ss.setShapeId(this.first().getKey());
+        for (ShapePointExt se : this) {
+            ss.getShapes().add(se.toShapeData());
+        }
+        return ss;
     }
 }

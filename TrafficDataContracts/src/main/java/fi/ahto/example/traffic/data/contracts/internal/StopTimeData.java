@@ -17,34 +17,14 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import javax.persistence.Convert;
-import org.onebusaway.gtfs.model.StopTime;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class StopTimeComplete {
+public class StopTimeData {
 
-    public StopTimeComplete() {
-    }
-
-    public StopTimeComplete(String prefix, StopTime st) {
-        this.arrival = GTFSLocalTime.ofSecondOfDay(st.getArrivalTime());
-        this.departure = GTFSLocalTime.ofSecondOfDay(st.getDepartureTime());
-        this.dropoffType = (short) st.getDropOffType();
-        this.headsign = st.getStopHeadsign();
-        this.pickupType = (short) st.getPickupType();
-        this.stopId = prefix + st.getStop().getId().getId();
-        this.stopSequence = st.getStopSequence();
-        if (st.isTimepointSet()) {
-            this.timepoint = (short) st.getTimepoint();
-        }
-        if (st.isShapeDistTraveledSet()) {
-            this.distTraveled = st.getShapeDistTraveled();
-        }
-
-        // TripId not needed here!
-    }
+    public StopTimeData() {}
 
     public int getStopSequence() {
         return stopSequence;
@@ -118,6 +98,14 @@ public class StopTimeComplete {
         this.distTraveled = distTraveled;
     }
 
+    public StopData getStop() {
+        return stop;
+    }
+
+    public void setStop(StopData stop) {
+        this.stop = stop;
+    }
+
     private int stopSequence;
     private String stopId;
     private String headsign;
@@ -129,4 +117,5 @@ public class StopTimeComplete {
     private short dropoffType = 0;
     private short timepoint = 1;
     private Double distTraveled;
+    private StopData stop;
 }

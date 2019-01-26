@@ -15,12 +15,10 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
-import fi.ahto.example.traffic.data.contracts.utils.OneBusAwayHelpers;
 import java.io.Serializable;
 import java.time.LocalDate;
 import javax.persistence.*;
 import lombok.Data;
-import org.onebusaway.gtfs.model.ServiceCalendarDate;
 
 /**
  *
@@ -57,11 +55,4 @@ public class DBCalendarDate implements Serializable {
     private short exceptionType;
     
     public DBCalendarDate() {}
-    /*
-    public DBCalendarDate(String prefix, ServiceCalendarDate src) {
-        this.serviceId = prefix + src.getServiceId().getId();
-        this.exceptionDate = OneBusAwayHelpers.from(src.getDate());
-        this.exceptionType = (short) src.getExceptionType();
-    }
-    */
 }

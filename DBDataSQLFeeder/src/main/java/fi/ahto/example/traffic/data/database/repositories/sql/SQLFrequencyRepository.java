@@ -16,13 +16,22 @@
 package fi.ahto.example.traffic.data.database.repositories.sql;
 
 import fi.ahto.example.traffic.data.contracts.database.sql.DBFrequency;
+import java.util.List;
+import org.springframework.data.jdbc.repository.query.Modifying;
+import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 /**
  *
  * @author Jouni Ahto
  */
 @Repository
-public interface SQLFrequencyRepository extends CrudRepository<DBFrequency, String> {
+public interface SQLFrequencyRepository extends CrudRepository<DBFrequency, String>, SQLFrequencyBatchRepository {
+    @Modifying
+    @Query("delete from frequencies where trip_num = :id")
+    void deleteByTripNum(@Param("id") Long id);
     
+    void saveBatch(List<DBFrequency> dates);
+
 }

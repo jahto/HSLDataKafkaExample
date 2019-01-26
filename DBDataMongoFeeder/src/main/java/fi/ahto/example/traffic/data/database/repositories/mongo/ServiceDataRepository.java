@@ -15,13 +15,13 @@
  */
 package fi.ahto.example.traffic.data.database.repositories.mongo;
 
-import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author Jouni Ahto
  */
-public interface ServiceDataRepository  extends MongoRepository<ServiceDataComplete, String>{
+public interface ServiceDataRepository  extends MongoRepository<ServiceData, String> {
     
 }

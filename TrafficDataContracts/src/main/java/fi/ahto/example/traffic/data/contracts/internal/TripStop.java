@@ -17,7 +17,6 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
-import java.time.LocalTime;
 import java.util.Objects;
 
 /**

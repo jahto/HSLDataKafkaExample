@@ -69,7 +69,7 @@ public class TimeTableComparerSupplier extends TransformerSupplierWithStore<Stri
                 // Vehicles that have changed line or direction, but not any
                 // stop information, so we haven't any list of stops the vehicle
                 // should be removed from.-
-                LOG.info("There should be onwardcalls now, vehicle {}, line {}",
+                LOG.warn("There should be onwardcalls now, vehicle {}, line {}",
                         current.getVehicleId(), current.getInternalLineId());
             }
             // This to skip some oddities at least in FI:TKL data,
@@ -120,11 +120,11 @@ public class TimeTableComparerSupplier extends TransformerSupplierWithStore<Stri
                 if (prevstop != null) {
                     // Just skip until the reason has been found...
                     if (curstop.arrivalTime == null) {
-                        LOG.info("Current arrival time is null for stop {}", curstop.stopid);
+                        LOG.warn("Current arrival time is null for stop {}", curstop.stopid);
                         continue;
                     }
                     if (prevstop.arrivalTime == null) {
-                        LOG.info("Previous arrival time is null for stop {}", curstop.stopid);
+                        LOG.warn("Previous arrival time is null for stop {}", curstop.stopid);
                         continue;
                     }
                     if (curstop.arrivalTime.compareTo(prevstop.arrivalTime) != 0) {
@@ -151,7 +151,7 @@ public class TimeTableComparerSupplier extends TransformerSupplierWithStore<Stri
                     // to them anymore. Push the information to some queue.
                     LOG.debug("Removing stops.");
                     for (TripStop ss : remove) {
-                        LOG.info("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
+                        LOG.debug("Removing vehicle {} from stop {}", current.getVehicleId(), ss.stopid);
                         VehicleAtStop vas = new VehicleAtStop();
                         vas.remove = true;
                         vas.vehicleId = current.getVehicleId();

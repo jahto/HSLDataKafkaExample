@@ -15,10 +15,12 @@
  */
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
+import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
+import fi.ahto.example.traffic.data.contracts.internal.TripData;
+import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
-import org.onebusaway.gtfs.model.Trip;
 
 /**
  *
@@ -38,13 +40,13 @@ public class DBTrip implements Serializable {
     @javax.persistence.Column(name = "trip_num")
     @org.springframework.data.relational.core.mapping.Column(value = "trip_num")
     private Long tripNum;
-
-    @javax.persistence.Column(name = "route_id")
-    @org.springframework.data.relational.core.mapping.Column(value = "route_id")
-    private String routeId;
-    @javax.persistence.Column(name = "service_id")
-    @org.springframework.data.relational.core.mapping.Column(value = "service_id")
-    private String serviceId;
+    
+    @javax.persistence.Column(name = "route_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "route_num")
+    private Long routeNum;
+    @javax.persistence.Column(name = "service_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "service_num")
+    private Long serviceNum;
     @javax.persistence.Column(name = "trip_id")
     @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
@@ -54,12 +56,19 @@ public class DBTrip implements Serializable {
     @javax.persistence.Column(name = "direction")
     @org.springframework.data.relational.core.mapping.Column(value = "direction")
     private short direction;
+    @javax.persistence.Column(name = "start_time")
+    @org.springframework.data.relational.core.mapping.Column(value = "start_time")
+    @Convert(converter = GTFSLocalTimeConverter.class)
+    private GTFSLocalTime startTime;
     @javax.persistence.Column(name = "shape_id")
     @org.springframework.data.relational.core.mapping.Column(value = "shape_id")
     private String shapeId;
     @javax.persistence.Column(name = "block_id")
     @org.springframework.data.relational.core.mapping.Column(value = "block_id")
     private String blockId;
+    @javax.persistence.Column(name = "short_name")
+    @org.springframework.data.relational.core.mapping.Column(value = "short_name")
+    private String shortName;
     @javax.persistence.Column(name = "wheelchair_accessible")
     @org.springframework.data.relational.core.mapping.Column(value = "wheelchair_accessible")
     private short wheelchairAccessible;
@@ -69,22 +78,18 @@ public class DBTrip implements Serializable {
     
     protected DBTrip() {}
     
-    public DBTrip(String prefix, Trip src) {
-        this.routeId = prefix + src.getRoute().getId().getId();
-        this.serviceId = prefix + src.getServiceId().getId();
-        this.tripId = prefix + src.getId().getId();
-        this.headsign = src.getTripHeadsign();
+    public DBTrip(Long sid, Long rid, TripData src) {
+        this.routeNum = rid;
+        this.serviceNum = sid;
+        this.tripId = src.getTripId();
+        this.headsign = src.getHeadsign();
         // Could crash? Maybe should add some value for an unknown direction.
-        this.direction = Short.parseShort(src.getDirectionId());
-        if (src.getShapeId() != null) {
-            this.shapeId = prefix + src.getShapeId().getId();
-        }
-        this.wheelchairAccessible = (short) src.getWheelchairAccessible();
-        this.bikesAllowed = (short) src.getBikesAllowed();
-        if (src.getBlockId() != null && !src.getBlockId().isEmpty()) {
-            src.getBlockId();
-        }
-        // src.getTripShortName();
-        // src.getRouteShortName();
+        this.direction = src.getDirection();
+        this.startTime = src.getStartTime();
+        this.shapeId = src.getShapeId();
+        this.wheelchairAccessible = src.getWheelchairAccessible();
+        this.bikesAllowed = src.getBikesAllowed();
+        this.blockId = src.getBlockId();
+        this.shortName = src.getShortName();
     }
 }

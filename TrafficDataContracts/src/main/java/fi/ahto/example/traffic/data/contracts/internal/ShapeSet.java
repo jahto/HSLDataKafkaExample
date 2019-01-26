@@ -23,11 +23,24 @@ import java.util.TreeSet;
  *
  * @author Jouni Ahto
  */
-public class ShapeSet extends TreeSet<ShapeData> implements Serializable {
+// public class ShapeSet extends TreeSet<ShapeData> implements Serializable {
+public class ShapeSet implements Serializable {
+
+    public String getShapeId() {
+        return shapeId;
+    }
+
+    public void setShapeId(String shapeId) {
+        this.shapeId = shapeId;
+    }
+
+    public ShapeDataSet getShapes() {
+        return shapes;
+    }
 
     private static final long serialVersionUID = 8700721661729891433L;
-
-    public ShapeSet() {
-        super((Comparator<ShapeData> & Serializable) (ShapeData o1, ShapeData o2) -> Integer.compare(o1.seq, o2.seq));
-    }
+    @org.springframework.data.annotation.Id
+    private String shapeId;
+    
+    private final ShapeDataSet shapes = new ShapeDataSet();
 }

@@ -16,11 +16,11 @@
 package fi.ahto.example.traffic.data.contracts.database.sql;
 
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
+import fi.ahto.example.traffic.data.contracts.internal.StopTimeData;
 import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
 import java.io.Serializable;
 import javax.persistence.*;
 import lombok.Data;
-import org.onebusaway.gtfs.model.StopTime;
 
 /**
  *
@@ -44,12 +44,18 @@ public class DBStopTime implements Serializable {
     @javax.persistence.Column(name = "trip_id")
     @org.springframework.data.relational.core.mapping.Column(value = "trip_id")
     private String tripId;
+    @javax.persistence.Column(name = "trip_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "trip_num")
+    private Long tripNum;
     @javax.persistence.Column(name = "stop_sequence")
     @org.springframework.data.relational.core.mapping.Column(value = "stop_sequence")
     private int stopSequence;
     @javax.persistence.Column(name = "stop_id")
     @org.springframework.data.relational.core.mapping.Column(value = "stop_id")
     private String stopId;
+    @javax.persistence.Column(name = "stop_num")
+    @org.springframework.data.relational.core.mapping.Column(value = "stop_num")
+    private Long stopNum;
     @javax.persistence.Column(name = "headsign")
     @org.springframework.data.relational.core.mapping.Column(value = "headsign")
     private String headsign;
@@ -75,22 +81,22 @@ public class DBStopTime implements Serializable {
     private Float distTraveled;
     
     protected DBStopTime() {}
-    
-    public DBStopTime(String prefix, StopTime src) {
-        this.tripId = prefix + src.getTrip().getId().getId();
+
+    public DBStopTime(Long tid, Long sid, StopTimeData src) {
+        this.tripNum = tid;
         this.stopSequence = src.getStopSequence();
-        this.stopId = prefix + src.getStop().getId().getId();
-        this.headsign = src.getStopHeadsign();
-        this.arrival = GTFSLocalTime.ofSecondOfDay(src.getArrivalTime());
-        this.departure = GTFSLocalTime.ofSecondOfDay(src.getDepartureTime());
+        this.stopNum = sid;
+        this.headsign = src.getHeadsign();
+        this.arrival = src.getArrival(); // GTFSLocalTime.ofSecondOfDay(src.getArrivalTime());
+        this.departure = src.getDeparture(); // GTFSLocalTime.ofSecondOfDay(src.getDepartureTime());
         this.pickupType = (short) src.getPickupType();
-        this.dropoffType = (short) src.getDropOffType();
-        if (src.isTimepointSet()) {
+        this.dropoffType = (short) src.getDropoffType();
+        // if (src.isTimepointSet()) {
             this.timepoint = (short) src.getTimepoint();
-        }
-        if (src.isShapeDistTraveledSet()) {
-            this.distTraveled = (float) src.getShapeDistTraveled();
-        }
+        //}
+        //if (src.isShapeDistTraveledSet()) {
+            // this.distTraveled = (Double) src.getDistTraveled();
+        //}
         // fare_units_traveled
     }
 }

@@ -17,9 +17,6 @@ package fi.ahto.example.traffic.data.contracts.internal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  *
@@ -28,6 +25,7 @@ import java.util.Objects;
 public class RouteData implements Serializable {
 
     private static final long serialVersionUID = -1109210000681896888L;
+    @org.springframework.data.annotation.Id
     @JsonProperty("RouteId")
     public String routeid;
     @JsonProperty("ShortName")
@@ -37,9 +35,14 @@ public class RouteData implements Serializable {
     @JsonProperty("TransitType")
     public RouteType type = RouteType.UNKNOWN;
     
-    @JsonProperty("Stops")
-    public List<RouteStop> stops = new ArrayList<>();
+    @JsonProperty("Description")
+    public String description;
+    @JsonProperty("URL")
+    public String url;
     
+    // @JsonProperty("Stops")
+    // public List<RouteStop> stops = new ArrayList<>();
+    /*
     public static class RouteStop implements Serializable {
 
         private static final long serialVersionUID = -3579965916298485253L;
@@ -78,4 +81,5 @@ public class RouteData implements Serializable {
             return true;
         }
     }
+    */
 }

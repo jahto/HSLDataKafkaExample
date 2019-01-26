@@ -16,7 +16,10 @@
 package fi.ahto.example.traffic.data.database.repositories.sql;
 
 import fi.ahto.example.traffic.data.contracts.database.sql.DBCalendar;
+import java.util.Optional;
+import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 /**
  *
@@ -24,5 +27,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface SQLCalendarRepository extends CrudRepository<DBCalendar, String> {
-    
+    @Query("select service_num from calendars where service_id = :id")
+    Optional<Long> findIdByServiceId(@Param("id") String id);
 }

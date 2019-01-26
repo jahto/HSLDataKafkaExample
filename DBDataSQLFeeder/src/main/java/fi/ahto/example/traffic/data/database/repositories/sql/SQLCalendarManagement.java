@@ -13,23 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.gtfs.feeder;
+package fi.ahto.example.traffic.data.database.repositories.sql;
 
-import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
-
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 /**
  *
  * @author Jouni Ahto
  */
-public class TripStopSetExt extends TripStopSet {
-    public String service;
-    public String route;
-    public String direction;
-    public String block;
-    
-    TripStopSet toTripStopSet() {
-        TripStopSet ts = new TripStopSet();
-        ts.addAll(this);
-        return ts;
-    }
+@Service
+@Repository
+public interface SQLCalendarManagement {
+    Long handleService(String key, ServiceData rt, boolean update);
+    Long getServiceNumber(String key, ServiceData rt);
 }

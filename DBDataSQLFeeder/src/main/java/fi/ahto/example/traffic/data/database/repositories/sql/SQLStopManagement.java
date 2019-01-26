@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.utils;
+package fi.ahto.example.traffic.data.database.repositories.sql;
 
-import java.time.LocalDate;
-import org.onebusaway.gtfs.model.calendar.ServiceDate;
-
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.StopTimeData;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 /**
  *
  * @author Jouni Ahto
  */
-public class OneBusAwayHelpers {
-
-    public static LocalDate from(ServiceDate src) {
-        try {
-            return LocalDate.of(src.getYear(), src.getMonth(), src.getDay());
-        } catch (NullPointerException ne) {
-            int i = 0;
-        }
-        return null;
-    }
+@Service
+@Repository
+public interface SQLStopManagement {
+    Long handleStop(String key, StopData rt, boolean update);
+    Long getStopNumber(StopTimeData id);
 }

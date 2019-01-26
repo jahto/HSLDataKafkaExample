@@ -22,6 +22,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarManagement;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarManagementImpl;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteManagement;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteManagementImpl;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopManagement;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopManagementImpl;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripManagement;
+import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripManagementImpl;
 // import com.github.jahto.utils.CommonFSTConfiguration;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +47,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 import org.springframework.kafka.config.KafkaStreamsConfiguration;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  *
@@ -47,6 +56,7 @@ import org.springframework.kafka.config.KafkaStreamsConfiguration;
 @Configuration
 @EnableKafka
 @EnableKafkaStreams
+@EnableTransactionManagement
 public class KafkaConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConfiguration.class);
 
@@ -62,7 +72,7 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, WallclockTimestampExtractor.class.getName());
         // props.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
-        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "4");
+        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "8");
         props.put(StreamsConfig.RETRY_BACKOFF_MS_CONFIG, "1000");
         props.put(StreamsConfig.RETRIES_CONFIG, "10");
         return new KafkaStreamsConfiguration(props);
@@ -104,4 +114,27 @@ public class KafkaConfiguration {
         return conf;
     }
     */
+    @Bean
+    SQLCalendarManagement getSQLCalendarManagementImpl() {
+        SQLCalendarManagement impl = new SQLCalendarManagementImpl();
+        return impl;
+    }
+
+    @Bean
+    SQLStopManagement getSQLStopManagementImpl() {
+        SQLStopManagement impl = new SQLStopManagementImpl();
+        return impl;
+    }
+
+    @Bean
+    SQLTripManagement getSQLTripManagementImpl() {
+        SQLTripManagement impl = new SQLTripManagementImpl();
+        return impl;
+    }
+
+    @Bean
+    SQLRouteManagement getSQLRouteManagementImpl() {
+        SQLRouteManagement impl = new SQLRouteManagementImpl();
+        return impl;
+    }
 }

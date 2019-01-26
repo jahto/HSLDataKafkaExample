@@ -19,27 +19,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceDataComplete;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
-import fi.ahto.example.traffic.data.contracts.internal.ServiceTrips;
+import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
-import fi.ahto.example.traffic.data.contracts.internal.TripStop;
+import fi.ahto.example.traffic.data.contracts.internal.TripData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Map;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.onebusaway.csv_entities.EntityHandler;
-import org.onebusaway.gtfs.impl.GtfsDaoImpl;
-import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Frequency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.ServiceCalendar;
@@ -47,7 +45,6 @@ import org.onebusaway.gtfs.model.ServiceCalendarDate;
 import org.onebusaway.gtfs.model.ShapePoint;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.StopTime;
-import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +81,7 @@ public class GTFSDataReader implements ApplicationRunner {
     private FSTSerde<ServiceList> fstslserde;
 
     @Autowired
-    private FSTSerde<ServiceTrips> fststserde;
+    private FSTSerde<StartTimesToTrips> fststserde;
 
     @Autowired
     private FSTSerde<TripStopSet> fsttsserde;
@@ -119,7 +116,7 @@ public class GTFSDataReader implements ApplicationRunner {
         producer.send(record);
     }
 
-    void sendRecord(String topic, String key, ServiceTrips value) {
+    void sendRecord(String topic, String key, StartTimesToTrips value) {
         Serializer ser = fststserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
@@ -189,7 +186,7 @@ public class GTFSDataReader implements ApplicationRunner {
     boolean validatedir(File dir) {
         File prefixfile = new File(dir, "prefix.data");
         if (prefixfile.exists() && prefixfile.canRead() && prefixfile.length() > 0) {
-            try ( BufferedReader br = new BufferedReader(new FileReader(prefixfile))) {
+            try (BufferedReader br = new BufferedReader(new FileReader(prefixfile))) {
                 String line = br.readLine();
                 if (line != null) {
                     prefix = line;
@@ -219,112 +216,128 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     private void triggerChanges() {
-        mapper.trips.forEach((k, v) -> {
-            try {
-                TripStop stop = v.first();
-                String s = v.service;
-                String r = v.route;
-                String b = v.block;
-                String d = v.direction;
-                ServiceTrips service = mapper.servicetrips.get(s + ":" + r + ":" + d);
-                if (service != null) {
-                    if (service.route == null) {
-                        LOG.warn("Logic error!");
-                        service.route = v.route;
-                    }
-                    service.starttimes.put(stop.arrivalTime.toSecondOfDay(), k);
-                }
-                // ServiceTrips block = mapper.servicetrips.get(b + ":" + r + ":" + d);
-                ServiceTrips block = mapper.servicetrips.get(b);
-                if (block != null) {
-                    if (block.route == null) {
-                        LOG.warn("Logic error!");
-                        block.route = v.route;
-                    }
-                    block.starttimes.put(stop.arrivalTime.toSecondOfDay(), k);
-                }
-            } catch (Exception e) {
-                LOG.warn("{}", e);
-            }
-        });
-
-        mapper.services.forEach((k, v) -> {
-            for (String route : v.routeIds) {
-                ServiceList list = mapper.routeservices.get(route);
-                if (list == null) {
-                    list = new ServiceList();
-                    mapper.routeservices.put(route, list);
-                }
-                list.add(v.toServiceData());
-            }
-        }
-        );
-
-        LOG.debug("Sending routes-to-services maps");
-        mapper.routeservices.forEach(
-                (k, v) -> {
-                    sendRecord("routes-to-services", k, v);
-                    LOG.info("rts {}", k);
-                }
-        );
-
-        LOG.debug("Sending services-to-trips maps");
-        mapper.servicetrips.forEach(
-                (k, v) -> {
-                    if (k != null && v != null) {
-                        if (v.route != null) {
-                            sendRecord("services-to-trips", k, v);
-                            LOG.info("stt {} to partition for {}", k, v.route);
-                        } else {
-                            LOG.warn("Logic error!");
-                        }
-                    } else {
-                        LOG.warn("Logic error!");
-                    }
-                }
-        );
-
-        LOG.debug("Sending stops");
-        mapper.stops.forEach(
-                (k, v) -> {
-                    // sendJsonRecord("stops", k, v);
-                    sendRecord("stops", k, v);
-                }
-        );
-
-        LOG.debug("Sending routes");
-        mapper.routes.forEach(
-                (k, v) -> {
-                    // sendJsonRecord("routes", k, v);
-                    sendRecord("routes", k, v);
-                }
-        );
-
-        LOG.debug("Sending trips");
-        mapper.trips.forEach(
-                (k, v) -> {
-                    sendRecord("trips", k, v.toTripStopSet());
-                }
-        );
-
         LOG.debug("Sending shapes");
         collector.shapes.forEach(
                 (k, v) -> {
-                    // sendJsonRecord("shapes", k, v);
-                    sendRecord("shapes", k, v);
+                    sendRecord("shapes", k, v.toShapeSet());
+                    sendJsonRecord("dbqueue-shapes", k, v.toShapeSet());
                 }
         );
+        collector.shapes.clear();
+        /*
+        mapper.services.forEach((k, v) -> {
+            ServiceData sd = v.toServiceData();
+            for (TripExt t : v.getTrips()) {
+                TripData td = t.toTripData(sd);
+                sendJsonRecord("dbqueue-trips-complete", td.getTripId(), td);
+            }
+        });
+         */
+        mapper.services.forEach((k, v) -> {
+            ServiceData sd = v.toServiceData();
+            sendJsonRecord("dbqueue-services-complete", k, sd);
 
-        LOG.debug("Sending complete services");
-        mapper.completeservices.forEach(
-                (k, v) -> {
-                    sendJsonRecord("dbqueue-services-complete", k, v);
-                });
+            final Map<String, ServiceList> routeservices = new HashMap<>();
+            for (String route : v.getRoutes()) {
+                ServiceList list = routeservices.get(route);
+                if (list == null) {
+                    list = new ServiceList();
+                    routeservices.put(route, list);
+                }
+                list.add(v.toStreamServiceData());
+            }
+            routeservices.forEach(
+                    (k2, v2) -> {
+                        if (k2.equals("FI:TKL:90")) {
+                            int i = 0;
+                        }
+                        sendRecord("routes-to-services", k2, v2);
+                        LOG.info("rts {}", k2);
+                    }
+            );
+        });
+        mapper.services.forEach((k, v) -> {
+            ServiceData sd = v.toServiceData();
+            Map<String, StartTimesToTrips> servicetrips = new HashMap<>();
+            for (TripExt t : v.getTrips()) {
+                sendJsonRecord("dbqueue-trips-complete", t.getKey(), t.toTripData(sd));
+                sendRecord("trips", t.getKey(), t.toTripStopSet());
+                StopTimeExt st = t.getStopTimes().first();
+                String s = v.getKey();
+                String r = t.getRouteId();
+                String b = t.getBlockId();
+                String d = t.getDirectionId();
+                String skey = s + ":" + r + ":" + d;
+                if (r.equals("FI:TKL:90")) {
+                    if (st.getArrivalTime().toSecondOfDay() == 21900) {
+                        int i = 0;
+                    }
+                }
+                StartTimesToTrips service = servicetrips.get(skey);
+                if (service == null) {
+                    service = new StartTimesToTrips();
+                    service.route = r;
+                    servicetrips.put(skey, service);
+                }
+                service.starttimes.put(st.getArrivalTime().toSecondOfDay(), t.getKey());
+
+                if (b != null && !b.isEmpty()) {
+                    String bkey = b + ":" + r; // + ":" + d;
+                    StartTimesToTrips block = servicetrips.get(bkey);
+                    if (block == null) {
+                        block = new StartTimesToTrips();
+                        block.route = r;
+                        servicetrips.put(bkey, block);
+                    }
+                    block.starttimes.put(st.getArrivalTime().toSecondOfDay(), t.getKey());
+                }
+            }
+
+            LOG.debug("Sending services-to-trips maps");
+            servicetrips.forEach(
+                    (key, value) -> {
+                        if (key != null && v != null) {
+                            if (value.route != null) {
+                                if (value.route.equals("FI:TKL:90")) {
+                                    int i = 0;
+                                }
+                                sendRecord("services-to-trips", key, value);
+                                LOG.info("stt {} to partition for {}", key, value.route);
+                            } else {
+                                LOG.warn("Logic error!");
+                            }
+                        } else {
+                            LOG.warn("Logic error!");
+                        }
+                    }
+            );
+        });
+        /*
+        mapper.services.forEach((k, v) -> {
+            ServiceData sd = v.toServiceData();
+            sendJsonRecord("dbqueue-services-complete", k, sd);
+
+            final Map<String, ServiceList> routeservices = new HashMap<>();
+            for (String route : v.getRoutes()) {
+                ServiceList list = routeservices.get(route);
+                if (list == null) {
+                    list = new ServiceList();
+                    routeservices.put(route, list);
+                }
+                list.add(v.toStreamServiceData());
+            }
+            routeservices.forEach(
+                    (k2, v2) -> {
+                        sendRecord("routes-to-services", k2, v2);
+                        LOG.info("rts {}", k2);
+                    }
+            );
+        });
+         */
     }
 
     @Component
     private class GtfsEntityHandler implements EntityHandler {
-        // private static class GtfsEntityHandler implements EntityHandler {
 
         @Override
         public void handleEntity(Object bean) {
@@ -336,18 +349,15 @@ public class GTFSDataReader implements ApplicationRunner {
                 } catch (Exception e) {
                     LOG.error("Problem with " + stoptime.toString(), e);
                 }
-                // sendJsonRecord("dbqueue-stoptime", stoptime.getStop().getId().getId(), stoptime);
             }
 
             if (bean instanceof ServiceCalendar) {
                 ServiceCalendar sc = (ServiceCalendar) bean;
                 mapper.add(prefix, sc);
-                // sendJsonRecord("dbqueue-calendar", prefix, sc);
             }
             if (bean instanceof ServiceCalendarDate) {
                 ServiceCalendarDate scd = (ServiceCalendarDate) bean;
                 mapper.add(prefix, scd);
-                // sendJsonRecord("dbqueue-calendardate", prefix, scd);
             }
 
             if (bean instanceof ShapePoint) {
@@ -358,38 +368,23 @@ public class GTFSDataReader implements ApplicationRunner {
             if (bean instanceof Frequency) {
                 Frequency freq = (Frequency) bean;
                 mapper.add(prefix, freq);
-                sendJsonRecord("dbqueue-frequency", prefix, freq);
             }
 
             if (bean instanceof Route) {
                 Route rt = (Route) bean;
-                AgencyAndId aid = rt.getId();
-                Route rtcp = new Route(rt);
-                AgencyAndId aidcp = new AgencyAndId(aid.getAgencyId(), prefix + aid.getId());
-                rtcp.setId(aidcp);
-                sendJsonRecord("dbqueue-route", rtcp.getId().getId(), rtcp);
+                RouteExt rte = new RouteExt(prefix, rt);
+                RouteData rtd = rte.toRouteData();
+                sendRecord("routes", rtd.routeid, rtd);
+                sendJsonRecord("dbqueue-route", rtd.routeid, rtd);
             }
 
             if (bean instanceof Stop) {
                 Stop st = (Stop) bean;
-                AgencyAndId aid = st.getId();
-                Stop stcp = new Stop(st);
-                AgencyAndId aidcp = new AgencyAndId(aid.getAgencyId(), prefix + aid.getId());
-                stcp.setId(aidcp);
-                if (stcp.getCode() != null && !stcp.getCode().isEmpty()) {
-                    stcp.setCode(prefix + stcp.getCode());
-                }
-                if (stcp.getParentStation() != null && !stcp.getParentStation().isEmpty()) {
-                    stcp.setParentStation(prefix + stcp.getParentStation());
-                }
-                sendJsonRecord("dbqueue-stop", stcp.getId().getId(), stcp);
+                StopExt ste = new StopExt(prefix, st);
+                StopData std = ste.toStopData();
+                sendRecord("stops", std.getStopid(), std);
+                sendJsonRecord("dbqueue-stop", std.getStopid(), std);
             }
-            /*
-            if (bean instanceof Trip) {
-                Trip tr = (Trip) bean;
-                sendJsonRecord("dbqueue-trip", prefix, tr);
-            }
-             */
         }
     }
 }

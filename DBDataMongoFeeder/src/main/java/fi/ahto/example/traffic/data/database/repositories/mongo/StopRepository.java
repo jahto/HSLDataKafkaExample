@@ -15,13 +15,13 @@
  */
 package fi.ahto.example.traffic.data.database.repositories.mongo;
 
-import org.onebusaway.gtfs.model.Stop;
+import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author Jouni Ahto
  */
-public interface StopRepository extends MongoRepository<Stop, String>{
+public interface StopRepository extends MongoRepository<StopData, String> {
     
 }
