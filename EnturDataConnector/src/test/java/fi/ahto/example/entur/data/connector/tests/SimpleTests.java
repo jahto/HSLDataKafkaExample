@@ -52,7 +52,7 @@ public class SimpleTests {
     public void testReadDataAsJsonNodes() throws IOException {
         // A safer way to read incoming data in case the are occasional bad nodes.
         try (InputStream stream = new ByteArrayInputStream(TESTDATA.getBytes())) {
-            List<VehicleActivity> list = siriDataPoller.readDataAsJsonNodes(stream);
+            List<VehicleActivity> list = siriDataPoller.readXMLDataTree(stream);
             assertEquals(list.size(), 1);
             VehicleActivity vaf = list.get(0);
         }

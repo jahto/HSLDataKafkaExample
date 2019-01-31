@@ -69,7 +69,7 @@ public class VehicleActivityTransformer {
         final JsonSerde<VehicleActivity> vaserde = new JsonSerde<>(VehicleActivity.class, objectMapper);
         final JsonSerde<VehicleHistorySet> vhsetserde = new JsonSerde<>(VehicleHistorySet.class, objectMapper);
 
-        KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), vaserde));
+        KStream<String, VehicleActivity> streamin = builder.stream("data-by-vehicleid", Consumed.with(Serdes.String(), fstvaserde));
         VehicleTransformerSupplier transformer = new VehicleTransformerSupplier(builder, Serdes.String(), fstvaserde, "vehicle-transformer-extended");
 
         KStream<String, VehicleActivity> transformed = streamin.transform(transformer, "vehicle-transformer-extended");
@@ -102,6 +102,7 @@ public class VehicleActivityTransformer {
                     return KeyValue.pair(newkey, value);
                 })
                 .groupByKey(Serialized.with(Serdes.String(), vaserde))
+                // .groupByKey(Serialized.with(Serdes.String(), fstvaserde))
                 .aggregate(vehicleinitializer, vehicleaggregator,
                         Materialized.<String, VehicleHistorySet, KeyValueStore<Bytes, byte[]>>as("vehicle-aggregation-store")
                                 .withKeySerde(Serdes.String())

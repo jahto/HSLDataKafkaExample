@@ -28,6 +28,10 @@ public class StopTimeDataSet extends TreeSet<StopTimeData> implements Serializab
     private static final long serialVersionUID = 2289084775213919155L;
 
     public StopTimeDataSet() {
-        super((Comparator<StopTimeData> & Serializable) (StopTimeData o1, StopTimeData o2) -> Integer.compare(o1.getStopSequence(), o2.getStopSequence()));
+        super(new StopTimeDataSetComparator());
+    }
+    
+    public StopTimeDataSet(StopTimeDataSetComparator comp) {
+        super(comp);
     }
 }

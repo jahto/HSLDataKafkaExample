@@ -13,7 +13,6 @@ import com.github.jahto.utils.FSTSerializers.java.time.FSTZonedDateTimeSerialize
 import com.github.jahto.utils.FSTSerializers.TripStopSerializer;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
-// import fi.ahto.example.traffic.data.contracts.internal.RouteData.RouteStop;
 import fi.ahto.example.traffic.data.contracts.internal.StreamServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;

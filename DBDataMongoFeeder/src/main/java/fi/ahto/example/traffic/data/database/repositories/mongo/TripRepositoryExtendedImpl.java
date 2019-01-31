@@ -28,9 +28,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * @author Jouni Ahto
  */
 public class TripRepositoryExtendedImpl implements TripRepositoryExtended {
+
     @Autowired
     private MongoTemplate mongoTemplate;
-    
+
     @PostConstruct
     @Override
     public void initIndexes() {
@@ -48,7 +49,9 @@ public class TripRepositoryExtendedImpl implements TripRepositoryExtended {
                 .ensureIndex(new Index().on("stopTimes.stopId", Sort.Direction.ASC));
         mongoTemplate.indexOps(TripData.class)
                 .ensureIndex(new Index().on("stopTimes.stopSequence", Sort.Direction.ASC));
-                mongoTemplate.indexOps(TripData.class)
+        mongoTemplate.indexOps(TripData.class)
                 .ensureIndex(new Index().on("stopTimes.arrival.secs", Sort.Direction.ASC));
+        mongoTemplate.indexOps(TripData.class)
+                .ensureIndex(new Index().on("startTime.secs", Sort.Direction.ASC));
     }
 }

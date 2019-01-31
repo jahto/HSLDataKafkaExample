@@ -18,6 +18,8 @@ package fi.ahto.example.tkl.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
@@ -36,16 +38,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -62,20 +65,20 @@ public class SiriDataPoller {
     private static final LocalTime cutoff = LocalTime.of(4, 30); // Check!!!
 
     @Autowired
-    @Qualifier( "json")
     private ObjectMapper objectMapper;
-    
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
-    
-    //@Autowired
-    //private FSTConfiguration conf;
-    
-    //private final FSTSerde<VehicleActivity> fstserde = new FSTSerde<>(VehicleActivity.class, conf);
 
     @Autowired
-     private ProducerFactory<String, Object> producerFactory;
+    private Producer<String, Object> producer;
+    
+    private final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+    private final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
 
+    void sendRecord(String topic, String key, VehicleActivity value) {
+        Serializer ser = fstvaserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {
@@ -111,22 +114,10 @@ public class SiriDataPoller {
     }
 
     public void putDataToQueues(List<VehicleActivity> data) {
-        // KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivity vaf : data) {
-            kafkaTemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            // ProducerRecord record = createRecord("data-by-vehicleid", vaf.getVehicleId(), vaf);
-            // kafkaTemplate.send(record);
+            sendRecord("data-by-vehicleid", vaf.getVehicleId(), vaf);
         }
     }
-    /*
-    ProducerRecord createRecord(String topic, String key, VehicleActivity value) {
-        Producer pr = producerFactory.createProducer();
-        Serializer ser = fstserde.serializer();
-        byte[] msg = ser.serialize(topic, value);
-        ProducerRecord record = new ProducerRecord(topic, key, msg);
-        return record;
-    }
-    */
     public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
         // Could be a safer way to read incoming data in case the are occasional bad nodes.
         // Bound to happen with the source of incoming data as a moving target.
@@ -173,8 +164,10 @@ public class SiriDataPoller {
 
         vaf.setDirection(jrn.path("directionRef").asText());
 
-        vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());
-        vaf.setLineId(jrn.path("lineRef").asText());
+        if (!jrn.path("journeyPatternRef").asText().isEmpty()) {
+            vaf.setInternalLineId(PREFIX + jrn.path("journeyPatternRef").asText());
+            vaf.setLineId(jrn.path("lineRef").asText());
+        }
 
         // Good enough for TKL until tram traffic starts there.
         // We set it later from the route data...
@@ -219,8 +212,8 @@ public class SiriDataPoller {
             // Noted that there's the case when the vehicles speed is 0.0,
             // stops order is 1, and originShortName matches with this stop.
             // So the vehicle is clearly still waiting to start the journey.
-            // Should we in that case use next stop?
-            
+            // Should we in that case use next stop? All this will be handled
+            // in LineTransformer later in the processing pipeline.
             vaf.setNextStopId(PREFIX + stopid.substring(index + 1));
         }
         else {
@@ -228,7 +221,9 @@ public class SiriDataPoller {
             // has arrived/is arriving to the last stop on the route, or something
             // else. This is just guesswork.
             String stopid = jrn.path("destinationShortName").asText();
-            vaf.setNextStopId(PREFIX + stopid);
+            if (!stopid.isEmpty()) {
+                vaf.setNextStopId(PREFIX + stopid);
+            }
         }
         
         JsonNode onwardcalls = jrn.path("onwardCalls");
@@ -242,7 +237,6 @@ public class SiriDataPoller {
                 int index = stopid.lastIndexOf('/');
                 stop.stopid = PREFIX + stopid.substring(index + 1);
                 stop.seq = call.path("order").asInt();
-                // stop.arrivalTime = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
                 LocalTime tmp = OffsetDateTime.parse(call.path("expectedArrivalTime").asText()).toLocalTime();
                 stop.arrivalTime = GTFSLocalTime.ofCutOffAndLocalTime(cutoff, tmp);
                 set.add(stop);

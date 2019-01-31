@@ -17,26 +17,28 @@ package fi.ahto.example.hsl.data.mqtt.connector;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
-// import fi.ahto.example.traffic.data.contracts.internal.RouteType;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.mqtt.support.MqttHeaders;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessageHeaders;
@@ -58,11 +60,20 @@ public class HSLDataMQTTListener {
     private static final LocalTime cutoff = LocalTime.of(4, 30); // Check!!!
     
     @Autowired
-    @Qualifier( "json")
     private ObjectMapper objectMapper;
-    
+
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private Producer<String, Object> producer;
+    
+    private final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+    private final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
+
+    void sendRecord(String topic, String key, VehicleActivity value) {
+        Serializer ser = fstvaserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
 
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel", autoStartup = "true")
@@ -96,9 +107,7 @@ public class HSLDataMQTTListener {
     }
 
     public void putDataToQueues(VehicleActivity data) {
-        // KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
-        // msgtemplate.send("data-by-vehicleid", data.getVehicleId(), data);
-        kafkaTemplate.send("data-by-vehicleid", data.getVehicleId(), data);
+        sendRecord("data-by-vehicleid", data.getVehicleId(), data);
     }
 
     public VehicleActivity readDataAsJsonNodes(String queue, String msg) throws IOException {
@@ -128,7 +137,7 @@ public class HSLDataMQTTListener {
         }
 
         LineInfo info = decodeLineNumber(line);
-        // Currently, skip some known problem cases where the GTSS data is missing.
+        // Currently, skip some known problem cases where the GTFS data is missing.
         if (info == null) {
             return null;
         }
@@ -160,11 +169,11 @@ public class HSLDataMQTTListener {
 
         LocalDate operday = LocalDate.parse(vp.path("oday").asText());
         LocalTime start = LocalTime.parse(vp.path("start").asText());
-        vaf.setOperatingDate(operday);
         vaf.setStartTime(GTFSLocalTime.ofCutOffAndLocalTime(cutoff, start));
         if (start.isBefore(cutoff)) {
             operday = operday.plusDays(1);
         }
+        vaf.setOperatingDate(operday);
         ZonedDateTime zdt = ZonedDateTime.of(operday, start, ZoneId.of("Europe/Helsinki"));
         vaf.setTripStart(zdt);
         // HSL feed seems to refer to the next stop

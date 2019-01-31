@@ -27,7 +27,6 @@ public class TripStopSet extends TreeSet<TripStop> implements Serializable {
     private static final long serialVersionUID = 2289084775213919155L;
 
     public TripStopSet() {
-        // super((Comparator<TripStop> & Serializable) (TripStop o1, TripStop o2) -> Integer.compare(o1.seq, o2.seq));
         super(new TripStopSetComparator());
     }
     

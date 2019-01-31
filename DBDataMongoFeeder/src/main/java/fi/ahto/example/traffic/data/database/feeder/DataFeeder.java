@@ -16,22 +16,25 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
 import fi.ahto.example.traffic.data.contracts.internal.TripData;
+import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.example.traffic.data.database.repositories.mongo.RouteRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.ServiceDataRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.ShapeSetRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.StopRepository;
 import fi.ahto.example.traffic.data.database.repositories.mongo.TripRepository;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +54,10 @@ import org.springframework.stereotype.Component;
 public class DataFeeder {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataFeeder.class);
-    private static final AtomicLong counter = new AtomicLong(1);
+    private static final AtomicLong servicecounter = new AtomicLong(1);
+    private static final AtomicLong tripcounter = new AtomicLong(1);
+    private static final AtomicLong stopcounter = new AtomicLong(1);
     
-    @Autowired
-    @Qualifier("binary")
-    private ObjectMapper smileMapper;
-
     @Autowired
     private RouteRepository routeRepository;
 
@@ -74,28 +75,31 @@ public class DataFeeder {
     
     @Bean
     public KStream<String, RouteData> kStream(StreamsBuilder builder) {
-        final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, smileMapper);
-        KStream<String, RouteData> routestream = builder.stream("dbqueue-route", Consumed.with(Serdes.String(), routeserde));
+        final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+        
+        final FSTSerde<RouteData> routeserde = new FSTSerde<>(RouteData.class, conf);
+        // final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, smileMapper);
+        KStream<String, RouteData> routestream = builder.stream("routes", Consumed.with(Serdes.String(), routeserde));
         routestream.foreach((key, value) -> handleRoute(key, value));
 
-        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, smileMapper);
-        KStream<String, StopData> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
+        final FSTSerde<StopData> stopserde = new FSTSerde<>(StopData.class, conf);
+        // final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, smileMapper);
+        KStream<String, StopData> stopstream = builder.stream("stops", Consumed.with(Serdes.String(), stopserde));
         stopstream.foreach((key, value) -> handleStop(key, value));
         
-        final JsonSerde<TripData> tripserde = new JsonSerde<>(TripData.class, smileMapper);
-        KStream<String, TripData> tripstream = builder.stream("dbqueue-trips-complete", Consumed.with(Serdes.String(), tripserde));
+        final FSTSerde<TripData> tripserde = new FSTSerde<>(TripData.class, conf);
+        // final JsonSerde<TripData> tripserde = new JsonSerde<>(TripData.class, smileMapper);
+        KStream<String, TripData> tripstream = builder.stream("trips", Consumed.with(Serdes.String(), tripserde));
         tripstream.foreach((key, value) -> handleTrip(key, value));
         
-        final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, smileMapper);
-        KStream<String, ServiceData> servicestream = builder.stream("dbqueue-services-complete", Consumed.with(Serdes.String(), serviceserde));
+        final FSTSerde<ServiceData> serviceserde = new FSTSerde<>(ServiceData.class, conf);
+        // final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, smileMapper);
+        KStream<String, ServiceData> servicestream = builder.stream("services", Consumed.with(Serdes.String(), serviceserde));
         servicestream.foreach((key, value) -> handleService(key, value));
 
-        /* Problem, find out how to solve.
-java.lang.ClassCastException: org.bson.Document cannot be cast to java.base/java.util.Collection
-	at org.springframework.data.mongodb.core.convert.MappingMongoConverter.writeInternal(MappingMongoConverter.java:492) ~[spring-data-mongodb-2.1.3.RELEASE.jar:2.1.3.RELEASE]        final JsonSerde<ShapeSet> shapeserde = new JsonSerde<>(ShapeSet.class, smileMapper);
-        */
-        final JsonSerde<ShapeSet> shapeserde = new JsonSerde<>(ShapeSet.class, smileMapper);
-        KStream<String, ShapeSet> shapestream = builder.stream("dbqueue-shapes", Consumed.with(Serdes.String(), shapeserde));
+        final FSTSerde<ShapeSet> shapeserde = new FSTSerde<>(ShapeSet.class, conf);
+        // final JsonSerde<ShapeSet> shapeserde = new JsonSerde<>(ShapeSet.class, smileMapper);
+        KStream<String, ShapeSet> shapestream = builder.stream("shapes", Consumed.with(Serdes.String(), shapeserde));
         shapestream.foreach((key, value) -> handleShapeSet(key, value));
 
         return routestream;
@@ -120,6 +124,9 @@ java.lang.ClassCastException: org.bson.Document cannot be cast to java.base/java
     private void handleStop(String key, StopData rt) {
         try {
             stopRepository.save(rt);
+            if (stopcounter.addAndGet(1) % 100 == 0) {
+                LOG.debug("Handled {} stops", stopcounter);
+            }
         } catch (Exception e) {
             LOG.info("handleStop", e);
         }
@@ -128,6 +135,9 @@ java.lang.ClassCastException: org.bson.Document cannot be cast to java.base/java
     private void handleTrip(String key, TripData rt) {
         try {
             tripRepository.save(rt);
+            if (tripcounter.addAndGet(1) % 100 == 0) {
+                LOG.debug("Handled {} trips", tripcounter);
+            }
         } catch (Exception e) {
             LOG.info("handleTrip", e);
         }
@@ -136,8 +146,8 @@ java.lang.ClassCastException: org.bson.Document cannot be cast to java.base/java
     private void handleService(String key, ServiceData rt) {
         try {
             serviceRepository.save(rt);
-            if (counter.addAndGet(1) % 100 == 0) {
-                LOG.info("Handled {} records", counter);
+            if (servicecounter.addAndGet(1) % 100 == 0) {
+                LOG.debug("Handled {} services", servicecounter);
             }
         } catch (Exception e) {
             LOG.info("handleService", e);

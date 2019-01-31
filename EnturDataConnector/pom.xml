@@ -16,6 +16,12 @@
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>com.github.jahto</groupId>
+            <artifactId>Utils</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
             <type>jar</type>

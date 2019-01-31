@@ -15,17 +15,19 @@
  */
 package fi.ahto.example.vilkku.data.connector;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.kafka.core.KafkaTemplate;
 
 /**
  *
@@ -37,19 +39,25 @@ public class GtfsRTDataPoller {
     private static final Lock LOCK = new ReentrantLock();
     private static final String SOURCE = "FI:VLK";
     private static final String PREFIX = SOURCE + ":";
-    
+
     @Autowired
-    // @Qualifier( "json")
-    private ObjectMapper objectMapper;
+    private Producer<String, Object> producer;
     
-    @Autowired
-    private KafkaTemplate<String, VehicleActivity> kafkaTemplate;
+    private final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+    private final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
+
+    void sendRecord(String topic, String key, VehicleActivity value) {
+        Serializer ser = fstvaserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
     
     public void putDataToQueue(Collection<VehicleActivity> vehiclelist) {
         for (VehicleActivity va : vehiclelist) {
             LOG.info("Sending...");
-            kafkaTemplate.send("data-by-vehicleid", va.getVehicleId(), va);
+            sendRecord("data-by-vehicleid", va.getVehicleId(), va);
         }
     }
-    
+
 }

@@ -25,10 +25,12 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.github.jahto.utils.CommonFSTConfiguration;
 import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
 import fi.ahto.example.traffic.data.contracts.internal.StartTimesToTrips;
 import fi.ahto.example.traffic.data.contracts.internal.ShapeSet;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
+import fi.ahto.example.traffic.data.contracts.internal.TripData;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,11 +104,6 @@ public class KafkaConfiguration {
     public ProducerFactory<String, Object> producerFactory() {
         LOG.debug("ProducerFactory");
         DefaultKafkaProducerFactory<String, Object> factory = new DefaultKafkaProducerFactory<>(producerConfigs());
-        /*
-        final JsonSerde<Object> serde = new JsonSerde<>(objectMapper);
-        Serializer<Object> ser =  serde.serializer();
-        factory.setValueSerializer(ser);
-        */
         return factory;
     }
 
@@ -148,12 +145,20 @@ public class KafkaConfiguration {
     }
 
     @Bean
-    FSTSerde<StopData> fstsdserde() {
+    FSTSerde<StopData> fststopserde() {
         return new FSTSerde<>(StopData.class, conf);
     }
     @Bean
-    FSTSerde<RouteData> fstrtserde() {
+    FSTSerde<RouteData> fstrouteserde() {
         return new FSTSerde<>(RouteData.class, conf);
+    }
+    @Bean
+    FSTSerde<TripData> fsttripserde() {
+        return new FSTSerde<>(TripData.class, conf);
+    }
+    @Bean
+    FSTSerde<ServiceData> fstserviceserde() {
+        return new FSTSerde<>(ServiceData.class, conf);
     }
     @Bean
     FSTSerde<ShapeSet> fstshapeserde() {

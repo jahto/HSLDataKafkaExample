@@ -16,13 +16,14 @@
 package fi.ahto.example.traffic.data.contracts.internal;
 
 import fi.ahto.example.traffic.data.contracts.utils.GTFSLocalTimeConverter;
+import java.io.Serializable;
 import javax.persistence.Convert;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class StopTimeData {
+public class StopTimeData implements Serializable {
 
     public StopTimeData() {}
 

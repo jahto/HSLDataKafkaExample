@@ -109,6 +109,7 @@ CREATE INDEX stops_stop_id_num_idx ON stops (stop_id, stop_num);
 CREATE INDEX trips_block_id_idx ON trips (block_id);
 CREATE INDEX trips_route_num_idx ON trips (route_num);
 CREATE INDEX trips_service_num_idx ON trips (service_num);
+CREATE INDEX trips_start_time_idx ON trips (start_time);
 
 CREATE UNIQUE INDEX trips_trip_id_idx ON trips (trip_id);
 CREATE INDEX trips_trip_id_num_idx ON trips (trip_id, trip_num);

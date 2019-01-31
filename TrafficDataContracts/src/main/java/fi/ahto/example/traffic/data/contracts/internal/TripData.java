@@ -15,6 +15,7 @@
  */
 package fi.ahto.example.traffic.data.contracts.internal;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +23,7 @@ import java.util.List;
  *
  * @author Jouni Ahto
  */
-public class TripData {
+public class TripData implements Serializable {
     public TripData() {}
 
     public RouteData getRoute() {

@@ -49,7 +49,11 @@ public class SQLCalendarManagementImpl implements SQLCalendarManagement {
     @Autowired
     private SQLCalendarDateRepository calendarDateRepository;
 
+    @Override
     public Long getServiceNumber(String key, ServiceData rt) {
+        if (key == null) {
+            LOG.warn("Shouldn't be possible to happen, but happens anyway...");
+        }
         Long num = servicenums.get(key);
         if (num != null) {
             return num;

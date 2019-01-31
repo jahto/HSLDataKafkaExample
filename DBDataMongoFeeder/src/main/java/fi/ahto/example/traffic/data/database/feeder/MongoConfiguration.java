@@ -22,20 +22,14 @@ package fi.ahto.example.traffic.data.database.feeder;
  * Based on an example from
  * https://www.mkyong.com/mongodb/spring-data-mongodb-jsr-310-or-java-8-new-date-apis/
  */
-import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
-import fi.ahto.example.traffic.data.contracts.internal.TripData;
-import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.MongoDbFactory;
-import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
-import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 
 @Configuration
@@ -64,11 +58,4 @@ public class MongoConfiguration {
                 new DefaultDbRefResolver(mongoDbFactory), new MongoMappingContext());
         return converter;
     }
-/*
-    @PostConstruct
-    public void initIndexes() {
-        mongoTemplate.indexOps(ServiceData.class)
-                .ensureIndex(new Index().on("validFrom", Sort.Direction.ASC));
-    }
-*/
 }

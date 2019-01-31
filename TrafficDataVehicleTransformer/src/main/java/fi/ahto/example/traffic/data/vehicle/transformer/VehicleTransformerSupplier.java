@@ -19,6 +19,7 @@ import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import fi.ahto.kafka.streams.state.utils.TransformerSupplierWithStore;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -147,9 +148,28 @@ public class VehicleTransformerSupplier
             if (current.getLineId() == null
                     || current.getLineId().isEmpty()
                     || (current.getTripStart() != null && current.getTripStart().toInstant().equals(Instant.EPOCH))) {
+                LOG.info("Vehicle {} has no line id or an impossible start time", current.getVehicleId());
                 return null;
             }
 
+            // Check here if the vehicle can be considered to be at route start, maybe not exactly,
+            // but at least very soon, it might still be travelling there.
+            ZoneId zid = current.getTripStart().getZone();
+            ZonedDateTime rt = ZonedDateTime.ofInstant(current.getRecordTime(), zid);
+            int t1 = rt.toLocalTime().toSecondOfDay();
+            int t2 = current.getStartTime().toSecondOfDay();
+            int t3 = current.getDelay() != null ? current.getDelay() : 0;
+            int diff = t2 - t1 + t3;
+            if (diff > 0) {
+                 LOG.info("Vehicle {} is at the start of line {}, dir {}",
+                         current.getVehicleId(), current.getInternalLineId(), current.getDirection());
+                current.setAtRouteStart(true);
+            }
+            else {
+                 LOG.info("Vehicle {} is NOT at the start of line {}, dir {}",
+                         current.getVehicleId(), current.getInternalLineId(), current.getDirection());
+            }
+            
             if (previous == null) {
                 if (current.isAtRouteEnd()) {
                     LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), current.getInternalLineId());
@@ -158,16 +178,7 @@ public class VehicleTransformerSupplier
                 current.setLastAddedToHistory(current.getRecordTime());
                 return current;
             }
-            /* There was something odd with FOLI data, don't remember anymore.
-            Have to check it again, it' probably not solved yet.
-            if (previous.getLineId() == null || previous.getLineId().isEmpty()) {
-                int i = 0;
-            }
 
-            if (current.getInternalLineId().equals("FI:FOLI:53") && current.getVehicleId().equals("FI:FOLI:80025")) {
-                int i = 0;
-            }
-            // */
             boolean calculate = true;
 
             // Always copy first last history addition
@@ -175,7 +186,7 @@ public class VehicleTransformerSupplier
 
             // We do not accept records coming in too late.
             if (current.getRecordTime().isBefore(previous.getRecordTime())) {
-                return recordIsLate(previous, current);
+                return recordIsLate(current, previous);
             }
 
             // We get also duplicates quite often...
@@ -195,7 +206,9 @@ public class VehicleTransformerSupplier
                         previous.getTripStart(), current.getRecordTime().atZone(ZoneId.of("Z")), previous.getRecordTime().atZone(ZoneId.of("Z")));
                 // Oh hell, there's incorrect data in  HSL feed and this interacted badly with it. A few vehicles
                 // perhaps by mistake, first stamped to a later trip and a few seconds later corrected to the right
-                // one, which happens to be before the previous, mess ready...
+                // one, which happens to be before the previous, mess ready... Actually, it was a feature called
+                // upcoming trips, and they are already handled in the feeder, this could maybe be removed.
+                // Unless it still happens.
                 // Ok, we'll go with the assumption that if the record timestamp is before trip start,
                 // it's a correction to a previous mistake.
                 if (current.getRecordTime().isBefore(current.getTripStart().toInstant())) {
@@ -215,7 +228,7 @@ public class VehicleTransformerSupplier
             // Vehicle is at end the of line, remove it immediately. It may come back
             // later, but not necessarily on the same line;
             if (current.isAtRouteEnd()) {
-                return vehicleIsAtEOL(previous, current);
+                return vehicleIsAtEOL(current, previous);
             }
 
             // Vehicle has changed line, useless to calculate the change of delay.
@@ -299,7 +312,7 @@ public class VehicleTransformerSupplier
             return current;
         }
 
-        private VehicleActivity vehicleIsAtEOL(VehicleActivity previous, VehicleActivity current) {
+        private VehicleActivity vehicleIsAtEOL(VehicleActivity current, VehicleActivity previous) {
             if (!previous.isAtRouteEnd()) {
                 LOG.info("Vehicle {} is at the end of line {}", current.getVehicleId(), previous.getInternalLineId());
                 current.setAddToHistory(true);
@@ -317,7 +330,7 @@ public class VehicleTransformerSupplier
             }
         }
 
-        private VehicleActivity recordIsLate(VehicleActivity previous, VehicleActivity current) {
+        private VehicleActivity recordIsLate(VehicleActivity current, VehicleActivity previous) {
             // unless we are testing...
             if (TESTING) {
                 // But, in that case, must guard against some oddities in incoming data.

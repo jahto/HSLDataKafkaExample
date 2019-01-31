@@ -15,9 +15,8 @@
  */
 package fi.ahto.example.entur.data.connector;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.TripStop;
 import fi.ahto.example.traffic.data.contracts.internal.TripStopSet;
@@ -35,6 +34,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import static org.rutebanken.siri20.util.SiriXml.parseXml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +46,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
 import uk.org.siri.siri20.MonitoredCallStructure;
 import uk.org.siri.siri20.OnwardCallStructure;
@@ -68,11 +69,17 @@ public class SiriDataPoller {
     private static final UUID uuid = UUID.randomUUID();
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private Producer<String, Object> producer;
+    
+    private final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+    private final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
 
-    @Autowired
-    ProducerFactory<String, VehicleActivity> vehicleActivityProducerFactory;
-
+    void sendRecord(String topic, String key, VehicleActivity value) {
+        Serializer ser = fstvaserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
     public void pollRealData() throws URISyntaxException {
@@ -82,7 +89,7 @@ public class SiriDataPoller {
             // datasetId=RUT
             URI uri = new URI("http://api.entur.org/anshar/1.0/rest/vm" + "?requestorId=" + uuid.toString());
             try (InputStream data = fetchData(uri)) {
-                dataFlattened = readDataAsJsonNodes(data);
+                dataFlattened = readXMLDataTree(data);
             }
             if (dataFlattened != null) {
                 putDataToQueues(dataFlattened);
@@ -93,7 +100,7 @@ public class SiriDataPoller {
     }
 
     public void feedTestData(InputStream data) throws IOException {
-        List<VehicleActivity> dataFlattened = readDataAsJsonNodes(data);
+        List<VehicleActivity> dataFlattened = readXMLDataTree(data);
         if (dataFlattened != null) {
             LOG.debug("Putting data to queues");
             putDataToQueues(dataFlattened);
@@ -109,17 +116,13 @@ public class SiriDataPoller {
     }
 
     public void putDataToQueues(List<VehicleActivity> data) {
-        KafkaTemplate<String, VehicleActivity> msgtemplate = new KafkaTemplate<>(vehicleActivityProducerFactory);
         for (VehicleActivity vaf : data) {
-            msgtemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            sendRecord("data-by-vehicleid", vaf.getVehicleId(), vaf);
         }
     }
 
-    public List<VehicleActivity> readDataAsJsonNodes(InputStream in) throws IOException {
+    public List<VehicleActivity> readXMLDataTree(InputStream in) throws IOException {
         List<VehicleActivity> vehicleActivities = new ArrayList<>();
-        objectMapper.setSerializationInclusion(Include.NON_EMPTY);
-        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        int i = 0;
         try {
             Siri s = parseXml(in);
             List<VehicleMonitoringDeliveryStructure> vms = s.getServiceDelivery().getVehicleMonitoringDeliveries();
@@ -130,19 +133,10 @@ public class SiriDataPoller {
                     VehicleActivity vaf = flattenVehicleActivity(va);
                     if (vaf != null) {
                         vehicleActivities.add(vaf);
-                    } else {
-                        String val = objectMapper.writeValueAsString(va);
-                        LOG.error("Problem with node: " + val);
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    String val = objectMapper.writeValueAsString(va);
-                    LOG.error("Exception with node: " + val + ex);
-                    i++;
                 }
-            }
-            if (i > 0) {
-                LOG.warn("Exceptions total: " + Integer.toString(i));
             }
         } catch (JAXBException ex) {
         } catch (XMLStreamException ex) {
@@ -213,7 +207,6 @@ public class SiriDataPoller {
         if (mvh.getOriginAimedDepartureTime() != null) {
             vaf.setTripStart(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo")));
             vaf.setStartTime(GTFSLocalTime.ofZonedDateTime(mvh.getOriginAimedDepartureTime().withZoneSameInstant(ZoneId.of("Europe/Oslo"))));
-            // vaf.setStartTime(mvh.getOriginAimedDepartureTime().toLocalTime());
         }
 
         // What does this field refer to?

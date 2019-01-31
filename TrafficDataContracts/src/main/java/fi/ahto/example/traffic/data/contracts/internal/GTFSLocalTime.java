@@ -222,6 +222,10 @@ public class GTFSLocalTime implements Serializable, Comparable<GTFSLocalTime> {
         return true;
     }
 
+    public String toKeyPart() {
+        return String.format("%05d", secs);
+    }
+    
     @Override
     public String toString() {
         return "GTFSLocalTime{" + "secs=" + secs + ", time=" + time + ", daysForward=" + daysForward + '}';

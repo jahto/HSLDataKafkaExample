@@ -15,13 +15,6 @@
  */
 package fi.ahto.example.traffic.data.database.feeder;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarManagement;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLCalendarManagementImpl;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLRouteManagement;
@@ -30,16 +23,13 @@ import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopManagement;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLStopManagementImpl;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripManagement;
 import fi.ahto.example.traffic.data.database.repositories.sql.SQLTripManagementImpl;
-// import com.github.jahto.utils.CommonFSTConfiguration;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
-import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -77,7 +67,7 @@ public class KafkaConfiguration {
         props.put(StreamsConfig.RETRIES_CONFIG, "10");
         return new KafkaStreamsConfiguration(props);
     }
-
+    /*
     @Bean
     @Qualifier( "json")
     public ObjectMapper customizedObjectMapper() {
@@ -107,6 +97,7 @@ public class KafkaConfiguration {
         LOG.debug("customizedObjectMapper constructed");
         return mapper;
     }
+    */
     /*
     @Bean
     public FSTConfiguration getFSTConfiguration() {

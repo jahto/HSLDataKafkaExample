@@ -64,13 +64,13 @@ public class TimeTableComparerSupplier extends TransformerSupplierWithStore<Stri
             boolean fixed = false;
 
             LOG.debug("Comparing timetables.");
-            if (current.getOnwardCalls().isEmpty()) {
+            if (current.getOnwardCalls().isEmpty() && !current.isAtRouteEnd()) {
                 // There's still a rare strange problem with the logic for FOLI.
                 // Vehicles that have changed line or direction, but not any
                 // stop information, so we haven't any list of stops the vehicle
-                // should be removed from.-
-                LOG.warn("There should be onwardcalls now, vehicle {}, line {}",
-                        current.getVehicleId(), current.getInternalLineId());
+                // should be removed from. Should be handled now.
+                LOG.warn("There should be onwardcalls now, vehicle {}, line {}, trip {}",
+                        current.getVehicleId(), current.getInternalLineId(), current.getTripID());
             }
             // This to skip some oddities at least in FI:TKL data,
             // maybe others too. Have to move elsewhere...

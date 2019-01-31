@@ -275,6 +275,7 @@ public class GTFSRTMapper {
                     date = date.plusDays(1);
                 }
                 va.setTripStart(ZonedDateTime.of(date, time.getLocalTime(), zone));
+                int i = 0;
             }
         } catch (Exception ex) {
             LOG.error("parseTripDescriptor", ex);

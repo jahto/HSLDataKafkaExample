@@ -13,15 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fi.ahto.example.traffic.data.contracts.internal;
+package fi.ahto.example.traffic.data.gtfs.feeder;
 
-import java.io.Serializable;
-import java.util.HashMap;
+import fi.ahto.example.traffic.data.contracts.internal.ServiceList;
+import java.util.ArrayList;
 
 /**
  *
  * @author Jouni Ahto
  */
-public class Arrivals extends HashMap<String, VehicleAtStop> implements Serializable {
-    private static final long serialVersionUID = 5458152069187570234L;
+public class ServiceListExt extends ArrayList<ServiceCalendarExt> {
+    public ServiceList toServiceList() {
+        ServiceList list = new ServiceList();
+        
+        this.forEach((sce) -> {
+            list.add(sce.toStreamServiceData());
+        });
+        
+        return list;
+    }
 }

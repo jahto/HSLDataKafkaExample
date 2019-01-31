@@ -18,6 +18,8 @@ package fi.ahto.example.foli.data.connector;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.GTFSLocalTime;
 import fi.ahto.example.traffic.data.contracts.internal.VehicleActivity;
 import java.io.IOException;
@@ -33,15 +35,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serializer;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -59,12 +63,20 @@ public class SiriDataPoller {
     private static final LocalTime cutoff = LocalTime.of(3, 30); // Check!!!
 
     @Autowired
-    @Qualifier( "json")
     private ObjectMapper objectMapper;
-    
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Autowired
+    private Producer<String, Object> producer;
+    
+    private final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+    private final FSTSerde<VehicleActivity> fstvaserde = new FSTSerde<>(VehicleActivity.class, conf);
+
+    void sendRecord(String topic, String key, VehicleActivity value) {
+        Serializer ser = fstvaserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
 
     // Remove comment below when trying to actually run this...
     // @Scheduled(fixedRate = 60000)
@@ -102,7 +114,7 @@ public class SiriDataPoller {
 
     public void putDataToQueues(List<VehicleActivity> data) {
         for (VehicleActivity vaf : data) {
-            kafkaTemplate.send("data-by-vehicleid", vaf.getVehicleId(), vaf);
+            sendRecord("data-by-vehicleid", vaf.getVehicleId(), vaf);
         }
     }
 
@@ -147,9 +159,11 @@ public class SiriDataPoller {
             dir = "1";
         }
         vaf.setDirection(dir);
-        vaf.setInternalLineId(PREFIX + node.path("lineref").asText());
-        // Seems to be the same as the previous one, anyway...
-        vaf.setLineId(node.path("publishedlinename").asText());
+        if (!node.path("lineref").asText().isEmpty()) {
+            vaf.setInternalLineId(PREFIX + node.path("lineref").asText());
+            // Seems to be the same as the previous one, anyway...
+            vaf.setLineId(node.path("publishedlinename").asText());
+        }
 
         // Good enough for FOLI until tram traffic starts there.
         // We set it later from the route data...
@@ -173,8 +187,14 @@ public class SiriDataPoller {
         vaf.setOperatingDate(zdt.toLocalDate());
         vaf.setStartTime(GTFSLocalTime.ofCutOffAndZonedDateTime(cutoff, zdt));
 
-        vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
-        vaf.setNextStopName(node.path("next_stoppointname").asText());
+        if (node.path("next_stoppointref").asText() != null && !node.path("next_stoppointref").asText().isEmpty()) {
+            vaf.setNextStopId(PREFIX + node.path("next_stoppointref").asText());
+            vaf.setNextStopName(node.path("next_stoppointname").asText());
+        }
+        else {
+            vaf.setAtRouteEnd(true);
+        }
+
         vaf.setBlockId(PREFIX + node.path("blockref").asText());
 
         // Check for erroneous records where the start time is too far in the future.

@@ -16,6 +16,8 @@
 package fi.ahto.example.traffic.data.database.feeder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jahto.utils.CommonFSTConfiguration;
+import com.github.jahto.utils.FSTSerde;
 import fi.ahto.example.traffic.data.contracts.internal.RouteData;
 import fi.ahto.example.traffic.data.contracts.internal.ServiceData;
 import fi.ahto.example.traffic.data.contracts.internal.StopData;
@@ -29,6 +31,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.nustaq.serialization.FSTConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,15 +46,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DataFeeder {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DataFeeder.class);
-    private static ConcurrentHashMap<String, Long> routenums = new ConcurrentHashMap<>();
-    private static final Object routelock = new Object();
-
-    @Autowired
-    @Qualifier("binary")
-    private ObjectMapper smileMapper;
-
     @Autowired
     private SQLRouteManagement routeManagement;
 
@@ -66,20 +60,26 @@ public class DataFeeder {
 
     @Bean
     public KStream<String, RouteData> kStream(StreamsBuilder builder) {
-        final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, smileMapper);
-        KStream<String, RouteData> routestream = builder.stream("dbqueue-route", Consumed.with(Serdes.String(), routeserde));
+        final FSTConfiguration conf = CommonFSTConfiguration.getCommonFSTConfiguration();
+        
+        final FSTSerde<RouteData> routeserde = new FSTSerde<>(RouteData.class, conf);
+        // final JsonSerde<RouteData> routeserde = new JsonSerde<>(RouteData.class, smileMapper);
+        KStream<String, RouteData> routestream = builder.stream("routes", Consumed.with(Serdes.String(), routeserde));
         routestream.foreach((key, value) -> routeManagement.handleRoute(key, value, true));
 
-        final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, smileMapper);
-        KStream<String, StopData> stopstream = builder.stream("dbqueue-stop", Consumed.with(Serdes.String(), stopserde));
+        final FSTSerde<StopData> stopserde = new FSTSerde<>(StopData.class, conf);
+        // final JsonSerde<StopData> stopserde = new JsonSerde<>(StopData.class, smileMapper);
+        KStream<String, StopData> stopstream = builder.stream("stops", Consumed.with(Serdes.String(), stopserde));
         stopstream.foreach((key, value) -> stopManagement.handleStop(key, value, true));
 
-        final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, smileMapper);
-        KStream<String, ServiceData> servicestream = builder.stream("dbqueue-services-complete", Consumed.with(Serdes.String(), serviceserde));
+        final FSTSerde<ServiceData> serviceserde = new FSTSerde<>(ServiceData.class, conf);
+        // final JsonSerde<ServiceData> serviceserde = new JsonSerde<>(ServiceData.class, smileMapper);
+        KStream<String, ServiceData> servicestream = builder.stream("services", Consumed.with(Serdes.String(), serviceserde));
         servicestream.foreach((key, value) -> calendarManagement.handleService(key, value, true));
 
-        final JsonSerde<TripData> tripserde = new JsonSerde<>(TripData.class, smileMapper);
-        KStream<String, TripData> tripstream = builder.stream("dbqueue-trips-complete", Consumed.with(Serdes.String(), tripserde));
+        final FSTSerde<TripData> tripserde = new FSTSerde<>(TripData.class, conf);
+        // final JsonSerde<TripData> tripserde = new JsonSerde<>(TripData.class, smileMapper);
+        KStream<String, TripData> tripstream = builder.stream("trips", Consumed.with(Serdes.String(), tripserde));
         tripstream.foreach((key, value) -> tripManagement.handleTrip(key, value));
 
         return routestream;

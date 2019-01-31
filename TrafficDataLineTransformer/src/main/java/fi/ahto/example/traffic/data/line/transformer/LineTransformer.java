@@ -99,9 +99,9 @@ public class LineTransformer {
                 );
 
         GlobalKTable<String, TripStopSet> trips
-                = builder.globalTable("trips",
+                = builder.globalTable("trips-to-stops",
                         Consumed.with(Serdes.String(), fsttripsserde),
-                        Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("fsttrips")
+                        Materialized.<String, TripStopSet, KeyValueStore<Bytes, byte[]>>as("trips-to-stops-store")
                 );
 
         // Map to correct trip id in several steps, another approach.
@@ -116,17 +116,19 @@ public class LineTransformer {
                 // At least some Z3 trains don't have this in incoming data.
                 .filter((k, v) -> v.getNextStopId() != null && !v.getNextStopId().isEmpty())
                 // .filterNot((k, v) -> v.LineHasChanged())
-                .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
+                // .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getInternalLineId(),
+                .leftJoin(routesToServices, (String key, VehicleActivity value) -> value.getStartTime().toKeyPart() + ":" + value.getInternalLineId() + ":" + value.getDirection(),
                         (VehicleActivity value, ServiceList right) -> {
                             if (value.getInternalLineId().equals("FI:TKL:90")) {
                                 if (value.getStartTime().toSecondOfDay() == 21900) {
                                     int i = 0;
                                 }
                             }
+                            String skey = value.getStartTime().toKeyPart() + ":" + value.getInternalLineId() + ":" + value.getDirection();
                             if (right == null) {
-                                LOG.warn("Didn't find correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
+                                LOG.warn("Didn't find correct servicelist {} for route {}, line {}", skey, value.getInternalLineId(), value.getLineId());
                             } else {
-                                LOG.debug("Found correct servicelist for route {}, line {}", value.getInternalLineId(), value.getLineId());
+                                LOG.debug("Found correct servicelist {} for route {}, line {}", skey, value.getInternalLineId(), value.getLineId());
                             }
                             VehicleActivity rval = findPossibleServices(value, right);
                             return rval;
@@ -139,8 +141,11 @@ public class LineTransformer {
                         // Happens when I forget to feed static GTFS-data, must check later...
                         return rval;
                     }
+                    if (v.getInternalLineId().equals("FI:TKL:90")) {
+                        int i = 0;
+                    }
                     for (String s : v.getServicePossibilities()) {
-                        VehicleActivity va = new VehicleActivity(v);
+                        VehicleActivity va  = new VehicleActivity(v);
                         va.setServiceID(s);
                         String key = va.getServiceID();// + ":" + va.getInternalLineId();
                         rval.add(va);
@@ -160,7 +165,7 @@ public class LineTransformer {
                                 LOG.warn("Didn't find correct service {} for route {}, line {}, time {}, dir {}",
                                         newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             } else {
-                                LOG.info("Found correct service {} for route {}, line {}, time {}, dir {}",
+                                LOG.debug("Found correct service {} for route {}, line {}, time {}, dir {}",
                                         newkey, value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             }
                             if (newkey.equals("FI:TKL:TAL_MATO_K35_2019:FI:TKL:90:1")) {
@@ -171,13 +176,13 @@ public class LineTransformer {
                             }
                             value = findTrip(value, right);
                             if (value.getTripID() == null) {
-                                LOG.warn("Didn't find correct trip for service {}, route {}, line {}, time {}",
-                                        value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
+                                LOG.warn("Didn't find correct trip for service {}, route {}, line {}, time {}, dir {}",
+                                        value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                                 return null;
                             }
 
-                            LOG.info("Found correct trip for service {}, route {}, line {}, time {}",
-                                    value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime());
+                            LOG.debug("Found correct trip for service {}, route {}, line {}, time {}, dir {}",
+                                    value.getServiceID(), value.getInternalLineId(), value.getLineId(), value.getStartTime(), value.getDirection());
                             return value;
                         }
                 )
@@ -201,7 +206,7 @@ public class LineTransformer {
                                 LOG.warn("Didn't find correct block {} for route {}, line {}, dir {}",
                                         retkey, value.getInternalLineId(), value.getLineId(), value.getDirection());
                             } else {
-                                LOG.info("Found correct block {} for route {}, line {}, dir {}",
+                                LOG.debug("Found correct block {} for route {}, line {}, dir {}",
                                         retkey, value.getInternalLineId(), value.getLineId(), value.getDirection());
                             }
                             value = findTrip(value, right);
@@ -215,12 +220,13 @@ public class LineTransformer {
         // And them, some feeds already have a reference to the correct trip and timetable.
         KStream<String, VehicleActivity> hasTripId = streamin
                 .filter((k, v) -> v.getTripID() != null && !v.getTripID().isEmpty());
-        
+
         // Merge the streams.
         KStream<String, VehicleActivity> finaltripstopstream = hasNoIdThirdStep.merge(hasBlockId).merge(hasTripId);
 
         // Add possibly missing remaining stops 
         KStream<String, VehicleActivity> reallyfinaltripstopstream = finaltripstopstream
+                .filter((k, v) -> v.getTripID() != null && !v.getTripID().isEmpty())
                 .leftJoin(trips,
                         (String key, VehicleActivity value) -> value.getTripID(),
                         (VehicleActivity left, TripStopSet right) -> addMissingStopTimes(left, right)
@@ -332,6 +338,12 @@ public class LineTransformer {
             LOG.debug("Service {} matches for route {}, line {}, time {}",
                     sdb.getServiceId(), va.getInternalLineId(), va.getLineId(), va.getStartTime());
         }
+        if (possibilities.size() > 1) {
+            LOG.warn("Still too many possibilities for route {}", va.getInternalLineId());
+        }
+        if (possibilities.isEmpty()) {
+            LOG.warn("None of the possibilities match for route {}", va.getInternalLineId());
+        }
         va.setServicePossibilities(possibilities);
         return va;
     }
@@ -349,7 +361,7 @@ public class LineTransformer {
                     va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID());
             return va;
         }
-        LOG.info("Time {} was found in maps, route {}, line {}, service {}, trip {}",
+        LOG.debug("Time {} was found in maps, route {}, line {}, service {}, trip {}",
                 va.getStartTime(), va.getInternalLineId(), va.getLineId(), va.getServiceID(), tripId);
 
         va.setTripID(tripId);
@@ -371,14 +383,36 @@ public class LineTransformer {
     }
 
     VehicleActivity addMissingStopTimes(VehicleActivity left, TripStopSet right) {
+        if (left.isAtRouteEnd()) {
+            return left;
+        }
+
         if (right == null) {
             return left;
         }
 
+        // NOTE: Observed at least on FI:FOLI rt-feed, when the vehicle has arrived at the trips
+        // last stop, it can still send information about being on the trip, but any stop related
+        // data is now null. So it should be marked at being at route end. Done, already at the
+        // data feeder. Maybe some others too should be modified the same way.
+        // ANOTHER NOTE. Observed at least on FI:VLK rt-feed, when the vehicle has not yet started
+        // its trip, there is sometimes no stop information. So perhaps check here the trip start time,
+        // compare with the record timestamps time, and if latter is earlier, mark as being at route start,
+        // and just fill in all the stops on the trip.
         NavigableSet<TripStop> missing = null;
-        TripStop stop = findNextStop(left.getNextStopId(), left.getNextStopSequence(), right);
-        if (stop != null) {
-            missing = right.tailSet(stop, true);
+        if (left.isAtRouteStart()) {
+            missing = right;
+        } else {
+            TripStop stop = findNextStop(left.getNextStopId(), left.getNextStopSequence(), right);
+            if (stop != null) {
+                missing = right.tailSet(stop, true);
+            }
+            else {
+                int i = 0;
+            }
+        }
+        if (missing == null || missing.isEmpty()) {
+            int i = 0;
         }
 
         if (missing != null && missing.size() > 0) {
@@ -420,8 +454,7 @@ public class LineTransformer {
                 if (seq.equals(stop.seq)) {
                     return stop;
                 }
-            }
-            else if (stop.stopid.equals(name)) {
+            } else if (stop.stopid.equals(name)) {
                 return stop;
             }
         }

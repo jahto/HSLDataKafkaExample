@@ -87,10 +87,16 @@ public class GTFSDataReader implements ApplicationRunner {
     private FSTSerde<TripStopSet> fsttsserde;
 
     @Autowired
-    private FSTSerde<StopData> fstsdserde;
+    private FSTSerde<StopData> fststopserde;
 
     @Autowired
-    private FSTSerde<RouteData> fstrdserde;
+    private FSTSerde<RouteData> fstrouteserde;
+
+    @Autowired
+    private FSTSerde<TripData> fsttripserde;
+
+    @Autowired
+    private FSTSerde<ServiceData> fstserviceserde;
 
     @Autowired
     private FSTSerde<ShapeSet> fstshapeserde;
@@ -131,14 +137,28 @@ public class GTFSDataReader implements ApplicationRunner {
     }
 
     void sendRecord(String topic, String key, StopData value) {
-        Serializer ser = fstsdserde.serializer();
+        Serializer ser = fststopserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
     }
 
     void sendRecord(String topic, String key, RouteData value) {
-        Serializer ser = fstrdserde.serializer();
+        Serializer ser = fstrouteserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
+
+    void sendRecord(String topic, String key, TripData value) {
+        Serializer ser = fsttripserde.serializer();
+        byte[] msg = ser.serialize(topic, value);
+        ProducerRecord record = new ProducerRecord(topic, key, msg);
+        producer.send(record);
+    }
+
+    void sendRecord(String topic, String key, ServiceData value) {
+        Serializer ser = fstserviceserde.serializer();
         byte[] msg = ser.serialize(topic, value);
         ProducerRecord record = new ProducerRecord(topic, key, msg);
         producer.send(record);
@@ -202,7 +222,6 @@ public class GTFSDataReader implements ApplicationRunner {
     void processdir(File dir) {
         GtfsReader reader = new GtfsReader();
         reader.addEntityHandler(entityHandler);
-        //reader.setEntityStore(store);
         File input = dir.getAbsoluteFile();
         try {
             mapper = new DataMapper();
@@ -220,59 +239,64 @@ public class GTFSDataReader implements ApplicationRunner {
         collector.shapes.forEach(
                 (k, v) -> {
                     sendRecord("shapes", k, v.toShapeSet());
-                    sendJsonRecord("dbqueue-shapes", k, v.toShapeSet());
                 }
         );
         collector.shapes.clear();
-        /*
-        mapper.services.forEach((k, v) -> {
-            ServiceData sd = v.toServiceData();
-            for (TripExt t : v.getTrips()) {
-                TripData td = t.toTripData(sd);
-                sendJsonRecord("dbqueue-trips-complete", td.getTripId(), td);
-            }
-        });
-         */
-        mapper.services.forEach((k, v) -> {
-            ServiceData sd = v.toServiceData();
-            sendJsonRecord("dbqueue-services-complete", k, sd);
 
-            final Map<String, ServiceList> routeservices = new HashMap<>();
+        final Map<String, ServiceListExt> routeservices = new HashMap<>();
+        mapper.services.forEach((k, v) -> {
+            ServiceData sd = v.toServiceData();
+            sendRecord("services", k, sd);
+            /*
             for (String route : v.getRoutes()) {
-                ServiceList list = routeservices.get(route);
+                ServiceListExt list = routeservices.get(route);
+
                 if (list == null) {
-                    list = new ServiceList();
+                    list = new ServiceListExt();
                     routeservices.put(route, list);
                 }
-                list.add(v.toStreamServiceData());
+                else if (list.contains(v) == false) {
+                    list.add(v);
+                }
             }
-            routeservices.forEach(
-                    (k2, v2) -> {
-                        if (k2.equals("FI:TKL:90")) {
-                            int i = 0;
-                        }
-                        sendRecord("routes-to-services", k2, v2);
-                        LOG.info("rts {}", k2);
-                    }
-            );
+            */
+            for (TripExt t : v.getTrips()) {
+                String p1 = t.getStopTimes().first().getArrivalTime().toKeyPart();
+                String p2 = t.getRouteId();
+                String p3 = t.getDirectionId();
+                String key = p1 + ":" + p2 + ":" + p3;
+
+                ServiceListExt list = routeservices.get(key);
+                if (list == null) {
+                    list = new ServiceListExt();
+                    routeservices.put(key, list);
+                    list.add(v);
+                }
+                else if (list.contains(v) == false) {
+                    list.add(v);
+                }
+            }
         });
+        routeservices.forEach(
+                (k2, v2) -> {
+                    sendRecord("routes-to-services", k2, v2.toServiceList());
+                    LOG.info("rts {}", k2);
+                }
+        );
+        routeservices.clear();
         mapper.services.forEach((k, v) -> {
             ServiceData sd = v.toServiceData();
             Map<String, StartTimesToTrips> servicetrips = new HashMap<>();
             for (TripExt t : v.getTrips()) {
-                sendJsonRecord("dbqueue-trips-complete", t.getKey(), t.toTripData(sd));
-                sendRecord("trips", t.getKey(), t.toTripStopSet());
+                sendRecord("trips", t.getKey(), t.toTripData(sd));
+                sendRecord("trips-to-stops", t.getKey(), t.toTripStopSet());
                 StopTimeExt st = t.getStopTimes().first();
                 String s = v.getKey();
                 String r = t.getRouteId();
                 String b = t.getBlockId();
                 String d = t.getDirectionId();
                 String skey = s + ":" + r + ":" + d;
-                if (r.equals("FI:TKL:90")) {
-                    if (st.getArrivalTime().toSecondOfDay() == 21900) {
-                        int i = 0;
-                    }
-                }
+
                 StartTimesToTrips service = servicetrips.get(skey);
                 if (service == null) {
                     service = new StartTimesToTrips();
@@ -298,9 +322,6 @@ public class GTFSDataReader implements ApplicationRunner {
                     (key, value) -> {
                         if (key != null && v != null) {
                             if (value.route != null) {
-                                if (value.route.equals("FI:TKL:90")) {
-                                    int i = 0;
-                                }
                                 sendRecord("services-to-trips", key, value);
                                 LOG.info("stt {} to partition for {}", key, value.route);
                             } else {
@@ -312,28 +333,6 @@ public class GTFSDataReader implements ApplicationRunner {
                     }
             );
         });
-        /*
-        mapper.services.forEach((k, v) -> {
-            ServiceData sd = v.toServiceData();
-            sendJsonRecord("dbqueue-services-complete", k, sd);
-
-            final Map<String, ServiceList> routeservices = new HashMap<>();
-            for (String route : v.getRoutes()) {
-                ServiceList list = routeservices.get(route);
-                if (list == null) {
-                    list = new ServiceList();
-                    routeservices.put(route, list);
-                }
-                list.add(v.toStreamServiceData());
-            }
-            routeservices.forEach(
-                    (k2, v2) -> {
-                        sendRecord("routes-to-services", k2, v2);
-                        LOG.info("rts {}", k2);
-                    }
-            );
-        });
-         */
     }
 
     @Component
@@ -375,7 +374,6 @@ public class GTFSDataReader implements ApplicationRunner {
                 RouteExt rte = new RouteExt(prefix, rt);
                 RouteData rtd = rte.toRouteData();
                 sendRecord("routes", rtd.routeid, rtd);
-                sendJsonRecord("dbqueue-route", rtd.routeid, rtd);
             }
 
             if (bean instanceof Stop) {
@@ -383,7 +381,6 @@ public class GTFSDataReader implements ApplicationRunner {
                 StopExt ste = new StopExt(prefix, st);
                 StopData std = ste.toStopData();
                 sendRecord("stops", std.getStopid(), std);
-                sendJsonRecord("dbqueue-stop", std.getStopid(), std);
             }
         }
     }
